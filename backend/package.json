@@ -1,0 +1,47 @@
+{
+  "name": "trinity-metro-bike-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Trinity Metro Bike referral platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.2.0",
+    "axios": "^1.5.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^6.10.0",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "moment": "^2.29.4",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.4",
+    "twilio": "^4.23.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "prisma": "^5.2.0"
+  },
+  "keywords": [
+    "crypto",
+    "referral",
+    "wallet",
+    "coinbase",
+    "nodejs",
+    "express"
+  ],
+  "author": "Trinity Metro Bike Team",
+  "license": "MIT"
+}

@@ -1,0 +1,242 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  fullName      String
+  email         String   @unique
+  phone         String?  @unique
+  password      String
+  isEmailVerified Boolean @default(false)
+  isPhoneVerified Boolean @default(false)
+  isActive      Boolean  @default(true)
+  isAdmin       Boolean  @default(false)
+  referralCode  String   @unique
+  referredBy    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  wallet        Wallet?
+  referrals     User[]   @relation("UserReferrals")
+  referrer      User?    @relation("UserReferrals", fields: [referredBy], references: [id])
+  deposits      Deposit[]
+  withdrawals   Withdrawal[]
+  transactions  Transaction[]
+  otpCodes      OtpCode[]
+  userVip       UserVip?
+  earningsSessions EarningsSession[]
+
+  @@map("users")
+}
+
+model Wallet {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  balance       Decimal  @default(0) @db.Decimal(18, 8)
+  totalDeposits Decimal  @default(0) @db.Decimal(18, 8)
+  totalEarnings Decimal  @default(0) @db.Decimal(18, 8)
+  totalReferralBonus Decimal @default(0) @db.Decimal(18, 8)
+  dailyEarnings Decimal  @default(0) @db.Decimal(18, 8)
+  lastWithdrawal DateTime?
+  lastGrowthUpdate DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model Deposit {
+  id                String      @id @default(uuid())
+  userId            String
+  amount            Decimal     @db.Decimal(18, 8)
+  currency          String      // BTC, ETH, USDT
+  coinbaseChargeId  String?     @unique
+  coinbaseCode      String?
+  network           String?     // BEP20, TRC20, etc. for USDT deposits
+  depositType       String?     // COINBASE, USDT_DIRECT, etc.
+  status            DepositStatus @default(PENDING)
+  transactionHash   String?
+  webhookData       Json?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relations
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("deposits")
+}
+
+model Withdrawal {
+  id              String          @id @default(uuid())
+  userId          String
+  amount          Decimal         @db.Decimal(18, 8)
+  currency        String          // BTC, ETH, USDT
+  walletAddress   String
+  status          WithdrawalStatus @default(PENDING)
+  adminNotes      String?
+  processedBy     String?
+  processedAt     DateTime?
+  transactionHash String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("withdrawals")
+}
+
+model Transaction {
+  id          String          @id @default(uuid())
+  userId      String
+  type        TransactionType
+  amount      Decimal         @db.Decimal(18, 8)
+  description String
+  referenceId String?         // Reference to deposit, withdrawal, or referral
+  createdAt   DateTime        @default(now())
+
+  // Relations
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
+}
+
+model OtpCode {
+  id        String    @id @default(uuid())
+  userId    String
+  code      String
+  type      OtpType   // EMAIL, PHONE
+  purpose   String    // REGISTRATION, LOGIN, WITHDRAWAL
+  expiresAt DateTime
+  isUsed    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  // Relations
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("otp_codes")
+}
+
+model AdminSettings {
+  id                    String   @id @default(uuid())
+  dailyGrowthRate       Decimal  @default(0.01) @db.Decimal(5, 4) // 1% = 0.01
+  referralBonusRate     Decimal  @default(0.05) @db.Decimal(5, 4) // 5% = 0.05
+  minDepositAmount      Decimal  @default(10) @db.Decimal(18, 8)
+  minUsdtDepositAmount  Decimal  @default(30) @db.Decimal(18, 8)
+  minWithdrawalAmount   Decimal  @default(20) @db.Decimal(18, 8)
+  isDepositEnabled      Boolean  @default(true)
+  isWithdrawalEnabled   Boolean  @default(true)
+  isRegistrationEnabled Boolean  @default(true)
+  maintenanceMode       Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("admin_settings")
+}
+
+model ReferralBonus {
+  id          String   @id @default(uuid())
+  referrerId  String
+  referredId  String
+  depositId   String
+  bonusAmount Decimal  @db.Decimal(18, 8)
+  bonusRate   Decimal  @db.Decimal(5, 4)
+  createdAt   DateTime @default(now())
+
+  @@map("referral_bonuses")
+}
+
+// Enums
+enum DepositStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  EXPIRED
+}
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  FAILED
+}
+
+model VipLevel {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  amount        Decimal  @db.Decimal(18, 8)
+  dailyEarning  Decimal  @db.Decimal(18, 8)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  userVips      UserVip[]
+
+  @@map("vip_levels")
+}
+
+model UserVip {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  vipLevelId    String
+  joinedAt      DateTime @default(now())
+  isActive      Boolean  @default(true)
+  totalPaid     Decimal  @db.Decimal(18, 8)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vipLevel      VipLevel @relation(fields: [vipLevelId], references: [id])
+
+  @@map("user_vips")
+}
+
+model EarningsSession {
+  id            String   @id @default(uuid())
+  userId        String
+  vipLevelId    String
+  startedAt     DateTime @default(now())
+  endsAt        DateTime
+  isActive      Boolean  @default(true)
+  earningsAmount Decimal @db.Decimal(18, 8)
+  isPaid        Boolean  @default(false)
+  paidAt        DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("earnings_sessions")
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  REFERRAL_BONUS
+  WALLET_GROWTH
+  VIP_EARNINGS
+  VIP_PAYMENT
+  ADMIN_ADJUSTMENT
+}
+
+enum OtpType {
+  EMAIL
+  PHONE
+}

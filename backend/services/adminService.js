@@ -1,0 +1,322 @@
+const bcrypt = require('bcryptjs');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+// Initialize admin settings on server startup
+const initializeAdminSettings = async () => {
+  try {
+    // Check if admin settings exist
+    let settings = await prisma.adminSettings.findFirst();
+    
+    if (!settings) {
+      // Create default admin settings
+      settings = await prisma.adminSettings.create({
+        data: {
+          dailyGrowthRate: parseFloat(process.env.DEFAULT_DAILY_GROWTH_RATE) || 0.01,
+          referralBonusRate: parseFloat(process.env.DEFAULT_REFERRAL_BONUS_RATE) || 0.05,
+          minDepositAmount: parseFloat(process.env.MIN_DEPOSIT_AMOUNT) || 10,
+          minWithdrawalAmount: parseFloat(process.env.MIN_WITHDRAWAL_AMOUNT) || 20,
+          isDepositEnabled: true,
+          isWithdrawalEnabled: true,
+          isRegistrationEnabled: true,
+          maintenanceMode: false
+        }
+      });
+      console.log('✅ Default admin settings created');
+    }
+
+    // Check if admin user exists
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (adminEmail && adminPassword) {
+      const existingAdmin = await prisma.user.findUnique({
+        where: { email: adminEmail }
+      });
+
+      if (!existingAdmin) {
+        // Create default admin user
+        const hashedPassword = await bcrypt.hash(adminPassword, 12);
+        
+        // Generate unique referral code for admin
+        let adminReferralCode;
+        let isUnique = false;
+        while (!isUnique) {
+          adminReferralCode = 'ADMIN' + Math.random().toString(36).substring(2, 6).toUpperCase();
+          const existing = await prisma.user.findUnique({
+            where: { referralCode: adminReferralCode }
+          });
+          if (!existing) isUnique = true;
+        }
+
+        const adminUser = await prisma.user.create({
+          data: {
+            fullName: 'System Administrator',
+            email: adminEmail,
+            password: hashedPassword,
+            referralCode: adminReferralCode,
+            isEmailVerified: true,
+            isAdmin: true
+          }
+        });
+
+        // Create wallet for admin
+        await prisma.wallet.create({
+          data: {
+            userId: adminUser.id
+          }
+        });
+
+        console.log('✅ Default admin user created');
+      }
+    }
+
+    return settings;
+  } catch (error) {
+    console.error('❌ Failed to initialize admin settings:', error);
+    throw error;
+  }
+};
+
+// Get current admin settings
+const getAdminSettings = async () => {
+  try {
+    const settings = await prisma.adminSettings.findFirst();
+    return settings;
+  } catch (error) {
+    console.error('Error fetching admin settings:', error);
+    throw error;
+  }
+};
+
+// Update admin settings
+const updateAdminSettings = async (updates) => {
+  try {
+    const settings = await prisma.adminSettings.findFirst();
+    
+    if (!settings) {
+      throw new Error('Admin settings not found');
+    }
+
+    const updatedSettings = await prisma.adminSettings.update({
+      where: { id: settings.id },
+      data: updates
+    });
+
+    return updatedSettings;
+  } catch (error) {
+    console.error('Error updating admin settings:', error);
+    throw error;
+  }
+};
+
+// Get system statistics
+const getSystemStats = async () => {
+  try {
+    const [
+      totalUsers,
+      totalDeposits,
+      totalWithdrawals,
+      pendingWithdrawals,
+      totalWalletBalance,
+      recentUsers
+    ] = await Promise.all([
+      // Total users count
+      prisma.user.count({
+        where: { isAdmin: false }
+      }),
+      
+      // Total deposits
+      prisma.deposit.aggregate({
+        where: { status: 'CONFIRMED' },
+        _sum: { amount: true },
+        _count: true
+      }),
+      
+      // Total withdrawals
+      prisma.withdrawal.aggregate({
+        where: { status: 'COMPLETED' },
+        _sum: { amount: true },
+        _count: true
+      }),
+      
+      // Pending withdrawals
+      prisma.withdrawal.aggregate({
+        where: { status: 'PENDING' },
+        _sum: { amount: true },
+        _count: true
+      }),
+      
+      // Total wallet balance
+      prisma.wallet.aggregate({
+        _sum: { balance: true }
+      }),
+      
+      // Recent users (last 7 days)
+      prisma.user.count({
+        where: {
+          isAdmin: false,
+          createdAt: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+          }
+        }
+      })
+    ]);
+
+    return {
+      users: {
+        total: totalUsers,
+        recent: recentUsers
+      },
+      deposits: {
+        total: totalDeposits._sum.amount || 0,
+        count: totalDeposits._count
+      },
+      withdrawals: {
+        total: totalWithdrawals._sum.amount || 0,
+        count: totalWithdrawals._count,
+        pending: {
+          total: pendingWithdrawals._sum.amount || 0,
+          count: pendingWithdrawals._count
+        }
+      },
+      totalBalance: totalWalletBalance._sum.balance || 0
+    };
+  } catch (error) {
+    console.error('Error fetching system stats:', error);
+    throw error;
+  }
+};
+
+// Get user management data
+const getUserManagementData = async (page = 1, limit = 20, search = '') => {
+  try {
+    const skip = (page - 1) * limit;
+    
+    const whereClause = {
+      isAdmin: false,
+      ...(search && {
+        OR: [
+          { fullName: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+          { referralCode: { contains: search, mode: 'insensitive' } }
+        ]
+      })
+    };
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where: whereClause,
+        include: {
+          wallet: true,
+          _count: {
+            select: {
+              referrals: true,
+              deposits: true,
+              withdrawals: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      
+      prisma.user.count({ where: whereClause })
+    ]);
+
+    return {
+      users,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        itemsPerPage: limit
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching user management data:', error);
+    throw error;
+  }
+};
+
+// Toggle user status (active/inactive)
+const toggleUserStatus = async (userId) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (user.isAdmin) {
+      throw new Error('Cannot modify admin user status');
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { isActive: !user.isActive }
+    });
+
+    return updatedUser;
+  } catch (error) {
+    console.error('Error toggling user status:', error);
+    throw error;
+  }
+};
+
+// Get referral tree for a user
+const getReferralTree = async (userId, depth = 3) => {
+  try {
+    const buildTree = async (parentId, currentDepth) => {
+      if (currentDepth > depth) return [];
+      
+      const referrals = await prisma.user.findMany({
+        where: { referredBy: parentId },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          referralCode: true,
+          createdAt: true,
+          wallet: {
+            select: {
+              balance: true,
+              totalDeposits: true
+            }
+          }
+        }
+      });
+
+      const tree = [];
+      for (const referral of referrals) {
+        const children = await buildTree(referral.id, currentDepth + 1);
+        tree.push({
+          ...referral,
+          children,
+          level: currentDepth
+        });
+      }
+
+      return tree;
+    };
+
+    const tree = await buildTree(userId, 1);
+    return tree;
+  } catch (error) {
+    console.error('Error building referral tree:', error);
+    throw error;
+  }
+};
+
+module.exports = {
+  initializeAdminSettings,
+  getAdminSettings,
+  updateAdminSettings,
+  getSystemStats,
+  getUserManagementData,
+  toggleUserStatus,
+  getReferralTree
+};
