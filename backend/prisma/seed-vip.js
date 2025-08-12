@@ -10,7 +10,7 @@ const vipLevels = [
   { name: 'Platinum', amount: 1500, dailyEarning: 65 },
   { name: 'Diamond', amount: 2000, dailyEarning: 75 },
   { name: 'Elite', amount: 5000, dailyEarning: 200 },
-  { name: 'Master', amount: 6000, dailyEarning: 270 },
+  { name: 'Master', amount: 6000, dailyEarning: 250 },
   { name: 'Legend', amount: 12000, dailyEarning: 500 },
   { name: 'Supreme', amount: 25000, dailyEarning: 800 }
 ];

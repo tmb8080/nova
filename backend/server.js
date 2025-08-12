@@ -17,6 +17,7 @@ const withdrawalRoutes = require('./routes/withdrawal');
 const referralRoutes = require('./routes/referral');
 const webhookRoutes = require('./routes/webhook');
 const vipRoutes = require('./routes/vip');
+const taskRoutes = require('./routes/tasks');
 
 // Import services
 const { processWalletGrowth } = require('./services/walletService');
@@ -68,6 +69,7 @@ app.use('/api/withdrawal', withdrawalRoutes);
 app.use('/api/referral', referralRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/vip', vipRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

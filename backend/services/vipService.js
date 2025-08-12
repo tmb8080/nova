@@ -199,8 +199,108 @@ async function canWithdrawToday(userId) {
   }
 }
 
+/**
+ * Create or update VIP levels
+ */
+async function createOrUpdateVipLevels() {
+  try {
+    console.log('Creating/updating VIP levels...');
+    
+    const vipLevels = [
+      { name: 'Starter', amount: 30, dailyEarning: 2 },
+      { name: 'Bronze', amount: 180, dailyEarning: 10 },
+      { name: 'Silver', amount: 400, dailyEarning: 24 },
+      { name: 'Gold', amount: 1000, dailyEarning: 50 },
+      { name: 'Platinum', amount: 1500, dailyEarning: 65 },
+      { name: 'Diamond', amount: 2000, dailyEarning: 75 },
+      { name: 'Elite', amount: 5000, dailyEarning: 200 },
+      { name: 'Master', amount: 6000, dailyEarning: 250 },
+      { name: 'Legend', amount: 12000, dailyEarning: 500 },
+      { name: 'Supreme', amount: 25000, dailyEarning: 800 }
+    ];
+
+    const results = [];
+
+    for (const vip of vipLevels) {
+      try {
+        const result = await prisma.vipLevel.upsert({
+          where: { name: vip.name },
+          update: {
+            amount: vip.amount,
+            dailyEarning: vip.dailyEarning,
+            isActive: true
+          },
+          create: {
+            name: vip.name,
+            amount: vip.amount,
+            dailyEarning: vip.dailyEarning,
+            isActive: true
+          }
+        });
+
+        results.push({
+          name: vip.name,
+          status: 'success',
+          data: result
+        });
+
+        console.log(`VIP level ${vip.name} created/updated successfully`);
+      } catch (error) {
+        console.error(`Error creating/updating VIP level ${vip.name}:`, error);
+        results.push({
+          name: vip.name,
+          status: 'error',
+          error: error.message
+        });
+      }
+    }
+
+    console.log('VIP levels creation/update completed');
+    return results;
+  } catch (error) {
+    console.error('Error in createOrUpdateVipLevels:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all VIP levels
+ */
+async function getAllVipLevels() {
+  try {
+    const vipLevels = await prisma.vipLevel.findMany({
+      where: { isActive: true },
+      orderBy: { amount: 'asc' }
+    });
+    
+    return vipLevels;
+  } catch (error) {
+    console.error('Error getting VIP levels:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get VIP level by ID
+ */
+async function getVipLevelById(id) {
+  try {
+    const vipLevel = await prisma.vipLevel.findUnique({
+      where: { id }
+    });
+    
+    return vipLevel;
+  } catch (error) {
+    console.error('Error getting VIP level by ID:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   processCompletedEarningSessions,
   getUserVipStats,
-  canWithdrawToday
+  canWithdrawToday,
+  createOrUpdateVipLevels,
+  getAllVipLevels,
+  getVipLevelById
 };

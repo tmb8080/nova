@@ -186,6 +186,7 @@ model VipLevel {
 
   // Relations
   userVips      UserVip[]
+  earningsSessions EarningsSession[]
 
   @@map("vip_levels")
 }
@@ -208,20 +209,21 @@ model UserVip {
 }
 
 model EarningsSession {
-  id            String   @id @default(uuid())
-  userId        String
-  vipLevelId    String
-  startedAt     DateTime @default(now())
-  endsAt        DateTime
-  isActive      Boolean  @default(true)
-  earningsAmount Decimal @db.Decimal(18, 8)
-  isPaid        Boolean  @default(false)
-  paidAt        DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                String   @id @default(uuid())
+  userId            String
+  vipLevelId        String
+  startTime         DateTime @default(now())
+  expectedEndTime   DateTime
+  actualEndTime     DateTime?
+  status            EarningSessionStatus @default(ACTIVE)
+  dailyEarningRate  Decimal  @db.Decimal(18, 8)
+  totalEarnings     Decimal? @db.Decimal(18, 8)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vipLevel          VipLevel @relation(fields: [vipLevelId], references: [id])
 
   @@map("earnings_sessions")
 }
@@ -239,4 +241,10 @@ enum TransactionType {
 enum OtpType {
   EMAIL
   PHONE
+}
+
+enum EarningSessionStatus {
+  ACTIVE
+  COMPLETED
+  STOPPED
 }

@@ -4,6 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
+// Import components
+import Layout from './components/layout/Layout';
+
 // Import pages
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -11,6 +14,9 @@ import Dashboard from './pages/Dashboard';
 import VerifyEmail from './pages/VerifyEmail';
 import Deposit from './pages/Deposit';
 import VipSelection from './pages/VipSelection';
+import Profile from './pages/Profile';
+import Tasks from './pages/Tasks';
+import Invite from './pages/Invite';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -93,7 +99,9 @@ function App() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <Dashboard />
+                    <Layout>
+                      <Dashboard />
+                    </Layout>
                   </ProtectedRoute>
                 }
               />
@@ -101,7 +109,9 @@ function App() {
                 path="/deposit"
                 element={
                   <ProtectedRoute>
-                    <Deposit />
+                    <Layout>
+                      <Deposit />
+                    </Layout>
                   </ProtectedRoute>
                 }
               />
@@ -109,7 +119,39 @@ function App() {
                 path="/vip-selection"
                 element={
                   <ProtectedRoute>
-                    <VipSelection />
+                    <Layout>
+                      <VipSelection />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Profile />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tasks"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Tasks />
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/invite"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Invite />
+                    </Layout>
                   </ProtectedRoute>
                 }
               />
@@ -154,19 +196,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <div className="min-h-screen flex items-center justify-center">
-                      <div className="text-center">
-                        <h1 className="text-2xl font-bold text-gray-900 mb-4">Profile Page</h1>
-                        <p className="text-gray-600">Coming soon...</p>
-                      </div>
-                    </div>
-                  </ProtectedRoute>
-                }
-              />
+
 
               {/* Admin routes placeholder */}
               <Route

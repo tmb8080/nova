@@ -89,6 +89,14 @@ export const vipAPI = {
   startEarning: () => api.post('/vip/start-earning'),
 };
 
+// Task API
+export const taskAPI = {
+  getEarningStatus: () => api.get('/tasks/earning-status'),
+  startEarning: () => api.post('/tasks/start-earning'),
+  stopEarning: () => api.post('/tasks/stop-earning'),
+  getEarningHistory: () => api.get('/tasks/earning-history'),
+};
+
 // Admin API
 export const adminAPI = {
   getStats: () => api.get('/admin/stats'),

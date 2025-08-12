@@ -13,9 +13,16 @@ router.get('/levels', authenticateToken, async (req, res) => {
       orderBy: { amount: 'asc' }
     });
 
+    // Convert Decimal values to numbers for frontend compatibility
+    const formattedVipLevels = vipLevels.map(level => ({
+      ...level,
+      amount: parseFloat(level.amount),
+      dailyEarning: parseFloat(level.dailyEarning)
+    }));
+
     res.json({
       success: true,
-      data: vipLevels
+      data: formattedVipLevels
     });
   } catch (error) {
     console.error('Error fetching VIP levels:', error);
@@ -61,7 +68,10 @@ router.post('/join', authenticateToken, async (req, res) => {
       where: { userId }
     });
 
-    if (!wallet || wallet.balance < vipLevel.amount) {
+    const vipAmount = parseFloat(vipLevel.amount);
+    const walletBalance = parseFloat(wallet?.balance || 0);
+
+    if (!wallet || walletBalance < vipAmount) {
       return res.status(400).json({
         success: false,
         message: 'Insufficient balance to join this VIP level'
@@ -132,8 +142,8 @@ router.get('/status', authenticateToken, async (req, res) => {
     const activeSession = await prisma.earningsSession.findFirst({
       where: {
         userId,
-        isActive: true,
-        endsAt: {
+        status: 'ACTIVE',
+        expectedEndTime: {
           gt: new Date()
         }
       }
@@ -148,23 +158,34 @@ router.get('/status', authenticateToken, async (req, res) => {
     const todayEarnings = await prisma.earningsSession.aggregate({
       where: {
         userId,
-        startedAt: {
+        startTime: {
           gte: today,
           lt: tomorrow
         },
-        isPaid: true
+        status: 'COMPLETED'
       },
       _sum: {
-        earningsAmount: true
+        totalEarnings: true
       }
     });
 
     res.json({
       success: true,
       data: {
-        userVip,
-        activeSession,
-        todayEarnings: todayEarnings._sum.earningsAmount || 0
+        userVip: userVip ? {
+          ...userVip,
+          totalPaid: parseFloat(userVip.totalPaid),
+          vipLevel: userVip.vipLevel ? {
+            ...userVip.vipLevel,
+            amount: parseFloat(userVip.vipLevel.amount),
+            dailyEarning: parseFloat(userVip.vipLevel.dailyEarning)
+          } : null
+        } : null,
+        activeSession: activeSession ? {
+          ...activeSession,
+          totalEarnings: parseFloat(activeSession.totalEarnings || 0)
+        } : null,
+        todayEarnings: parseFloat(todayEarnings._sum.totalEarnings || 0)
       }
     });
   } catch (error) {
@@ -198,8 +219,8 @@ router.post('/start-earning', authenticateToken, async (req, res) => {
     const activeSession = await prisma.earningsSession.findFirst({
       where: {
         userId,
-        isActive: true,
-        endsAt: {
+        status: 'ACTIVE',
+        expectedEndTime: {
           gt: new Date()
         }
       }
@@ -220,10 +241,10 @@ router.post('/start-earning', authenticateToken, async (req, res) => {
       data: {
         userId,
         vipLevelId: userVip.vipLevelId,
-        startedAt: startTime,
-        endsAt: endTime,
-        earningsAmount: userVip.vipLevel.dailyEarning,
-        isActive: true
+        startTime: startTime,
+        expectedEndTime: endTime,
+        dailyEarningRate: userVip.vipLevel.dailyEarning,
+        status: 'ACTIVE'
       }
     });
 
@@ -247,9 +268,8 @@ router.post('/process-earnings', authenticateToken, async (req, res) => {
     // Find completed sessions that haven't been paid
     const completedSessions = await prisma.earningsSession.findMany({
       where: {
-        isActive: true,
-        isPaid: false,
-        endsAt: {
+        status: 'ACTIVE',
+        expectedEndTime: {
           lt: new Date()
         }
       },
@@ -272,21 +292,21 @@ router.post('/process-earnings', authenticateToken, async (req, res) => {
             where: { userId: session.userId },
             data: {
               dailyEarnings: {
-                increment: session.earningsAmount
+                increment: session.dailyEarningRate
               },
               totalEarnings: {
-                increment: session.earningsAmount
+                increment: session.dailyEarningRate
               }
             }
           });
 
-          // Mark session as paid
+          // Mark session as completed
           await tx.earningsSession.update({
             where: { id: session.id },
             data: {
-              isPaid: true,
-              paidAt: new Date(),
-              isActive: false
+              status: 'COMPLETED',
+              actualEndTime: new Date(),
+              totalEarnings: session.dailyEarningRate
             }
           });
 
@@ -295,7 +315,7 @@ router.post('/process-earnings', authenticateToken, async (req, res) => {
             data: {
               userId: session.userId,
               type: 'VIP_EARNINGS',
-              amount: session.earningsAmount,
+              amount: session.dailyEarningRate,
               description: 'Daily VIP earnings'
             }
           });
@@ -304,7 +324,7 @@ router.post('/process-earnings', authenticateToken, async (req, res) => {
         results.push({
           sessionId: session.id,
           userId: session.userId,
-          amount: session.earningsAmount,
+          amount: session.dailyEarningRate,
           status: 'success'
         });
       } catch (error) {

@@ -1,98 +1,73 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 const MobileBottomNav = () => {
   const location = useLocation();
-  const navigate = useNavigate();
-
-  const navItems = [
-    {
-      id: 'home',
-      label: 'Home',
-      icon: (active) => (
-        <svg className={`w-6 h-6 ${active ? 'text-blue-600' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 24 24">
-          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-        </svg>
-      ),
-      path: '/dashboard'
-    },
-    {
-      id: 'join',
-      label: 'Join',
-      icon: (active) => (
-        <svg className={`w-6 h-6 ${active ? 'text-blue-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-        </svg>
-      ),
-      path: '/vip-selection'
-    },
-    {
-      id: 'run',
-      label: 'Run',
-      icon: (active) => (
-        <svg className={`w-6 h-6 ${active ? 'text-blue-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m-7 0h6m-3-10V3m0 0l3 3m-3-3L9 6" />
-        </svg>
-      ),
-      path: '/earnings'
-    },
-    {
-      id: 'share',
-      label: 'Share',
-      icon: (active) => (
-        <svg className={`w-6 h-6 ${active ? 'text-blue-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-        </svg>
-      ),
-      path: '/referral'
-    },
-    {
-      id: 'my',
-      label: 'My',
-      icon: (active) => (
-        <svg className={`w-6 h-6 ${active ? 'text-blue-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-        </svg>
-      ),
-      path: '/profile'
-    }
-  ];
-
-  const handleNavigation = (path) => {
-    navigate(path);
-  };
 
   const isActive = (path) => {
-    if (path === '/dashboard') {
-      return location.pathname === '/' || location.pathname === '/dashboard';
-    }
     return location.pathname === path;
   };
 
+  const navItems = [
+    {
+      path: '/dashboard',
+      label: 'Home',
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      )
+    },
+    {
+      path: '/tasks',
+      label: 'Task',
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+      )
+    },
+    {
+      path: '/invite',
+      label: 'Invite',
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+        </svg>
+      )
+    },
+    {
+      path: '/profile',
+      label: 'Profile',
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      )
+    }
+  ];
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 z-50 md:hidden">
-      <div className="flex justify-around items-center">
-        {navItems.map((item) => {
-          const active = isActive(item.path);
-          return (
-            <button
-              key={item.id}
-              onClick={() => handleNavigation(item.path)}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
-                active ? 'bg-blue-50' : 'hover:bg-gray-50'
-              }`}
-            >
-              <div className="mb-1">
-                {item.icon(active)}
-              </div>
-              <span className={`text-xs font-medium ${
-                active ? 'text-blue-600' : 'text-gray-400'
-              }`}>
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 md:hidden">
+      <div className="flex items-center justify-around px-2 py-2">
+        {navItems.map((item) => (
+          <Link
+            key={item.path}
+            to={item.path}
+            className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200 ${
+              isActive(item.path)
+                ? 'text-blue-600 bg-blue-50'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <div className={`${isActive(item.path) ? 'text-blue-600' : 'text-gray-500'}`}>
+              {item.icon}
+            </div>
+            <span className={`text-xs font-medium mt-1 ${isActive(item.path) ? 'text-blue-600' : 'text-gray-500'}`}>
+              {item.label}
+            </span>
+          </Link>
+        ))}
       </div>
     </div>
   );

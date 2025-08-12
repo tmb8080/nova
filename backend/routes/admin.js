@@ -9,6 +9,11 @@ const {
   updateAdminSettings,
   getReferralTree
 } = require('../services/adminService');
+const { 
+  createOrUpdateVipLevels,
+  getAllVipLevels,
+  getVipLevelById
+} = require('../services/vipService');
 
 const router = express.Router();
 
@@ -179,6 +184,77 @@ router.put('/settings', [
     console.error('Error updating admin settings:', error);
     res.status(500).json({
       error: 'Failed to update admin settings',
+      message: error.message
+    });
+  }
+});
+
+// VIP Management Routes
+
+// Get all VIP levels
+router.get('/vip-levels', async (req, res) => {
+  try {
+    const vipLevels = await getAllVipLevels();
+    
+    res.json({
+      success: true,
+      data: vipLevels
+    });
+  } catch (error) {
+    console.error('Error fetching VIP levels:', error);
+    res.status(500).json({
+      error: 'Failed to fetch VIP levels',
+      message: error.message
+    });
+  }
+});
+
+// Get specific VIP level
+router.get('/vip-levels/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!id) {
+      return res.status(400).json({
+        error: 'VIP level ID is required'
+      });
+    }
+
+    const vipLevel = await getVipLevelById(id);
+    
+    if (!vipLevel) {
+      return res.status(404).json({
+        error: 'VIP level not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: vipLevel
+    });
+  } catch (error) {
+    console.error('Error fetching VIP level:', error);
+    res.status(500).json({
+      error: 'Failed to fetch VIP level',
+      message: error.message
+    });
+  }
+});
+
+// Create or update VIP levels (bulk operation)
+router.post('/vip-levels/seed', async (req, res) => {
+  try {
+    const results = await createOrUpdateVipLevels();
+    
+    res.json({
+      success: true,
+      message: 'VIP levels created/updated successfully',
+      data: results
+    });
+  } catch (error) {
+    console.error('Error creating/updating VIP levels:', error);
+    res.status(500).json({
+      error: 'Failed to create/update VIP levels',
       message: error.message
     });
   }
