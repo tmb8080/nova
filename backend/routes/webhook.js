@@ -249,7 +249,8 @@ const handleChargeConfirmed = async (charge) => {
           await processReferralBonus(
             deposit.user.referredBy,
             deposit.userId,
-            deposit.amount
+            deposit.amount,
+            deposit.id
           );
         } catch (referralError) {
           console.error('Error processing referral bonus:', referralError);

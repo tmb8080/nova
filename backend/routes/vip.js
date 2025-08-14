@@ -17,7 +17,10 @@ router.get('/levels', authenticateToken, async (req, res) => {
     const formattedVipLevels = vipLevels.map(level => ({
       ...level,
       amount: parseFloat(level.amount),
-      dailyEarning: parseFloat(level.dailyEarning)
+      dailyEarning: parseFloat(level.dailyEarning),
+      bicycleModel: level.bicycleModel,
+      bicycleColor: level.bicycleColor,
+      bicycleFeatures: level.bicycleFeatures
     }));
 
     res.json({
@@ -242,7 +245,10 @@ router.get('/status', authenticateToken, async (req, res) => {
           vipLevel: userVip.vipLevel ? {
             ...userVip.vipLevel,
             amount: parseFloat(userVip.vipLevel.amount),
-            dailyEarning: parseFloat(userVip.vipLevel.dailyEarning)
+            dailyEarning: parseFloat(userVip.vipLevel.dailyEarning),
+            bicycleModel: userVip.vipLevel.bicycleModel,
+            bicycleColor: userVip.vipLevel.bicycleColor,
+            bicycleFeatures: userVip.vipLevel.bicycleFeatures
           } : null
         } : null,
         activeSession: activeSession ? {

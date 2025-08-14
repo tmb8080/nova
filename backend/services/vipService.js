@@ -207,16 +207,86 @@ async function createOrUpdateVipLevels() {
     console.log('Creating/updating VIP levels...');
     
     const vipLevels = [
-      { name: 'Starter', amount: 30, dailyEarning: 2 },
-      { name: 'Bronze', amount: 180, dailyEarning: 10 },
-      { name: 'Silver', amount: 400, dailyEarning: 24 },
-      { name: 'Gold', amount: 1000, dailyEarning: 50 },
-      { name: 'Platinum', amount: 1500, dailyEarning: 65 },
-      { name: 'Diamond', amount: 2000, dailyEarning: 75 },
-      { name: 'Elite', amount: 5000, dailyEarning: 200 },
-      { name: 'Master', amount: 6000, dailyEarning: 250 },
-      { name: 'Legend', amount: 12000, dailyEarning: 500 },
-      { name: 'Supreme', amount: 25000, dailyEarning: 800 }
+      { 
+        name: 'Starter', 
+        amount: 30, 
+        dailyEarning: 2,
+        bicycleModel: 'City Cruiser Basic',
+        bicycleColor: 'Blue',
+        bicycleFeatures: 'Comfortable seat, basic gears, city tires'
+      },
+      { 
+        name: 'Bronze', 
+        amount: 180, 
+        dailyEarning: 10,
+        bicycleModel: 'Mountain Explorer',
+        bicycleColor: 'Green',
+        bicycleFeatures: 'Shock absorbers, 21-speed gears, off-road tires'
+      },
+      { 
+        name: 'Silver', 
+        amount: 400, 
+        dailyEarning: 24,
+        bicycleModel: 'Road Racer Pro',
+        bicycleColor: 'Red',
+        bicycleFeatures: 'Lightweight frame, racing gears, performance tires'
+      },
+      { 
+        name: 'Gold', 
+        amount: 1000, 
+        dailyEarning: 50,
+        bicycleModel: 'Electric Commuter',
+        bicycleColor: 'Black',
+        bicycleFeatures: 'Electric motor, battery pack, LED lights, GPS tracker'
+      },
+      { 
+        name: 'Platinum', 
+        amount: 1500, 
+        dailyEarning: 65,
+        bicycleModel: 'Hybrid Adventure',
+        bicycleColor: 'Silver',
+        bicycleFeatures: 'Electric assist, suspension, cargo rack, smartphone holder'
+      },
+      { 
+        name: 'Diamond', 
+        amount: 2000, 
+        dailyEarning: 75,
+        bicycleModel: 'Carbon Fiber Elite',
+        bicycleColor: 'Carbon Black',
+        bicycleFeatures: 'Carbon fiber frame, wireless shifting, power meter, premium components'
+      },
+      { 
+        name: 'Elite', 
+        amount: 5000, 
+        dailyEarning: 200,
+        bicycleModel: 'Smart E-Bike Premium',
+        bicycleColor: 'Titanium',
+        bicycleFeatures: 'AI navigation, solar charging, biometric sensors, premium leather seat'
+      },
+      { 
+        name: 'Master', 
+        amount: 6000, 
+        dailyEarning: 250,
+        bicycleModel: 'Custom Performance',
+        bicycleColor: 'Custom Paint',
+        bicycleFeatures: 'Handcrafted frame, premium components, custom paint job, professional fitting'
+      },
+      { 
+        name: 'Legend', 
+        amount: 12000, 
+        dailyEarning: 500,
+        bicycleModel: 'Luxury Touring',
+        bicycleColor: 'Gold Plated',
+        bicycleFeatures: 'Luxury materials, built-in entertainment, climate control, concierge service'
+      },
+      { 
+        name: 'Supreme', 
+        amount: 25000, 
+        dailyEarning: 800,
+        bicycleModel: 'Ultimate Dream Bike',
+        bicycleColor: 'Diamond Encrusted',
+        bicycleFeatures: 'Exclusive design, rare materials, lifetime warranty, personal bike concierge'
+      }
     ];
 
     const results = [];
@@ -228,12 +298,18 @@ async function createOrUpdateVipLevels() {
           update: {
             amount: vip.amount,
             dailyEarning: vip.dailyEarning,
+            bicycleModel: vip.bicycleModel,
+            bicycleColor: vip.bicycleColor,
+            bicycleFeatures: vip.bicycleFeatures,
             isActive: true
           },
           create: {
             name: vip.name,
             amount: vip.amount,
             dailyEarning: vip.dailyEarning,
+            bicycleModel: vip.bicycleModel,
+            bicycleColor: vip.bicycleColor,
+            bicycleFeatures: vip.bicycleFeatures,
             isActive: true
           }
         });

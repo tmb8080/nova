@@ -61,7 +61,8 @@ const processUsdtDepositConfirmation = async (depositId, transactionHash) => {
           referralBonus = await processReferralBonus(
             deposit.user.referredBy,
             deposit.userId,
-            parseFloat(deposit.amount)
+            parseFloat(deposit.amount),
+            deposit.id
           );
         } catch (error) {
           console.error('Error processing referral bonus:', error);

@@ -175,7 +175,7 @@ const getWalletStats = async (userId) => {
 };
 
 // Process referral bonus
-const processReferralBonus = async (referrerId, referredUserId, depositAmount) => {
+const processReferralBonus = async (referrerId, referredUserId, depositAmount, depositId = null) => {
   try {
     // Get admin settings for referral bonus rate
     const settings = await prisma.adminSettings.findFirst();
@@ -226,8 +226,13 @@ const processReferralBonus = async (referrerId, referredUserId, depositAmount) =
           userId: referrerId,
           type: 'REFERRAL_BONUS',
           amount: bonusAmount,
-          description: `Referral bonus from ${referredUser.fullName}`,
-          referenceId: referredUserId
+          description: `Referral bonus from ${referredUser.fullName} (${depositAmount} deposit)`,
+          referenceId: referredUserId,
+          metadata: {
+            depositId: depositId,
+            depositAmount: depositAmount,
+            bonusRate: bonusRate
+          }
         }
       });
 
@@ -236,7 +241,7 @@ const processReferralBonus = async (referrerId, referredUserId, depositAmount) =
         data: {
           referrerId,
           referredId: referredUserId,
-          depositId: 'deposit-ref', // This should be the actual deposit ID
+          depositId: depositId || 'unknown-deposit',
           bonusAmount,
           bonusRate
         }
@@ -258,9 +263,11 @@ const processReferralBonus = async (referrerId, referredUserId, depositAmount) =
           fullName: referrer.fullName,
           referredUser: referredUser.fullName,
           bonusAmount: bonusAmount.toFixed(8),
-          currency: 'USD', // This should be dynamic based on deposit
+          depositAmount: depositAmount.toFixed(8),
+          currency: 'USD',
           totalReferrals,
-          referralCode: referrer.referralCode
+          referralCode: referrer.referralCode,
+          bonusRate: (bonusRate * 100).toFixed(1) + '%'
         }
       });
     } catch (emailError) {

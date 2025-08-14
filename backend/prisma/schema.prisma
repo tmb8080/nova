@@ -35,6 +35,8 @@ model User {
   otpCodes      OtpCode[]
   userVip       UserVip?
   earningsSessions EarningsSession[]
+  referralBonusesGiven ReferralBonus[] @relation("ReferralBonusReferrer")
+  referralBonusesReceived ReferralBonus[] @relation("ReferralBonusReferred")
 
   @@map("users")
 }
@@ -174,6 +176,10 @@ model ReferralBonus {
   bonusRate   Decimal  @db.Decimal(5, 4)
   createdAt   DateTime @default(now())
 
+  // Relations
+  referrer    User     @relation("ReferralBonusReferrer", fields: [referrerId], references: [id])
+  referred    User     @relation("ReferralBonusReferred", fields: [referredId], references: [id])
+
   @@map("referral_bonuses")
 }
 
@@ -198,6 +204,9 @@ model VipLevel {
   name          String   @unique
   amount        Decimal  @db.Decimal(18, 8)
   dailyEarning  Decimal  @db.Decimal(18, 8)
+  bicycleModel  String?  // Bicycle model for this VIP level
+  bicycleColor  String?  // Bicycle color
+  bicycleFeatures String? // Additional bicycle features
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
