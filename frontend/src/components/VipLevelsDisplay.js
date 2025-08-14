@@ -182,6 +182,18 @@ const VipLevelsDisplay = () => {
                       </div>
                     </div>
 
+                    {/* Bicycle Info */}
+                    {vip.bicycleModel && (
+                      <div className="text-center mb-2">
+                        <div className="text-xs font-semibold text-blue-600">
+                          🚲 {vip.bicycleModel}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {vip.bicycleColor}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Status/Action */}
                     <div className="text-center">
                       {isCurrentVip ? (
@@ -216,6 +228,8 @@ const VipLevelsDisplay = () => {
               <li>• 24-hour earning cycles</li>
               <li>• Withdraw earnings daily (min $10)</li>
               <li>• Automatic income generation</li>
+              <li>• 🚲 Exclusive bicycle included with each VIP level</li>
+              <li>• Premium bicycle models with advanced features</li>
             </ul>
           </div>
         </CardContent>
@@ -245,6 +259,21 @@ const VipLevelsDisplay = () => {
                   {((selectedVip.dailyEarning / selectedVip.amount) * 100).toFixed(2)}%
                 </span>
               </div>
+              {selectedVip.bicycleModel && (
+                <>
+                  <div className="flex justify-between">
+                    <span>🚲 Bicycle:</span>
+                    <span className="font-semibold text-blue-600">{selectedVip.bicycleModel}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Color:</span>
+                    <span className="font-semibold">{selectedVip.bicycleColor}</span>
+                  </div>
+                  <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                    <strong>Features:</strong> {selectedVip.bicycleFeatures}
+                  </div>
+                </>
+              )}
               <div className="flex justify-between">
                 <span>Balance After:</span>
                 <span className="font-semibold">

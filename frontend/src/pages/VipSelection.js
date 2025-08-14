@@ -184,9 +184,20 @@ const VipSelection = () => {
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             Choose Your VIP Level
           </h1>
-          <p className="text-gray-300 text-base max-w-3xl mx-auto px-4">
+          <p className="text-gray-300 text-base max-w-3xl mx-auto px-4 mb-6">
             Join a VIP level to start earning daily income. Each level offers guaranteed daily returns on your investment.
           </p>
+          
+          {/* Bicycle Benefits Highlight */}
+          <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg border border-blue-500/30 p-4 max-w-2xl mx-auto">
+            <div className="flex items-center justify-center mb-2">
+              <span className="text-3xl mr-3">🚲</span>
+              <h3 className="text-lg font-semibold text-blue-300">Exclusive Bicycle Included!</h3>
+            </div>
+            <p className="text-sm text-blue-200 text-center">
+              Every VIP level comes with a premium bicycle model. Higher levels include more advanced features and luxury options.
+            </p>
+          </div>
           <div className="mt-6 p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg inline-block border border-blue-500/30">
             <div className="flex items-center space-x-4">
               <p className="text-blue-300 font-medium text-base">
@@ -230,6 +241,24 @@ const VipSelection = () => {
                     <div className="text-base md:text-lg font-semibold text-green-400">
                       {formatCurrency(vip.dailyEarning)}/day
                     </div>
+                    
+                    {/* Bicycle Information */}
+                    {vip.bicycleModel && (
+                      <div className="mt-3 p-3 bg-blue-500/20 backdrop-blur-sm rounded-lg border border-blue-400/30">
+                        <div className="flex items-center justify-center mb-2">
+                          <span className="text-2xl mr-2">🚲</span>
+                          <span className="text-sm font-semibold text-blue-300">Included Bicycle</span>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-bold text-white mb-1">
+                            {vip.bicycleModel}
+                          </div>
+                          <div className="text-xs text-blue-200">
+                            {vip.bicycleColor}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="relative p-4 md:p-6">
@@ -313,6 +342,32 @@ const VipSelection = () => {
           )}
         </div>
 
+        {/* Bicycle Comparison Section */}
+        <div className="mt-12 mb-8">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-white mb-2">🚲 Bicycle Progression</h2>
+            <p className="text-gray-300">See how bicycle quality improves with VIP levels</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl mx-auto">
+            {vipLevels?.data?.data?.slice(0, 6).map((vip, index) => (
+              <div key={vip.id} className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+                <div className="flex items-center mb-3">
+                  <span className="text-2xl mr-2">🚲</span>
+                  <div>
+                    <div className="font-semibold text-white">{vip.name}</div>
+                    <div className="text-sm text-blue-300">{vip.bicycleModel}</div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-300 space-y-1">
+                  <div><span className="text-blue-300">Color:</span> {vip.bicycleColor}</div>
+                  <div className="text-xs text-gray-400 line-clamp-2">{vip.bicycleFeatures}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Skip VIP Option */}
         <div className="text-center space-y-4">
           <Button 
@@ -370,6 +425,33 @@ const VipSelection = () => {
                 <span>Daily Earning:</span>
                 <span className="font-semibold text-green-600">{formatCurrency(selectedVip.dailyEarning)}</span>
               </div>
+              
+              {/* Bicycle Information */}
+              {selectedVip.bicycleModel && (
+                <>
+                  <div className="border-t pt-3 mt-3">
+                    <div className="flex items-center mb-3">
+                      <span className="text-2xl mr-2">🚲</span>
+                      <span className="font-semibold text-blue-600">Included Bicycle</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Model:</span>
+                        <span className="font-semibold text-blue-600">{selectedVip.bicycleModel}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Color:</span>
+                        <span className="font-semibold">{selectedVip.bicycleColor}</span>
+                      </div>
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <div className="text-xs text-gray-600 mb-1">Features:</div>
+                        <div className="text-sm text-blue-800">{selectedVip.bicycleFeatures}</div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+              
               <div className="flex justify-between text-sm md:text-base">
                 <span>Your Balance After:</span>
                 <span className="font-semibold">

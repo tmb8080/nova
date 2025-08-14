@@ -99,9 +99,18 @@ const VipDashboard = () => {
           <div className="text-center py-8">
             <div className="text-6xl mb-4">💎</div>
             <h3 className="text-xl font-semibold mb-2">No VIP Membership</h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 mb-4">
               Join a VIP level to unlock daily earnings and grow your income automatically.
             </p>
+            <div className="bg-blue-50 p-4 rounded-lg mb-6">
+              <div className="flex items-center justify-center mb-2">
+                <span className="text-2xl mr-2">🚲</span>
+                <span className="font-semibold text-blue-800">Exclusive Bicycle Included!</span>
+              </div>
+              <p className="text-sm text-blue-700">
+                Every VIP level comes with a premium bicycle model with advanced features
+              </p>
+            </div>
             <Button onClick={() => window.location.href = '/vip-selection'}>
               Choose VIP Level
             </Button>
@@ -130,7 +139,7 @@ const VipDashboard = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-sm text-gray-600">Investment</p>
               <p className="text-2xl font-bold">{formatCurrency(userVip.vipLevel.amount)}</p>
@@ -142,6 +151,32 @@ const VipDashboard = () => {
               </p>
             </div>
           </div>
+          
+          {/* Bicycle Information */}
+          {userVip.vipLevel.bicycleModel && (
+            <div className="border-t pt-4">
+              <div className="flex items-center mb-3">
+                <span className="text-2xl mr-2">🚲</span>
+                <h4 className="font-semibold text-blue-600">Your VIP Bicycle</h4>
+              </div>
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-sm text-gray-600">Model</p>
+                    <p className="font-semibold text-blue-800">{userVip.vipLevel.bicycleModel}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Color</p>
+                    <p className="font-semibold">{userVip.vipLevel.bicycleColor}</p>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <p className="text-sm text-gray-600">Features</p>
+                  <p className="text-sm text-blue-800">{userVip.vipLevel.bicycleFeatures}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
