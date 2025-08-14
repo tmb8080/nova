@@ -69,6 +69,7 @@ model Deposit {
   depositType       String?     // COINBASE, USDT_DIRECT, etc.
   status            DepositStatus @default(PENDING)
   transactionHash   String?
+  adminNotes        String?     // Admin notes for deposit processing
   webhookData       Json?
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
@@ -83,7 +84,8 @@ model Withdrawal {
   id              String          @id @default(uuid())
   userId          String
   amount          Decimal         @db.Decimal(18, 8)
-  currency        String          // BTC, ETH, USDT
+  currency        String          // BTC, ETH, USDT, USDC, USDT_USDC
+  network         String?         // TRC20, BEP20, ERC20, POLYGON, ARBITRUM, OPTIMISM
   walletAddress   String
   status          WithdrawalStatus @default(PENDING)
   adminNotes      String?
@@ -106,6 +108,7 @@ model Transaction {
   amount      Decimal         @db.Decimal(18, 8)
   description String
   referenceId String?         // Reference to deposit, withdrawal, or referral
+  metadata    Json?           // Additional metadata for transactions
   createdAt   DateTime        @default(now())
 
   // Relations
@@ -137,6 +140,7 @@ model AdminSettings {
   minDepositAmount      Decimal  @default(10) @db.Decimal(18, 8)
   minUsdtDepositAmount  Decimal  @default(30) @db.Decimal(18, 8)
   minWithdrawalAmount   Decimal  @default(20) @db.Decimal(18, 8)
+  minUsdcWithdrawalAmount Decimal @default(20) @db.Decimal(18, 8)
   isDepositEnabled      Boolean  @default(true)
   isWithdrawalEnabled   Boolean  @default(true)
   isRegistrationEnabled Boolean  @default(true)
@@ -145,6 +149,20 @@ model AdminSettings {
   updatedAt             DateTime @updatedAt
 
   @@map("admin_settings")
+}
+
+model NetworkFees {
+  id          String   @id @default(uuid())
+  network     String   // TRC20, BEP20, ERC20, POLYGON, ARBITRUM, OPTIMISM
+  currency    String   // USDT, USDC, USDT_USDC
+  feeAmount   Decimal  @db.Decimal(18, 8)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([network, currency])
+
+  @@map("network_fees")
 }
 
 model ReferralBonus {

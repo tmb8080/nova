@@ -5,6 +5,7 @@ const { PrismaClient } = require('@prisma/client');
 const { authenticateToken, requireEmailVerification, requireAdmin } = require('../middleware/auth');
 const { updateWalletBalance } = require('../services/walletService');
 const { sendEmail } = require('../services/emailService');
+const { getNetworkFee, getAvailableNetworks } = require('../services/networkFeeService');
 const { isValidCryptoAddress, generateTransactionRef } = require('../utils/helpers');
 
 const router = express.Router();
@@ -13,8 +14,9 @@ const prisma = new PrismaClient();
 // Request withdrawal
 router.post('/request', [
   body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be greater than 0.01'),
-  body('currency').isIn(['BTC', 'ETH', 'USDT']).withMessage('Invalid currency'),
-  body('walletAddress').notEmpty().withMessage('Wallet address is required')
+  body('currency').isIn(['BTC', 'ETH', 'USDT', 'USDC', 'USDT_USDC']).withMessage('Invalid currency'),
+  body('walletAddress').notEmpty().withMessage('Wallet address is required'),
+  body('network').optional().isIn(['TRC20', 'BEP20', 'ERC20', 'POLYGON', 'ARBITRUM', 'OPTIMISM']).withMessage('Invalid network')
 ], authenticateToken, requireEmailVerification, async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -25,7 +27,7 @@ router.post('/request', [
       });
     }
 
-    const { amount, currency, walletAddress } = req.body;
+    const { amount, currency, walletAddress, network } = req.body;
     const userId = req.user.id;
 
     // Check admin settings
@@ -37,10 +39,18 @@ router.post('/request', [
       });
     }
 
-    if (parseFloat(amount) < parseFloat(settings.minWithdrawalAmount)) {
+    // Check minimum withdrawal amount based on currency
+    let minAmount;
+    if (currency === 'USDC') {
+      minAmount = parseFloat(settings.minUsdcWithdrawalAmount || settings.minWithdrawalAmount);
+    } else {
+      minAmount = parseFloat(settings.minWithdrawalAmount);
+    }
+
+    if (parseFloat(amount) < minAmount) {
       return res.status(400).json({
         error: 'Amount too low',
-        message: `Minimum withdrawal amount is ${settings.minWithdrawalAmount}`
+        message: `Minimum withdrawal amount for ${currency} is ${minAmount}`
       });
     }
 
@@ -85,6 +95,7 @@ router.post('/request', [
         userId,
         amount: parseFloat(amount),
         currency,
+        network: network || null,
         walletAddress,
         status: 'PENDING'
       }
@@ -339,6 +350,26 @@ router.put('/admin/:withdrawalId/process', [
     console.error('Error processing withdrawal:', error);
     res.status(500).json({
       error: 'Failed to process withdrawal',
+      message: error.message
+    });
+  }
+});
+
+// Get network fees for a currency
+router.get('/network-fees/:currency', authenticateToken, async (req, res) => {
+  try {
+    const { currency } = req.params;
+    
+    const networks = await getAvailableNetworks(currency);
+    
+    res.json({
+      success: true,
+      data: networks
+    });
+  } catch (error) {
+    console.error('Error fetching network fees:', error);
+    res.status(500).json({
+      error: 'Failed to fetch network fees',
       message: error.message
     });
   }

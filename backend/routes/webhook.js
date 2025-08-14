@@ -1,5 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
+const { body, validationResult } = require('express-validator');
+const { processUsdtDepositConfirmation } = require('../services/depositService');
 const { PrismaClient } = require('@prisma/client');
 
 const { updateWalletBalance, processReferralBonus } = require('../services/walletService');
@@ -59,6 +61,134 @@ router.post('/coinbase', express.raw({ type: 'application/json' }), async (req, 
   } catch (error) {
     console.error('Webhook processing error:', error);
     res.status(500).json({ error: 'Webhook processing failed' });
+  }
+});
+
+// USDT Deposit Confirmation Webhook
+router.post('/usdt/confirm', [
+  body('depositId').isUUID().withMessage('Invalid deposit ID'),
+  body('transactionHash').isLength({ min: 10, max: 100 }).withMessage('Invalid transaction hash'),
+  body('amount').isFloat({ min: 0.01 }).withMessage('Invalid amount'),
+  body('network').isIn(['TRC20', 'BEP20', 'ERC20', 'POLYGON', 'ARBITRUM', 'OPTIMISM']).withMessage('Invalid network')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { depositId, transactionHash, amount, network } = req.body;
+
+    // Verify webhook signature (in production, add proper signature verification)
+    // const signature = req.headers['x-webhook-signature'];
+    // if (!verifyWebhookSignature(req.body, signature)) {
+    //   return res.status(401).json({ error: 'Invalid signature' });
+    // }
+
+    // Process the deposit confirmation
+    const result = await processUsdtDepositConfirmation(depositId, transactionHash);
+
+    res.json({
+      success: true,
+      message: 'Deposit confirmation processed successfully',
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Error processing USDT deposit webhook:', error);
+    res.status(500).json({
+      error: 'Failed to process deposit confirmation',
+      message: error.message
+    });
+  }
+});
+
+// Manual Deposit Confirmation (for admin use)
+router.post('/manual/confirm', [
+  body('depositId').isUUID().withMessage('Invalid deposit ID'),
+  body('transactionHash').optional().isLength({ min: 10, max: 100 }).withMessage('Invalid transaction hash')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { depositId, transactionHash } = req.body;
+
+    // Get deposit to check if it exists and is pending
+    const deposit = await prisma.deposit.findUnique({
+      where: { id: depositId }
+    });
+
+    if (!deposit) {
+      return res.status(404).json({
+        error: 'Deposit not found'
+      });
+    }
+
+    if (deposit.status !== 'PENDING') {
+      return res.status(400).json({
+        error: 'Deposit already processed',
+        message: `Current status: ${deposit.status}`
+      });
+    }
+
+    // Process the deposit confirmation
+    const result = await processUsdtDepositConfirmation(depositId, transactionHash);
+
+    res.json({
+      success: true,
+      message: 'Manual deposit confirmation processed successfully',
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Error processing manual deposit confirmation:', error);
+    res.status(500).json({
+      error: 'Failed to process manual deposit confirmation',
+      message: error.message
+    });
+  }
+});
+
+// Get pending deposits (for admin monitoring)
+router.get('/pending-deposits', async (req, res) => {
+  try {
+    const deposits = await prisma.deposit.findMany({
+      where: {
+        status: 'PENDING',
+        depositType: 'USDT_DIRECT'
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      data: deposits
+    });
+
+  } catch (error) {
+    console.error('Error fetching pending deposits:', error);
+    res.status(500).json({
+      error: 'Failed to fetch pending deposits',
+      message: error.message
+    });
   }
 });
 

@@ -109,8 +109,8 @@ router.post('/create', [
   }
 });
 
-// Get deposit history
-router.get('/history', [
+// Get user's deposit history
+router.get('/my-deposits', [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('Limit must be between 1 and 50'),
   query('status').optional().isIn(['PENDING', 'CONFIRMED', 'FAILED', 'EXPIRED']).withMessage('Invalid status')
@@ -197,7 +197,12 @@ router.get('/usdt/addresses', authenticateToken, async (req, res) => {
 router.post('/usdt/create', [
   body('amount').isFloat({ min: 1 }).withMessage('Amount must be at least 1 USDT'),
   body('network').isIn(['BEP20', 'TRC20', 'ERC20', 'POLYGON']).withMessage('Invalid network'),
-  body('transactionHash').optional().isString().withMessage('Transaction hash must be a string')
+  body('transactionHash').optional().custom((value) => {
+    if (value !== null && value !== undefined && typeof value !== 'string') {
+      throw new Error('Transaction hash must be a string');
+    }
+    return true;
+  }).withMessage('Transaction hash must be a string')
 ], authenticateToken, requireEmailVerification, async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -264,6 +269,34 @@ router.post('/usdt/create', [
   }
 });
 
+// Get pending deposits count for user
+router.get('/pending-count', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const pendingCount = await prisma.deposit.count({
+      where: {
+        userId,
+        status: 'PENDING'
+      }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        pendingCount
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching pending deposits count:', error);
+    res.status(500).json({
+      error: 'Failed to fetch pending deposits count',
+      message: error.message
+    });
+  }
+});
+
 // Get deposit details
 router.get('/:depositId', authenticateToken, async (req, res) => {
   try {
@@ -292,6 +325,76 @@ router.get('/:depositId', authenticateToken, async (req, res) => {
     console.error('Error fetching deposit details:', error);
     res.status(500).json({
       error: 'Failed to fetch deposit details',
+      message: error.message
+    });
+  }
+});
+
+// Update transaction hash for a deposit
+router.patch('/:depositId/transaction-hash', [
+  body('transactionHash').notEmpty().withMessage('Transaction hash is required')
+], authenticateToken, requireEmailVerification, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { depositId } = req.params;
+    const { transactionHash } = req.body;
+    const userId = req.user.id;
+
+    // Check if deposit exists and belongs to user
+    const deposit = await prisma.deposit.findFirst({
+      where: {
+        id: depositId,
+        userId
+      }
+    });
+
+    if (!deposit) {
+      return res.status(404).json({
+        error: 'Deposit not found',
+        message: 'The specified deposit does not exist or does not belong to you'
+      });
+    }
+
+    // Only allow updates for pending deposits
+    if (deposit.status !== 'PENDING') {
+      return res.status(400).json({
+        error: 'Cannot update transaction hash',
+        message: 'Transaction hash can only be updated for pending deposits'
+      });
+    }
+
+    // Update the transaction hash
+    const updatedDeposit = await prisma.deposit.update({
+      where: {
+        id: depositId
+      },
+      data: {
+        transactionHash,
+        updatedAt: new Date()
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Transaction hash updated successfully',
+      data: {
+        depositId: updatedDeposit.id,
+        transactionHash: updatedDeposit.transactionHash,
+        status: updatedDeposit.status
+      }
+    });
+
+  } catch (error) {
+    console.error('Error updating transaction hash:', error);
+    res.status(500).json({
+      error: 'Failed to update transaction hash',
       message: error.message
     });
   }

@@ -17,6 +17,7 @@ import VipSelection from './pages/VipSelection';
 import Profile from './pages/Profile';
 import Tasks from './pages/Tasks';
 import Invite from './pages/Invite';
+import AdminPanel from './pages/AdminPanel';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -152,6 +153,14 @@ function App() {
                     <Layout>
                       <Invite />
                     </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminPanel />
                   </ProtectedRoute>
                 }
               />

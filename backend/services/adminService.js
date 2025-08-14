@@ -115,25 +115,62 @@ const getSystemStats = async () => {
   try {
     const [
       totalUsers,
+      activeUsers,
       totalDeposits,
+      confirmedDeposits,
+      pendingDeposits,
       totalWithdrawals,
+      completedWithdrawals,
       pendingWithdrawals,
       totalWalletBalance,
-      recentUsers
+      totalEarnings,
+      totalReferralBonus,
+      recentUsers,
+      todayUsers,
+      todayDeposits,
+      todayWithdrawals,
+      vipUsers
     ] = await Promise.all([
-      // Total users count
+      // Total users count (excluding admins)
       prisma.user.count({
         where: { isAdmin: false }
       }),
       
-      // Total deposits
+      // Active users count
+      prisma.user.count({
+        where: { 
+          isAdmin: false,
+          isActive: true
+        }
+      }),
+      
+      // Total deposits (all statuses)
+      prisma.deposit.aggregate({
+        _sum: { amount: true },
+        _count: true
+      }),
+      
+      // Confirmed deposits
       prisma.deposit.aggregate({
         where: { status: 'CONFIRMED' },
         _sum: { amount: true },
         _count: true
       }),
       
-      // Total withdrawals
+      // Pending deposits
+      prisma.deposit.aggregate({
+        where: { status: 'PENDING' },
+        _sum: { amount: true },
+        _count: true
+      }),
+      
+      // Total withdrawals (all statuses)
+      prisma.withdrawal.aggregate({
+        _sum: { amount: true },
+        _count: true
+      }),
+      
+      // Completed withdrawals
       prisma.withdrawal.aggregate({
         where: { status: 'COMPLETED' },
         _sum: { amount: true },
@@ -152,6 +189,16 @@ const getSystemStats = async () => {
         _sum: { balance: true }
       }),
       
+      // Total earnings
+      prisma.wallet.aggregate({
+        _sum: { totalEarnings: true }
+      }),
+      
+      // Total referral bonus
+      prisma.wallet.aggregate({
+        _sum: { totalReferralBonus: true }
+      }),
+      
       // Recent users (last 7 days)
       prisma.user.count({
         where: {
@@ -160,27 +207,78 @@ const getSystemStats = async () => {
             gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
           }
         }
+      }),
+      
+      // Today's new users
+      prisma.user.count({
+        where: {
+          isAdmin: false,
+          createdAt: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0))
+          }
+        }
+      }),
+      
+      // Today's deposits
+      prisma.deposit.aggregate({
+        where: {
+          createdAt: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0))
+          }
+        },
+        _sum: { amount: true },
+        _count: true
+      }),
+      
+      // Today's withdrawals
+      prisma.withdrawal.aggregate({
+        where: {
+          createdAt: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0))
+          }
+        },
+        _sum: { amount: true },
+        _count: true
+      }),
+      
+      // VIP users count
+      prisma.userVip.count({
+        where: {
+          isActive: true
+        }
       })
     ]);
 
+    // Calculate system balance (total deposits - total withdrawals)
+    const systemBalance = (confirmedDeposits._sum.amount || 0) - (completedWithdrawals._sum.amount || 0);
+
     return {
-      users: {
-        total: totalUsers,
-        recent: recentUsers
-      },
-      deposits: {
-        total: totalDeposits._sum.amount || 0,
-        count: totalDeposits._count
-      },
-      withdrawals: {
-        total: totalWithdrawals._sum.amount || 0,
-        count: totalWithdrawals._count,
-        pending: {
-          total: pendingWithdrawals._sum.amount || 0,
-          count: pendingWithdrawals._count
-        }
-      },
-      totalBalance: totalWalletBalance._sum.balance || 0
+      totalUsers: totalUsers,
+      activeUsers: activeUsers,
+      vipUsers: vipUsers,
+      recentUsers: recentUsers,
+      todayUsers: todayUsers,
+      
+      totalDeposits: totalDeposits._sum.amount || 0,
+      confirmedDeposits: confirmedDeposits._sum.amount || 0,
+      pendingDeposits: pendingDeposits._sum.amount || 0,
+      depositCount: totalDeposits._count,
+      todayDeposits: todayDeposits._sum.amount || 0,
+      
+      totalWithdrawals: totalWithdrawals._sum.amount || 0,
+      completedWithdrawals: completedWithdrawals._sum.amount || 0,
+      pendingWithdrawals: pendingWithdrawals._sum.amount || 0,
+      withdrawalCount: totalWithdrawals._count,
+      todayWithdrawals: todayWithdrawals._sum.amount || 0,
+      
+      totalWalletBalance: totalWalletBalance._sum.balance || 0,
+      totalEarnings: totalEarnings._sum.totalEarnings || 0,
+      totalReferralBonus: totalReferralBonus._sum.totalReferralBonus || 0,
+      systemBalance: systemBalance,
+      
+      // Pending counts
+      pendingWithdrawalCount: pendingWithdrawals._count,
+      pendingDepositCount: pendingDeposits._count
     };
   } catch (error) {
     console.error('Error fetching system stats:', error);

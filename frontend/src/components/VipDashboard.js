@@ -86,9 +86,9 @@ const VipDashboard = () => {
     );
   }
 
-  const vipData = vipStatus?.data;
+  const vipData = vipStatus?.data?.data;
 
-  if (!vipData?.hasVip) {
+  if (!vipData?.userVip) {
     return (
       <Card>
         <CardHeader>

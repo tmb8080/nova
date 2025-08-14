@@ -60,9 +60,12 @@ export const walletAPI = {
 export const depositAPI = {
   createDeposit: (data) => api.post('/deposit/create', data),
   getDeposits: (params) => api.get('/deposit/history', { params }),
+  getMyDeposits: (params) => api.get('/deposit/my-deposits', { params }),
   getDepositDetails: (id) => api.get(`/deposit/${id}`),
   getUsdtAddresses: () => api.get('/deposit/usdt/addresses'),
   createUsdtDeposit: (data) => api.post('/deposit/usdt/create', data),
+  getPendingCount: () => api.get('/deposit/pending-count'),
+  updateTransactionHash: (depositId, transactionHash) => api.patch(`/deposit/${depositId}/transaction-hash`, { transactionHash }),
 };
 
 // Withdrawal API
@@ -70,6 +73,7 @@ export const withdrawalAPI = {
   createWithdrawal: (data) => api.post('/withdrawal/request', data),
   getWithdrawals: (params) => api.get('/withdrawal/history', { params }),
   getWithdrawalDetails: (id) => api.get(`/withdrawal/${id}`),
+  getNetworkFees: (currency) => api.get(`/withdrawal/network-fees/${currency}`),
 };
 
 // Referral API
@@ -103,7 +107,11 @@ export const adminAPI = {
   getUsers: (params) => api.get('/admin/users', { params }),
   toggleUserStatus: (userId) => api.patch(`/admin/users/${userId}/toggle-status`),
   getWithdrawals: (params) => api.get('/admin/withdrawals', { params }),
+  getPendingWithdrawals: () => api.get('/admin/withdrawals/pending'),
   processWithdrawal: (id, data) => api.patch(`/admin/withdrawals/${id}/process`, data),
+  getDeposits: (params) => api.get('/admin/deposits', { params }),
+  getPendingDeposits: () => api.get('/admin/deposits/pending'),
+  processDeposit: (id, data) => api.patch(`/admin/deposits/${id}/process`, data),
   getSettings: () => api.get('/admin/settings'),
   updateSettings: (settings) => api.patch('/admin/settings', settings),
   getReferralTree: () => api.get('/admin/referral-tree'),

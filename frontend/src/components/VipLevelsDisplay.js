@@ -80,7 +80,7 @@ const VipLevelsDisplay = () => {
   };
 
   const handleJoinVip = (vipLevel) => {
-    if (vipStatus?.data?.hasVip) {
+    if (vipStatus?.data?.data?.userVip) {
       toast.error('You already have a VIP membership');
       return;
     }
@@ -119,8 +119,8 @@ const VipLevelsDisplay = () => {
   }
 
   const userBalance = walletStats?.data?.balance || 0;
-  const hasVip = vipStatus?.data?.hasVip;
-  const userVipLevel = vipStatus?.data?.userVip?.vipLevel;
+  const hasVip = vipStatus?.data?.data?.userVip;
+  const userVipLevel = vipStatus?.data?.data?.userVip?.vipLevel;
 
   return (
     <div className="space-y-4">

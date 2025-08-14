@@ -142,9 +142,9 @@ const MemberList = () => {
   }, [currentIndex]);
 
   return (
-    <div className="bg-white rounded-lg overflow-hidden shadow-lg">
+    <div className="backdrop-blur-xl bg-white/10 rounded-2xl overflow-hidden shadow-2xl border border-white/20">
       {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-3">
+      <div className="bg-gradient-to-r from-emerald-500/80 to-teal-600/80 backdrop-blur-sm px-4 py-3">
         <h2 className="text-white text-lg font-semibold flex items-center">
           <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
             <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
@@ -164,11 +164,11 @@ const MemberList = () => {
             {duplicatedMembers.map((member, index) => (
               <div 
                 key={`${member.id}-${index}`}
-                className="flex items-center justify-between p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors duration-200"
+                className="flex items-center justify-between p-4 border-b border-white/20 hover:bg-white/10 backdrop-blur-sm transition-all duration-200"
               >
                 {/* Left side - Number and Badge */}
                 <div className="flex items-center space-x-3">
-                  <span className="text-sm text-gray-500 font-medium min-w-[2rem]">
+                  <span className="text-sm text-gray-300 font-medium min-w-[2rem]">
                     {member.id}
                   </span>
                   {getBadgeIcon(member.badge)}
@@ -176,16 +176,16 @@ const MemberList = () => {
 
                 {/* Center - Member Info */}
                 <div className="flex-1 ml-4">
-                  <div className="text-sm text-gray-800 font-medium">
+                  <div className="text-sm text-white font-medium">
                     Congratulate {member.email} Earn
                   </div>
-                  <div className="text-xs text-emerald-600 font-semibold mt-1">
+                  <div className="text-xs text-emerald-400 font-semibold mt-1">
                     {member.vipLevel}
                   </div>
                 </div>
 
                 {/* Right side - Earnings */}
-                <div className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
                   USD{formatCurrency(member.earnings)}
                 </div>
               </div>
@@ -201,8 +201,8 @@ const MemberList = () => {
                 key={index}
                 className={`w-2 h-2 rounded-full transition-all duration-300 ${
                   index === currentIndex 
-                    ? 'bg-emerald-500' 
-                    : 'bg-gray-300'
+                    ? 'bg-emerald-400' 
+                    : 'bg-white/30'
                 }`}
               />
             ))}
@@ -211,10 +211,8 @@ const MemberList = () => {
       </div>
 
       {/* Footer */}
-      <div className="bg-gray-50 px-4 py-2 border-t border-gray-200">
-        <div className="text-xs text-gray-500 text-center">
-          Auto-scrolling member earnings • Updated every 3 seconds
-        </div>
+      <div className="bg-white/10 backdrop-blur-sm px-4 py-2 border-t border-white/20">
+        
       </div>
     </div>
   );

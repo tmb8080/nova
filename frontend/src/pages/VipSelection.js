@@ -17,15 +17,39 @@ const VipSelection = () => {
   const [vipToJoin, setVipToJoin] = useState(null);
 
   // Fetch VIP levels
-  const { data: vipLevels, isLoading: vipLoading } = useQuery({
+  const { data: vipLevels, isLoading: vipLoading, error: vipError, refetch: refetchVipLevels } = useQuery({
     queryKey: ['vipLevels'],
     queryFn: () => vipAPI.getLevels(),
+    onSuccess: (data) => {
+      console.log('VIP levels loaded:', data);
+      console.log('VIP levels data structure:', data?.data);
+      console.log('VIP levels array:', data?.data?.data);
+      console.log('Full response structure:', JSON.stringify(data, null, 2));
+    },
+    onError: (error) => {
+      console.error('Error loading VIP levels:', error);
+    },
   });
 
   // Fetch wallet stats to check balance
-  const { data: walletStats } = useQuery({
+  const { data: walletStats, error: walletError, refetch: refetchWalletStats, isLoading: walletLoading } = useQuery({
     queryKey: ['walletStats'],
-    queryFn: () => walletAPI.getStats(),
+    queryFn: () => {
+      console.log('Executing wallet stats query...');
+      return walletAPI.getStats();
+    },
+    onSuccess: (data) => {
+      console.log('Wallet stats loaded:', data);
+      console.log('Balance from wallet stats:', data?.data?.data?.balance);
+      console.log('Full wallet stats response:', JSON.stringify(data, null, 2));
+    },
+    onError: (error) => {
+      console.error('Error loading wallet stats:', error);
+    },
+    // Ensure fresh data
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   // Join VIP mutation
@@ -38,14 +62,25 @@ const VipSelection = () => {
       navigate('/dashboard');
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to join VIP level');
+      console.error('VIP join error details:', error);
+      console.error('Error response:', error.response);
+      console.error('Error message:', error.message);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to join VIP level';
+      toast.error(errorMessage);
     },
   });
 
   const handleJoinVip = (vipLevel) => {
     // Check if user has sufficient balance
-    const userBalance = parseFloat(walletStats?.data?.balance) || 0;
+    const userBalance = parseFloat(walletStats?.data?.data?.balance) || 0;
     const levelAmount = parseFloat(vipLevel?.amount) || 0;
+    
+    console.log('VIP join attempt:', {
+      userBalance,
+      levelAmount,
+      walletStats: walletStats?.data?.data,
+      vipLevel
+    });
     
     if (userBalance < levelAmount) {
       // Show deposit prompt for insufficient balance
@@ -94,30 +129,79 @@ const VipSelection = () => {
 
   if (vipLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading VIP levels...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto"></div>
+          <p className="mt-4 text-gray-300">Loading VIP levels...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (vipError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4">❌</div>
+          <h3 className="text-lg font-semibold text-white mb-2">Error Loading VIP Levels</h3>
+          <p className="text-gray-300 mb-4">{vipError.message || 'Failed to load VIP levels'}</p>
+          <Button onClick={() => refetchVipLevels()}>Retry</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-8 md:mb-12">
-          <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-3 md:mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-20 md:pb-0">
+      {/* Modern Header */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h1 className="text-xl font-bold text-white">Trinity Metro</h1>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-sm text-gray-300">Live</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Modern Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full border border-blue-500/30 mb-6">
+            <div className="w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse"></div>
+            <span className="text-blue-300 text-sm font-medium">VIP Selection</span>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             Choose Your VIP Level
           </h1>
-          <p className="text-base md:text-xl text-gray-600 max-w-3xl mx-auto px-4">
+          <p className="text-gray-300 text-base max-w-3xl mx-auto px-4">
             Join a VIP level to start earning daily income. Each level offers guaranteed daily returns on your investment.
           </p>
-          <div className="mt-3 md:mt-4 p-3 md:p-4 bg-blue-50 rounded-lg inline-block">
-            <p className="text-blue-800 font-medium text-sm md:text-base">
-              Your Current Balance: {formatCurrency(walletStats?.data?.balance || 0)}
-            </p>
+          <div className="mt-6 p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg inline-block border border-blue-500/30">
+            <div className="flex items-center space-x-4">
+              <p className="text-blue-300 font-medium text-base">
+                Your Current Balance: {walletLoading ? 'Loading...' : formatCurrency(walletStats?.data?.data?.balance || 0)}
+              </p>
+              <Button 
+                onClick={() => {
+                  refetchWalletStats();
+                  refetchVipLevels();
+                }}
+                className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded"
+              >
+                Refresh
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -125,39 +209,38 @@ const VipSelection = () => {
 
         {/* VIP Levels Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
-          {vipLevels?.data?.data && Array.isArray(vipLevels.data.data) ? vipLevels.data.data.map((vip) => {
-            const canAfford = walletStats?.data?.balance >= vip.amount;
+          {vipLevels?.data?.data && Array.isArray(vipLevels.data.data) && vipLevels.data.data.length > 0 ? vipLevels.data.data.map((vip) => {
+            const canAfford = walletStats?.data?.data?.balance >= vip.amount;
             const dailyReturn = ((vip.dailyEarning / vip.amount) * 100).toFixed(2);
             
             return (
-              <Card 
+              <div 
                 key={vip.id} 
-                className={`relative overflow-hidden transition-all duration-300 hover:scale-105 cursor-pointer hover:shadow-xl`}
-                onClick={() => handleJoinVip(vip)}
+                className={`relative overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl backdrop-blur-xl bg-white/10 rounded-2xl border border-white/20`}
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${getVipColor(vip.amount)} opacity-10`}></div>
-                <CardHeader className="relative p-4 md:p-6">
-                  <CardTitle className="text-lg md:text-xl font-bold text-center">
+                <div className={`absolute inset-0 bg-gradient-to-br ${getVipColor(vip.amount)} opacity-20`}></div>
+                <div className="relative p-4 md:p-6">
+                  <div className="text-lg md:text-xl font-bold text-center text-white mb-4">
                     {vip.name}
-                  </CardTitle>
-                  <CardDescription className="text-center">
-                    <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl md:text-3xl font-bold text-white mb-2">
                       {formatCurrency(vip.amount)}
                     </div>
-                    <div className="text-base md:text-lg font-semibold text-green-600">
+                    <div className="text-base md:text-lg font-semibold text-green-400">
                       {formatCurrency(vip.dailyEarning)}/day
                     </div>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="relative p-4 md:p-6">
+                  </div>
+                </div>
+                <div className="relative p-4 md:p-6">
                   <div className="space-y-2 md:space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs md:text-sm text-gray-600">Daily Return:</span>
-                      <span className="font-semibold text-green-600 text-sm md:text-base">{dailyReturn}%</span>
+                      <span className="text-xs md:text-sm text-gray-300">Daily Return:</span>
+                      <span className="font-semibold text-green-400 text-sm md:text-base">{dailyReturn}%</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs md:text-sm text-gray-600">Monthly Earning:</span>
-                      <span className="font-semibold text-sm md:text-base">{formatCurrency(vip.dailyEarning * 30)}</span>
+                      <span className="text-xs md:text-sm text-gray-300">Monthly Earning:</span>
+                      <span className="font-semibold text-white text-sm md:text-base">{formatCurrency(vip.dailyEarning * 30)}</span>
                     </div>
                     <div className="pt-3 md:pt-4">
                       <Button 
@@ -177,38 +260,61 @@ const VipSelection = () => {
                     
                     {/* Balance Info for Unaffordable Levels */}
                     {!canAfford && (
-                      <div className="mt-3 pt-3 border-t border-gray-200 bg-blue-50 rounded-lg p-2 md:p-3">
+                      <div className="mt-3 pt-3 border-t border-white/20 bg-blue-500/20 backdrop-blur-sm rounded-lg p-2 md:p-3">
                         <div className="flex justify-between items-center text-xs">
                           <div>
-                            <div className="text-gray-600">Your Balance</div>
-                            <div className="font-bold text-red-600">
-                              {formatCurrency(walletStats?.data?.balance || 0)}
+                            <div className="text-gray-300">Your Balance</div>
+                            <div className="font-bold text-red-400">
+                              {formatCurrency(walletStats?.data?.data?.balance || 0)}
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-gray-600">Need</div>
-                            <div className="font-bold text-gray-800">
-                              {formatCurrency(vip.amount - (walletStats?.data?.balance || 0))}
+                            <div className="text-gray-300">Need</div>
+                            <div className="font-bold text-white">
+                              {formatCurrency(vip.amount - (walletStats?.data?.data?.balance || 0))}
                             </div>
                           </div>
                         </div>
                       </div>
                     )}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             );
           }) : (
             <div className="col-span-full text-center py-8 md:py-12">
               <div className="text-4xl md:text-6xl mb-3 md:mb-4">💎</div>
               <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-2">No VIP Levels Available</h3>
               <p className="text-gray-600 text-sm md:text-base">VIP levels are currently being configured.</p>
+              <div className="mt-4 text-xs text-gray-500">
+                <p>Debug info:</p>
+                <p>vipLevels exists: {vipLevels ? 'Yes' : 'No'}</p>
+                <p>vipLevels.data exists: {vipLevels?.data ? 'Yes' : 'No'}</p>
+                <p>vipLevels.data.data exists: {vipLevels?.data?.data ? 'Yes' : 'No'}</p>
+                <p>vipLevels.data.data is array: {Array.isArray(vipLevels?.data?.data) ? 'Yes' : 'No'}</p>
+                <p>vipLevels.data.data length: {vipLevels?.data?.data?.length || 0}</p>
+                <p>vipLevels.data type: {typeof vipLevels?.data}</p>
+                <p>vipLevels.data keys: {vipLevels?.data ? Object.keys(vipLevels.data).join(', ') : 'none'}</p>
+                <p>walletStats exists: {walletStats ? 'Yes' : 'No'}</p>
+                <p>walletStats.data exists: {walletStats?.data ? 'Yes' : 'No'}</p>
+                <p>walletStats.data.data.balance: {walletStats?.data?.data?.balance || 'undefined'}</p>
+                <p>walletLoading: {walletLoading ? 'Yes' : 'No'}</p>
+                <p>walletError: {walletError ? 'Yes' : 'No'}</p>
+                <p>vipLoading: {vipLoading ? 'Yes' : 'No'}</p>
+                <p>vipError: {vipError ? 'Yes' : 'No'}</p>
+                <p>Full vipLevels: {JSON.stringify(vipLevels, null, 2)}</p>
+              </div>
+              <div className="mt-4">
+                <Button onClick={() => refetchVipLevels()} variant="outline" size="sm">
+                  Refresh VIP Levels
+                </Button>
+              </div>
             </div>
           )}
         </div>
 
         {/* Skip VIP Option */}
-        <div className="text-center">
+        <div className="text-center space-y-4">
           <Button 
             variant="outline" 
             onClick={() => navigate('/dashboard')}
@@ -216,6 +322,33 @@ const VipSelection = () => {
           >
             Skip for Now
           </Button>
+          
+          {/* Debug button */}
+          <div className="mt-4">
+            <Button 
+              variant="outline" 
+              onClick={async () => {
+                console.log('Testing VIP join with first level...');
+                if (vipLevels?.data?.data && vipLevels.data.data.length > 0) {
+                  const firstVip = vipLevels.data.data[0];
+                  console.log('Testing with VIP level:', firstVip);
+                  try {
+                    const response = await vipAPI.joinVip(firstVip.id);
+                    console.log('VIP join test response:', response);
+                    alert('VIP join test successful!');
+                  } catch (error) {
+                    console.error('VIP join test error:', error);
+                    alert(`VIP join test failed: ${error.response?.data?.message || error.message}`);
+                  }
+                } else {
+                  alert('No VIP levels available for testing');
+                }
+              }}
+              className="px-4 py-2 text-xs"
+            >
+              Test VIP Join
+            </Button>
+          </div>
         </div>
       </div>
 

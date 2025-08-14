@@ -36,13 +36,29 @@ router.get('/levels', authenticateToken, async (req, res) => {
 // Join VIP level
 router.post('/join', authenticateToken, async (req, res) => {
   try {
+    console.log('VIP join request received:', req.body);
+    console.log('User ID:', req.user.id);
     const { vipLevelId } = req.body;
     const userId = req.user.id;
+
+    // Get user details to check verification status
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    console.log('User details:', {
+      id: user.id,
+      email: user.email,
+      isEmailVerified: user.isEmailVerified,
+      isPhoneVerified: user.isPhoneVerified
+    });
 
     // Check if user already has VIP
     const existingVip = await prisma.userVip.findUnique({
       where: { userId }
     });
+
+    console.log('Existing VIP check:', existingVip);
 
     if (existingVip) {
       return res.status(400).json({
@@ -71,15 +87,58 @@ router.post('/join', authenticateToken, async (req, res) => {
     const vipAmount = parseFloat(vipLevel.amount);
     const walletBalance = parseFloat(wallet?.balance || 0);
 
-    if (!wallet || walletBalance < vipAmount) {
+    console.log('Wallet check:', { 
+      wallet: wallet ? 'exists' : 'not found', 
+      walletBalance, 
+      vipAmount,
+      walletDetails: wallet ? {
+        id: wallet.id,
+        balance: wallet.balance,
+        totalDeposits: wallet.totalDeposits
+      } : null
+    });
+
+    if (!wallet) {
+      console.log('Creating wallet for user:', userId);
+      // Create wallet for user if it doesn't exist
+      await prisma.wallet.create({
+        data: {
+          userId: userId
+        }
+      });
+      
+      // Fetch the newly created wallet
+      const newWallet = await prisma.wallet.findUnique({
+        where: { userId }
+      });
+      
+      console.log('New wallet created:', newWallet);
+      
+      if (!newWallet) {
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to create wallet. Please try again.'
+        });
+      }
+      
+      // Update wallet reference
+      wallet = newWallet;
+    }
+
+    // Recalculate balance after potential wallet creation
+    const finalWalletBalance = parseFloat(wallet.balance || 0);
+    
+    if (finalWalletBalance < vipAmount) {
       return res.status(400).json({
         success: false,
-        message: 'Insufficient balance to join this VIP level'
+        message: `Insufficient balance. You have $${finalWalletBalance} but need $${vipAmount} to join this VIP level.`
       });
     }
 
     // Start transaction
+    console.log('Starting VIP join transaction...');
     const result = await prisma.$transaction(async (tx) => {
+      console.log('Deducting VIP amount from wallet...');
       // Deduct VIP amount from wallet
       await tx.wallet.update({
         where: { userId },
@@ -90,6 +149,7 @@ router.post('/join', authenticateToken, async (req, res) => {
         }
       });
 
+      console.log('Creating VIP membership...');
       // Create VIP membership
       const userVip = await tx.userVip.create({
         data: {
@@ -99,6 +159,7 @@ router.post('/join', authenticateToken, async (req, res) => {
         }
       });
 
+      console.log('Creating transaction record...');
       // Create transaction record
       await tx.transaction.create({
         data: {
@@ -109,6 +170,7 @@ router.post('/join', authenticateToken, async (req, res) => {
         }
       });
 
+      console.log('Transaction completed successfully');
       return userVip;
     });
 
@@ -119,9 +181,11 @@ router.post('/join', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Error joining VIP:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'Failed to join VIP level'
+      message: 'Failed to join VIP level',
+      error: error.message
     });
   }
 });
