@@ -50,7 +50,7 @@ async function createAdminUser() {
     console.log('🔗 Referral Code:', referralCode);
     console.log('');
     console.log('⚠️  IMPORTANT: Change these credentials after first login!');
-    console.log('🌐 Admin Panel URL: https://tmbtest.vercel.app/admin');
+    console.log('🌐 Admin Panel URL: https://bambe.shop/admin');
     console.log('📱 You can also access admin features through the API endpoints');
 
   } catch (error) {
