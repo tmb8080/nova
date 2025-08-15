@@ -11,15 +11,42 @@ const WithdrawalHistory = () => {
   const {
     data: withdrawalsData,
     isLoading,
-    error
+    error,
+    refetch
   } = useQuery({
     queryKey: ['withdrawals', page, statusFilter],
     queryFn: () => withdrawalAPI.getWithdrawals({ page, limit: 10, status: statusFilter || undefined }),
-    keepPreviousData: true
+    keepPreviousData: true,
+    retry: 3,
+    retryDelay: 1000
   });
 
-  const withdrawals = withdrawalsData?.data || [];
-  const pagination = withdrawalsData?.pagination;
+  // Ensure withdrawals is always an array and handle different response structures
+  const withdrawals = React.useMemo(() => {
+    if (!withdrawalsData) return [];
+    
+    // Handle different possible response structures
+    if (Array.isArray(withdrawalsData)) {
+      return withdrawalsData;
+    }
+    
+    if (withdrawalsData.data && Array.isArray(withdrawalsData.data)) {
+      return withdrawalsData.data;
+    }
+    
+    if (withdrawalsData.data && withdrawalsData.data.data && Array.isArray(withdrawalsData.data.data)) {
+      return withdrawalsData.data.data;
+    }
+    
+    // If it's an object with a data property that's not an array, it might be a single item
+    if (withdrawalsData.data && typeof withdrawalsData.data === 'object' && !Array.isArray(withdrawalsData.data)) {
+      return [withdrawalsData.data];
+    }
+    
+    return [];
+  }, [withdrawalsData]);
+    
+  const pagination = withdrawalsData?.pagination || withdrawalsData?.data?.pagination;
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -29,13 +56,18 @@ const WithdrawalHistory = () => {
   };
 
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    if (!date) return 'N/A';
+    try {
+      return new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
   };
 
   const getStatusColor = (status) => {
@@ -70,7 +102,10 @@ const WithdrawalHistory = () => {
     return (
       <div className="text-center py-8">
         <div className="text-red-400 mb-4">Failed to load withdrawal history</div>
-        <Button onClick={() => window.location.reload()} className="bg-blue-500 hover:bg-blue-600">
+        <div className="text-gray-400 text-sm mb-4">
+          Error: {error.message || 'Unknown error occurred'}
+        </div>
+        <Button onClick={() => refetch()} className="bg-blue-500 hover:bg-blue-600">
           Retry
         </Button>
       </div>
@@ -101,6 +136,18 @@ const WithdrawalHistory = () => {
         </div>
       </div>
 
+      {/* Debug Info (remove in production) */}
+      {process.env.NODE_ENV === 'development' && false && (
+        <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4 text-yellow-300 text-sm">
+          <div>Debug Info:</div>
+          <div>Raw Data Type: {typeof withdrawalsData}</div>
+          <div>Raw Data: {JSON.stringify(withdrawalsData, null, 2)}</div>
+          <div>Withdrawals Array Length: {withdrawals.length}</div>
+          <div>Is Array: {Array.isArray(withdrawals).toString()}</div>
+          <div>Pagination: {JSON.stringify(pagination, null, 2)}</div>
+        </div>
+      )}
+
       {/* Withdrawals List */}
       {withdrawals.length === 0 ? (
         <div className="text-center py-12">
@@ -113,8 +160,8 @@ const WithdrawalHistory = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {withdrawals.map((withdrawal) => (
-            <Card key={withdrawal.id} className="backdrop-blur-xl bg-white/10 border border-white/20">
+          {withdrawals.map((withdrawal, index) => (
+            <Card key={withdrawal.id || index} className="backdrop-blur-xl bg-white/10 border border-white/20">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -122,7 +169,7 @@ const WithdrawalHistory = () => {
                       {formatCurrency(withdrawal.amount)}
                     </div>
                     <div className="text-sm text-gray-300">
-                      {withdrawal.currency} • {withdrawal.network}
+                      {withdrawal.currency} • {withdrawal.network || 'N/A'}
                     </div>
                   </div>
                   <div className="text-right">
@@ -139,7 +186,7 @@ const WithdrawalHistory = () => {
                   <div>
                     <span className="text-gray-300 text-sm">Wallet Address:</span>
                     <p className="text-white font-mono text-sm break-all">
-                      {withdrawal.walletAddress}
+                      {withdrawal.walletAddress || 'N/A'}
                     </p>
                   </div>
                   {withdrawal.transactionHash && (

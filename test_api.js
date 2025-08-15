@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://bambe.shop/api';
 
 async function testAPIs() {
   try {

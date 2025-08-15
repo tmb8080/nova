@@ -53,7 +53,7 @@ fi
 
 # Start both services
 echo -e "${GREEN}🚀 Starting development servers...${NC}"
-echo -e "${BLUE}Backend will run on: http://localhost:5000${NC}"
+echo -e "${BLUE}Backend will run on: https://bambe.shop${NC}"
 echo -e "${BLUE}Frontend will run on: http://localhost:3000${NC}"
 
 # Start backend in background

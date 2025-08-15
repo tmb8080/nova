@@ -173,7 +173,7 @@ The platform includes a comprehensive task system that rewards users for various
 
 The application will be available at:
 - Frontend: http://localhost:3000
-- Backend API: http://localhost:5000
+- Backend API: https://bambe.shop
 
 ## 🔧 Configuration
 
