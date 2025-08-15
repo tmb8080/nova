@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+// const rateLimit = require('express-rate-limit'); // Rate limiting disabled
 const cron = require('node-cron');
 require('dotenv').config();
 
@@ -27,8 +27,8 @@ const { processCompletedEarningSessions } = require('./services/vipService');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Trust proxy for rate limiting (when behind reverse proxy)
-app.set('trust proxy', 1);
+// Trust proxy configuration (for when behind reverse proxy)
+// app.set('trust proxy', 1); // Disabled since rate limiting is off
 
 // Security middleware
 app.use(helmet());
@@ -37,15 +37,25 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-  message: {
-    error: 'Too many requests from this IP, please try again later.'
-  }
-});
-app.use('/api/', limiter);
+// Rate limiting DISABLED - No 429 errors
+// const limiter = rateLimit({
+//   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || (process.env.NODE_ENV === 'development' ? 1 * 60 * 1000 : 15 * 60 * 1000), // 1 min in dev, 15 min in prod
+//   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || (process.env.NODE_ENV === 'development' ? 1000 : 100), // 1000 in dev, 100 in prod
+//   message: {
+//     error: 'Too many requests from this IP, please try again later.'
+//   },
+//   standardHeaders: true,
+//   legacyHeaders: false,
+//   skip: (req) => {
+//     // Skip rate limiting for health checks and in development for admin routes
+//     return req.path === '/health' || 
+//            (process.env.NODE_ENV === 'development' && req.path.startsWith('/api/admin'));
+//   }
+// });
+// app.use('/api/', limiter);
+
+// Rate limiting completely disabled - No 429 errors will occur
+console.log('⚠️  Rate limiting has been DISABLED - No request limits enforced');
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));

@@ -8,13 +8,12 @@ async function processCompletedEarningSessions() {
   try {
     console.log('Processing completed earning sessions...');
     
-    // Find completed sessions that haven't been paid
+    // Find completed sessions that haven't been paid yet
     const completedSessions = await prisma.earningsSession.findMany({
       where: {
-        isActive: true,
-        isPaid: false,
-        endsAt: {
-          lt: new Date()
+        status: 'COMPLETED',
+        totalEarnings: {
+          not: null
         }
       },
       include: {
@@ -30,27 +29,33 @@ async function processCompletedEarningSessions() {
 
     for (const session of completedSessions) {
       try {
+        // Check if this session has already been processed (by checking if a transaction exists)
+        const existingTransaction = await prisma.transaction.findFirst({
+          where: {
+            userId: session.userId,
+            type: 'VIP_EARNINGS',
+            referenceId: session.id
+          }
+        });
+
+        if (existingTransaction) {
+          console.log(`Session ${session.id} already processed, skipping...`);
+          continue;
+        }
+
+        const earningsAmount = parseFloat(session.totalEarnings);
+
         await prisma.$transaction(async (tx) => {
           // Add earnings to wallet
           await tx.wallet.update({
             where: { userId: session.userId },
             data: {
-              dailyEarnings: {
-                increment: session.earningsAmount
+              balance: {
+                increment: earningsAmount
               },
               totalEarnings: {
-                increment: session.earningsAmount
+                increment: earningsAmount
               }
-            }
-          });
-
-          // Mark session as paid
-          await tx.earningsSession.update({
-            where: { id: session.id },
-            data: {
-              isPaid: true,
-              paidAt: new Date(),
-              isActive: false
             }
           });
 
@@ -59,8 +64,9 @@ async function processCompletedEarningSessions() {
             data: {
               userId: session.userId,
               type: 'VIP_EARNINGS',
-              amount: session.earningsAmount,
-              description: 'Daily VIP earnings completed'
+              amount: earningsAmount,
+              description: 'Daily VIP earnings completed',
+              referenceId: session.id
             }
           });
         });
@@ -68,11 +74,11 @@ async function processCompletedEarningSessions() {
         results.push({
           sessionId: session.id,
           userId: session.userId,
-          amount: session.earningsAmount,
+          amount: earningsAmount,
           status: 'success'
         });
 
-        console.log(`Paid ${session.earningsAmount} to user ${session.userId}`);
+        console.log(`Paid ${earningsAmount} to user ${session.userId}`);
       } catch (error) {
         console.error(`Error processing session ${session.id}:`, error);
         results.push({
@@ -118,8 +124,8 @@ async function getUserVipStats(userId) {
     const activeSession = await prisma.earningsSession.findFirst({
       where: {
         userId,
-        isActive: true,
-        endsAt: {
+        status: 'ACTIVE',
+        expectedEndTime: {
           gt: new Date()
         }
       }
@@ -134,14 +140,14 @@ async function getUserVipStats(userId) {
     const todayEarnings = await prisma.earningsSession.aggregate({
       where: {
         userId,
-        startedAt: {
+        startTime: {
           gte: today,
           lt: tomorrow
         },
-        isPaid: true
+        status: 'COMPLETED'
       },
       _sum: {
-        earningsAmount: true
+        totalEarnings: true
       }
     });
 
@@ -149,7 +155,7 @@ async function getUserVipStats(userId) {
     const todaySession = await prisma.earningsSession.findFirst({
       where: {
         userId,
-        startedAt: {
+        startTime: {
           gte: today,
           lt: tomorrow
         }
@@ -163,7 +169,7 @@ async function getUserVipStats(userId) {
       vipLevel: userVip.vipLevel,
       userVip,
       activeSession,
-      todayEarnings: todayEarnings._sum.earningsAmount || 0,
+      todayEarnings: parseFloat(todayEarnings._sum.totalEarnings || 0),
       canStartEarning
     };
   } catch (error) {

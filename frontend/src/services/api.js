@@ -99,6 +99,10 @@ export const taskAPI = {
   startEarning: () => api.post('/tasks/start-earning'),
   stopEarning: () => api.post('/tasks/stop-earning'),
   getEarningHistory: () => api.get('/tasks/earning-history'),
+  getAvailableTasks: () => api.get('/tasks/available'),
+  startTask: (taskId) => api.post(`/tasks/start/${taskId}`),
+  completeTask: (taskId) => api.post(`/tasks/complete/${taskId}`),
+  getTaskHistory: () => api.get('/tasks/history'),
 };
 
 // Admin API

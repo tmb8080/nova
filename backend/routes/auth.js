@@ -9,6 +9,7 @@ const { authenticateToken } = require('../middleware/auth');
 const { sendEmail } = require('../services/emailService');
 const { sendSMS } = require('../services/smsService');
 const { generateOTP } = require('../utils/helpers');
+const { autoCompleteTask } = require('../services/taskService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -211,6 +212,14 @@ router.post('/login', [
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
+
+    // Auto-complete daily login task
+    try {
+      await autoCompleteTask(user.id, 'DAILY_LOGIN');
+    } catch (error) {
+      console.error('Error auto-completing daily login task:', error);
+      // Don't fail login if task completion fails
+    }
 
     res.json({
       message: 'Login successful',

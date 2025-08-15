@@ -4,6 +4,28 @@ A comprehensive crypto-powered referral and wallet growth platform built with Re
 
 ## 🚀 Features
 
+### Task & Reward System
+The platform includes a comprehensive task system that rewards users for various activities:
+
+**Available Task Types:**
+- **Daily Login** - Earn $1.00 for logging in daily (repeatable every 24 hours)
+- **Refer a Friend** - Earn $5.00 for each successful referral
+- **Make Your First Deposit** - Earn $10.00 for completing your first deposit
+- **Upgrade to VIP** - Earn $15.00 for joining any VIP level
+- **Share on Social Media** - Earn $2.00 for social media sharing (repeatable every 12 hours)
+- **Complete Survey** - Earn $3.00 for completing surveys (repeatable every 6 hours)
+- **Watch Tutorial Video** - Earn $1.50 for watching tutorial videos (repeatable every 2 hours)
+- **Verify Your Email** - Earn $2.00 for email verification (one-time)
+- **Verify Your Phone** - Earn $2.00 for phone verification (one-time)
+- **Complete Profile** - Earn $1.00 for completing profile information (one-time)
+
+**Key Features:**
+- **Automatic Task Completion** - Tasks are automatically completed based on user actions
+- **Wallet Integration** - All task rewards are automatically added to user wallets
+- **Transaction Tracking** - Task rewards are recorded as transactions with type 'TASK_REWARD'
+- **Repeatable Tasks** - Some tasks can be completed multiple times with cooldown periods
+- **Real-time Updates** - Task status updates in real-time on the frontend
+
 ### User Features
 - **User Registration & Authentication** with email/phone verification
 - **Referral System** with unique referral codes and bonus tracking
@@ -12,6 +34,7 @@ A comprehensive crypto-powered referral and wallet growth platform built with Re
 - **Withdrawal System** with admin approval workflow
 - **Real-time Dashboard** with balance, earnings, and transaction history
 - **Referral Management** with downline tracking and earnings
+- **Task & Reward System** with automatic wallet rewards for completed tasks
 
 ### Admin Features
 - **Admin Dashboard** with system statistics and analytics
@@ -75,6 +98,12 @@ A comprehensive crypto-powered referral and wallet growth platform built with Re
    ```
    
    Update `.env` with your configuration:
+   
+4. **Setup Task System** (Optional but recommended)
+   ```bash
+   node scripts/setup-tasks.js
+   ```
+   This will create the task tables and seed default tasks for user engagement.
    ```env
    # Database
    DATABASE_URL="postgresql://username:password@localhost:5432/trinity_metro_bike"

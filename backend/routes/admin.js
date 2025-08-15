@@ -40,6 +40,82 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// Get all withdrawals (admin)
+router.get('/withdrawals', [
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+  query('status').optional().isIn(['PENDING', 'COMPLETED', 'REJECTED']).withMessage('Invalid status'),
+  query('search').optional().isLength({ max: 100 }).withMessage('Search term too long')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const status = req.query.status;
+    const search = req.query.search || '';
+
+    const skip = (page - 1) * limit;
+
+    const whereClause = {};
+    if (status) {
+      whereClause.status = status;
+    }
+    if (search) {
+      whereClause.OR = [
+        { user: { fullName: { contains: search, mode: 'insensitive' } } },
+        { user: { email: { contains: search, mode: 'insensitive' } } },
+        { walletAddress: { contains: search, mode: 'insensitive' } },
+        { transactionHash: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    const [withdrawals, total] = await Promise.all([
+      prisma.withdrawal.findMany({
+        where: whereClause,
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.withdrawal.count({ where: whereClause })
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      success: true,
+      data: withdrawals,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: total,
+        itemsPerPage: limit
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching withdrawals:', error);
+    res.status(500).json({
+      error: 'Failed to fetch withdrawals',
+      message: error.message
+    });
+  }
+});
+
 // Get pending withdrawals
 router.get('/withdrawals/pending', async (req, res) => {
   try {
@@ -67,6 +143,140 @@ router.get('/withdrawals/pending', async (req, res) => {
     console.error('Error fetching pending withdrawals:', error);
     res.status(500).json({
       error: 'Failed to fetch pending withdrawals',
+      message: error.message
+    });
+  }
+});
+
+// Process withdrawal (approve/reject)
+router.patch('/withdrawals/:id/process', [
+  body('action').isIn(['APPROVE', 'REJECT']).withMessage('Action must be APPROVE or REJECT'),
+  body('transactionHash').optional().isLength({ min: 10, max: 100 }).withMessage('Transaction hash must be between 10 and 100 characters'),
+  body('adminNotes').optional().isLength({ max: 500 }).withMessage('Admin notes must be less than 500 characters')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { id } = req.params;
+    const { action, transactionHash, adminNotes } = req.body;
+    const adminId = req.user.id;
+
+    // Get withdrawal
+    const withdrawal = await prisma.withdrawal.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    if (!withdrawal) {
+      return res.status(404).json({
+        error: 'Withdrawal not found',
+        message: 'The specified withdrawal does not exist'
+      });
+    }
+
+    if (withdrawal.status !== 'PENDING') {
+      return res.status(400).json({
+        error: 'Invalid withdrawal status',
+        message: 'Only pending withdrawals can be processed'
+      });
+    }
+
+    // Process withdrawal in transaction
+    const result = await prisma.$transaction(async (tx) => {
+      const updateData = {
+        status: action === 'APPROVE' ? 'COMPLETED' : 'REJECTED',
+        processedBy: adminId,
+        processedAt: new Date(),
+        adminNotes: adminNotes || null
+      };
+
+      if (action === 'APPROVE' && transactionHash) {
+        updateData.transactionHash = transactionHash;
+      }
+
+      // Update withdrawal
+      const updatedWithdrawal = await tx.withdrawal.update({
+        where: { id },
+        data: updateData
+      });
+
+      // If approved, deduct from user's wallet
+      if (action === 'APPROVE') {
+        await tx.wallet.update({
+          where: { userId: withdrawal.userId },
+          data: {
+            balance: {
+              decrement: withdrawal.amount
+            }
+          }
+        });
+
+        // Create transaction record
+        await tx.transaction.create({
+          data: {
+            userId: withdrawal.userId,
+            type: 'WITHDRAWAL',
+            amount: withdrawal.amount,
+            description: `Withdrawal processed: ${withdrawal.currency} via ${withdrawal.network}`,
+            referenceId: withdrawal.id,
+            metadata: {
+              withdrawalId: withdrawal.id,
+              currency: withdrawal.currency,
+              network: withdrawal.network,
+              transactionHash: transactionHash
+            }
+          }
+        });
+      }
+
+      return updatedWithdrawal;
+    });
+
+    // Send email notification to user
+    try {
+      const { sendEmail } = require('../services/emailService');
+      await sendEmail({
+        to: withdrawal.user.email,
+        template: action === 'APPROVE' ? 'withdrawalApproved' : 'withdrawalRejected',
+        data: {
+          fullName: withdrawal.user.fullName,
+          amount: withdrawal.amount,
+          currency: withdrawal.currency,
+          network: withdrawal.network,
+          walletAddress: withdrawal.walletAddress,
+          transactionHash: transactionHash,
+          adminNotes: adminNotes,
+          status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED'
+        }
+      });
+    } catch (emailError) {
+      console.error('Failed to send withdrawal notification email:', emailError);
+    }
+
+    res.json({
+      success: true,
+      message: `Withdrawal ${action.toLowerCase()}d successfully`,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Error processing withdrawal:', error);
+    res.status(500).json({
+      error: 'Failed to process withdrawal',
       message: error.message
     });
   }
@@ -181,7 +391,7 @@ router.get('/deposits/pending', async (req, res) => {
 
 // Process deposit (approve/reject)
 router.patch('/deposits/:id/process', [
-  body('action').isIn(['approve', 'reject']).withMessage('Action must be approve or reject'),
+  body('action').isIn(['APPROVE', 'REJECT']).withMessage('Action must be APPROVE or REJECT'),
   body('adminNotes').optional().isString().withMessage('Admin notes must be a string'),
   body('transactionHash').optional().isString().withMessage('Transaction hash must be a string')
 ], async (req, res) => {
@@ -221,13 +431,13 @@ router.patch('/deposits/:id/process', [
       const updatedDeposit = await tx.deposit.update({
         where: { id },
         data: {
-          status: action === 'approve' ? 'CONFIRMED' : 'REJECTED',
+          status: action === 'APPROVE' ? 'CONFIRMED' : 'REJECTED',
           adminNotes: adminNotes || null,
           updatedAt: new Date()
         }
       });
 
-      if (action === 'approve') {
+      if (action === 'APPROVE') {
         // Get or create user's wallet
         let wallet = await tx.wallet.findUnique({
           where: { userId: deposit.userId }

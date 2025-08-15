@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button';
 import UsdtDeposit from '../components/UsdtDeposit';
 import UsdtWithdrawal from '../components/UsdtWithdrawal';
 import DepositHistory from '../components/DepositHistory';
+import WithdrawalHistory from '../components/WithdrawalHistory';
 import toast from 'react-hot-toast';
 
 const Profile = () => {
@@ -15,6 +16,7 @@ const Profile = () => {
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
   const [showDepositHistory, setShowDepositHistory] = useState(false);
+  const [showWithdrawalHistory, setShowWithdrawalHistory] = useState(false);
 
   // Fetch user wallet stats
   const { data: walletStats, isLoading: walletLoading } = useQuery({
@@ -152,6 +154,14 @@ const Profile = () => {
                 className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white text-sm py-2"
               >
                 View Deposit History
+              </Button>
+            </div>
+            <div className="mt-2">
+              <Button
+                onClick={() => setShowWithdrawalHistory(true)}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-sm py-2"
+              >
+                View Withdrawal History
               </Button>
             </div>
             
@@ -434,6 +444,27 @@ const Profile = () => {
         <DepositHistory
           onClose={() => setShowDepositHistory(false)}
         />
+      )}
+
+      {showWithdrawalHistory && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="backdrop-blur-xl bg-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-white/20 shadow-2xl">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-white">Withdrawal History</h3>
+                <Button
+                  onClick={() => setShowWithdrawalHistory(false)}
+                  className="bg-gray-500 hover:bg-gray-600 text-white"
+                >
+                  ✕
+                </Button>
+              </div>
+              <div className="max-h-[70vh] overflow-y-auto">
+                <WithdrawalHistory />
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

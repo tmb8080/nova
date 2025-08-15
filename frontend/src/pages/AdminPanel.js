@@ -5,6 +5,8 @@ import { adminAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import MobileBottomNav from '../components/MobileBottomNav';
+import WithdrawalHistory from '../components/WithdrawalHistory';
+import AdminWithdrawalHistory from '../components/AdminWithdrawalHistory';
 import toast from 'react-hot-toast';
 
 const AdminPanel = () => {
@@ -24,7 +26,7 @@ const AdminPanel = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const tabParam = urlParams.get('tab');
-    if (tabParam && ['dashboard', 'deposits', 'withdrawals', 'users', 'settings'].includes(tabParam)) {
+    if (tabParam && ['dashboard', 'deposits', 'withdrawals', 'withdrawal-history', 'users', 'settings'].includes(tabParam)) {
       setActiveTab(tabParam);
     } else if (location.pathname === '/admin' && !location.search) {
       // If we're on /admin without any search params, set to dashboard
@@ -60,7 +62,7 @@ const AdminPanel = () => {
     queryFn: async () => {
       const response = await adminAPI.getPendingWithdrawals();
       console.log('Pending withdrawals response:', response);
-      return response.data.data || response.data; // Handle both nested and direct responses
+      return response.data; // Return the full response data
     },
     enabled: !!user?.isAdmin, // Only run if user is admin
     refetchInterval: 15000, // Auto-refresh every 15 seconds for withdrawals
@@ -182,22 +184,28 @@ const AdminPanel = () => {
   const handleProcessWithdrawal = (action) => {
     if (!selectedWithdrawal) return;
 
+    const adminNotes = prompt('Enter admin notes (optional):');
+    const transactionHash = action === 'approve' ? prompt('Enter transaction hash (optional):') : null;
+
     processWithdrawalMutation.mutate({
       id: selectedWithdrawal.id,
-      action,
-      adminNotes,
-      transactionHash: action === 'approve' ? transactionHash : undefined
+      action: action.toUpperCase(),
+      adminNotes: adminNotes || null,
+      transactionHash: transactionHash || null
     });
   };
 
   const handleProcessDeposit = (action) => {
     if (!selectedDeposit) return;
 
+    const adminNotes = prompt('Enter admin notes (optional):');
+    const transactionHash = action === 'approve' ? prompt('Enter transaction hash (optional):') : null;
+
     processDepositMutation.mutate({
       id: selectedDeposit.id,
-      action,
-      adminNotes: depositAdminNotes,
-      transactionHash: action === 'approve' ? depositTransactionHash : undefined
+      action: action.toUpperCase(),
+      adminNotes: adminNotes || null,
+      transactionHash: transactionHash || null
     });
   };
 
@@ -220,7 +228,8 @@ const AdminPanel = () => {
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'withdrawals', label: 'Withdrawals', icon: '💰' },
+    { id: 'withdrawals', label: 'Pending Withdrawals', icon: '💰' },
+    { id: 'withdrawal-history', label: 'Withdrawal History', icon: '📋' },
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'settings', label: 'Settings', icon: '⚙️' },
   ];
@@ -253,6 +262,25 @@ const AdminPanel = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Tab Navigation */}
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-2">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeTab === tab.id
+                    ? 'bg-white/20 text-white shadow-lg'
+                    : 'bg-white/10 text-gray-300 hover:bg-white/15 hover:text-white'
+                }`}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -437,6 +465,10 @@ const AdminPanel = () => {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'withdrawal-history' && (
+          <AdminWithdrawalHistory />
         )}
 
         {activeTab === 'deposits' && (

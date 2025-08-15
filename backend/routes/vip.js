@@ -1,6 +1,7 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { authenticateToken } = require('../middleware/auth');
+const { autoCompleteTask } = require('../services/taskService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -176,6 +177,14 @@ router.post('/join', authenticateToken, async (req, res) => {
       console.log('Transaction completed successfully');
       return userVip;
     });
+
+    // Auto-complete VIP upgrade task
+    try {
+      await autoCompleteTask(userId, 'VIP_UPGRADE');
+    } catch (error) {
+      console.error('Error auto-completing VIP upgrade task:', error);
+      // Don't fail VIP join if task completion fails
+    }
 
     res.json({
       success: true,

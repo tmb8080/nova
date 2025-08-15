@@ -290,9 +290,342 @@ async function getEarningHistory(userId) {
   }
 }
 
+/**
+ * Get available tasks for a user
+ */
+async function getAvailableTasks(userId) {
+  try {
+    // Get all active tasks
+    const tasks = await prisma.task.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Get user's task progress
+    const userTasks = await prisma.userTask.findMany({
+      where: { userId },
+      include: { task: true }
+    });
+
+    // Map tasks with user progress
+    const tasksWithProgress = tasks.map(task => {
+      const userTask = userTasks.find(ut => ut.taskId === task.id);
+      
+      if (!userTask) {
+        return {
+          ...task,
+          status: 'PENDING',
+          canStart: true,
+          canComplete: false,
+          progress: 0
+        };
+      }
+
+      // Check if task can be repeated
+      let canStart = false;
+      let canComplete = false;
+      
+      if (task.isRepeatable && userTask.status === 'COMPLETED') {
+        // Check cooldown period
+        if (task.cooldownHours) {
+          const cooldownTime = new Date(userTask.completedAt.getTime() + task.cooldownHours * 60 * 60 * 1000);
+          canStart = new Date() >= cooldownTime;
+        } else {
+          canStart = true;
+        }
+      } else if (userTask.status === 'PENDING') {
+        canStart = true;
+      } else if (userTask.status === 'IN_PROGRESS') {
+        canComplete = true;
+      }
+
+      return {
+        ...task,
+        status: userTask.status,
+        startedAt: userTask.startedAt,
+        completedAt: userTask.completedAt,
+        rewardEarned: userTask.rewardEarned,
+        canStart,
+        canComplete,
+        progress: userTask.status === 'COMPLETED' ? 100 : 0
+      };
+    });
+
+    return {
+      success: true,
+      data: tasksWithProgress
+    };
+  } catch (error) {
+    console.error('Error getting available tasks:', error);
+    throw error;
+  }
+}
+
+/**
+ * Start a task
+ */
+async function startTask(userId, taskId) {
+  try {
+    // Get task details
+    const task = await prisma.task.findUnique({
+      where: { id: taskId }
+    });
+
+    if (!task || !task.isActive) {
+      throw new Error('Task not found or inactive');
+    }
+
+    // Check if user can start this task
+    const existingUserTask = await prisma.userTask.findUnique({
+      where: {
+        userId_taskId: {
+          userId,
+          taskId
+        }
+      }
+    });
+
+    if (existingUserTask) {
+      if (existingUserTask.status === 'IN_PROGRESS') {
+        throw new Error('Task already in progress');
+      }
+      
+      if (existingUserTask.status === 'COMPLETED' && !task.isRepeatable) {
+        throw new Error('Task already completed and not repeatable');
+      }
+
+      if (existingUserTask.status === 'COMPLETED' && task.isRepeatable) {
+        // Check cooldown period
+        if (task.cooldownHours) {
+          const cooldownTime = new Date(existingUserTask.completedAt.getTime() + task.cooldownHours * 60 * 60 * 1000);
+          if (new Date() < cooldownTime) {
+            const remainingHours = Math.ceil((cooldownTime - new Date()) / (1000 * 60 * 60));
+            throw new Error(`Task is on cooldown. Try again in ${remainingHours} hours`);
+          }
+        }
+      }
+    }
+
+    // Create or update user task
+    const userTask = await prisma.userTask.upsert({
+      where: {
+        userId_taskId: {
+          userId,
+          taskId
+        }
+      },
+      update: {
+        status: 'IN_PROGRESS',
+        startedAt: new Date(),
+        completedAt: null,
+        rewardEarned: null
+      },
+      create: {
+        userId,
+        taskId,
+        status: 'IN_PROGRESS',
+        startedAt: new Date()
+      }
+    });
+
+    return {
+      success: true,
+      data: {
+        message: `Task "${task.title}" started successfully`,
+        userTask
+      }
+    };
+  } catch (error) {
+    console.error('Error starting task:', error);
+    throw error;
+  }
+}
+
+/**
+ * Complete a task and add reward to wallet
+ */
+async function completeTask(userId, taskId) {
+  try {
+    // Get user task
+    const userTask = await prisma.userTask.findUnique({
+      where: {
+        userId_taskId: {
+          userId,
+          taskId
+        }
+      },
+      include: { task: true }
+    });
+
+    if (!userTask) {
+      throw new Error('Task not found for user');
+    }
+
+    if (userTask.status !== 'IN_PROGRESS') {
+      throw new Error('Task is not in progress');
+    }
+
+    const task = userTask.task;
+    const rewardAmount = parseFloat(task.reward);
+
+    // Complete task and add reward to wallet in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Update user task
+      const updatedUserTask = await tx.userTask.update({
+        where: { id: userTask.id },
+        data: {
+          status: 'COMPLETED',
+          completedAt: new Date(),
+          rewardEarned: rewardAmount
+        }
+      });
+
+      // Add reward to user's wallet
+      const updatedWallet = await tx.wallet.update({
+        where: { userId },
+        data: {
+          balance: {
+            increment: rewardAmount
+          },
+          totalEarnings: {
+            increment: rewardAmount
+          }
+        }
+      });
+
+      // Create transaction record
+      const transaction = await tx.transaction.create({
+        data: {
+          userId,
+          type: 'TASK_REWARD',
+          amount: rewardAmount,
+          description: `Task completion reward: ${task.title}`,
+          referenceId: userTask.id,
+          metadata: {
+            taskId: task.id,
+            taskType: task.type,
+            taskTitle: task.title
+          }
+        }
+      });
+
+      return { updatedUserTask, updatedWallet, transaction };
+    });
+
+    return {
+      success: true,
+      data: {
+        message: `Task "${task.title}" completed! You earned $${rewardAmount.toFixed(2)}`,
+        reward: rewardAmount,
+        taskTitle: task.title
+      }
+    };
+  } catch (error) {
+    console.error('Error completing task:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get user's task history
+ */
+async function getTaskHistory(userId) {
+  try {
+    const userTasks = await prisma.userTask.findMany({
+      where: { userId },
+      include: { task: true },
+      orderBy: { updatedAt: 'desc' }
+    });
+
+    const totalEarned = userTasks
+      .filter(ut => ut.status === 'COMPLETED' && ut.rewardEarned)
+      .reduce((sum, ut) => sum + parseFloat(ut.rewardEarned), 0);
+
+    return {
+      success: true,
+      data: {
+        tasks: userTasks,
+        totalEarned,
+        completedCount: userTasks.filter(ut => ut.status === 'COMPLETED').length,
+        totalCount: userTasks.length
+      }
+    };
+  } catch (error) {
+    console.error('Error getting task history:', error);
+    throw error;
+  }
+}
+
+/**
+ * Auto-complete certain task types based on user actions
+ */
+async function autoCompleteTask(userId, taskType, metadata = {}) {
+  try {
+    // Find tasks of the specified type
+    const tasks = await prisma.task.findMany({
+      where: {
+        type: taskType,
+        isActive: true
+      }
+    });
+
+    const results = [];
+
+    for (const task of tasks) {
+      try {
+        // Check if user can complete this task
+        const userTask = await prisma.userTask.findUnique({
+          where: {
+            userId_taskId: {
+              userId,
+              taskId: task.id
+            }
+          }
+        });
+
+        if (!userTask || userTask.status === 'PENDING') {
+          // Start and complete the task automatically
+          await startTask(userId, task.id);
+          const result = await completeTask(userId, task.id);
+          results.push({
+            taskId: task.id,
+            taskTitle: task.title,
+            status: 'completed',
+            reward: parseFloat(task.reward)
+          });
+        }
+      } catch (error) {
+        console.error(`Error auto-completing task ${task.id}:`, error);
+        results.push({
+          taskId: task.id,
+          taskTitle: task.title,
+          status: 'failed',
+          error: error.message
+        });
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        message: `Auto-completed ${results.filter(r => r.status === 'completed').length} tasks`,
+        results
+      }
+    };
+  } catch (error) {
+    console.error('Error auto-completing tasks:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   startEarningSession,
   getEarningSessionStatus,
   stopEarningSession,
-  getEarningHistory
+  getEarningHistory,
+  getAvailableTasks,
+  startTask,
+  completeTask,
+  getTaskHistory,
+  autoCompleteTask
 };

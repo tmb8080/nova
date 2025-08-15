@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const { updateWalletBalance, processReferralBonus } = require('./walletService');
 const { sendEmail } = require('./emailService');
+const { autoCompleteTask } = require('./taskService');
 
 const prisma = new PrismaClient();
 
@@ -87,6 +88,14 @@ const processUsdtDepositConfirmation = async (depositId, transactionHash) => {
       });
     } catch (emailError) {
       console.error('Failed to send deposit confirmation email:', emailError);
+    }
+
+    // Auto-complete deposit task
+    try {
+      await autoCompleteTask(deposit.userId, 'DEPOSIT');
+    } catch (error) {
+      console.error('Error auto-completing deposit task:', error);
+      // Don't fail deposit if task completion fails
     }
 
     console.log(`USDT deposit ${depositId} processed successfully`);
