@@ -26,7 +26,7 @@ node scripts/create-admin.js
 ## 🌐 Accessing the Admin Panel
 
 ### Web Interface
-1. **URL**: `http://localhost:3000/admin`
+1. **URL**: `https://tmbtest.vercel.app/admin`
 2. **Login**: Use the admin credentials above
 3. **Access**: Only users with `isAdmin: true` can access
 
@@ -207,7 +207,7 @@ The admin panel is fully responsive and works on:
    ```
 
 2. **Access Admin Panel**:
-   - Go to `http://localhost:3000/admin`
+   - Go to `https://tmbtest.vercel.app/admin`
    - Login with: `admin@trinitymetrobike.com` / `admin123`
 
 3. **Change Password**:

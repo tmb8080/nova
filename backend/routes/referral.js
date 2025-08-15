@@ -59,7 +59,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
 
     // Get referral link
     const referralLink = generateReferralLink(
-      process.env.FRONTEND_URL || 'http://localhost:3000',
+      process.env.FRONTEND_URL || 'https://tmbtest.vercel.app',
       req.user.referralCode
     );
 
