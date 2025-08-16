@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import axios from 'axios';
+import { authAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
 // Initial state
@@ -111,10 +111,8 @@ export const AuthProvider = ({ children }) => {
   // Configure axios defaults
   useEffect(() => {
     if (state.token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
       localStorage.setItem('token', state.token);
     } else {
-      delete axios.defaults.headers.common['Authorization'];
       localStorage.removeItem('token');
     }
   }, [state.token]);
@@ -133,7 +131,7 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: AUTH_ACTIONS.LOGIN_START });
       
-      const response = await axios.post('/api/auth/login', credentials);
+      const response = await authAPI.login(credentials);
       const { token, user } = response.data;
 
       dispatch({
@@ -160,7 +158,7 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: AUTH_ACTIONS.LOGIN_START });
       
-      const response = await axios.post('/api/auth/register', userData);
+      const response = await authAPI.register(userData);
       const { token, user } = response.data;
 
       dispatch({
@@ -187,7 +185,7 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: AUTH_ACTIONS.LOAD_USER_START });
       
-      const response = await axios.get('/api/auth/profile');
+      const response = await authAPI.getProfile();
       const { user } = response.data;
 
       dispatch({
@@ -206,7 +204,7 @@ export const AuthProvider = ({ children }) => {
   // Logout function
   const logout = async () => {
     try {
-      await axios.post('/api/auth/logout');
+      await authAPI.logout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -218,7 +216,7 @@ export const AuthProvider = ({ children }) => {
   // Verify email function
   const verifyEmail = async (otp) => {
     try {
-      const response = await axios.post('/api/auth/verify-email', { otp });
+      const response = await authAPI.verifyEmail(otp);
       
       // Update user state
       dispatch({
@@ -239,7 +237,7 @@ export const AuthProvider = ({ children }) => {
   // Resend verification email
   const resendVerification = async () => {
     try {
-      await axios.post('/api/auth/resend-verification');
+      await authAPI.resendVerification();
       toast.success('Verification email sent!');
       return { success: true };
 
