@@ -27,6 +27,8 @@ const Register = () => {
   } = useForm();
 
   const password = watch('password');
+  const email = watch('email');
+  const phone = watch('phoneNumber');
 
   // Get referral code from URL
   useEffect(() => {
@@ -58,6 +60,12 @@ const Register = () => {
   };
 
   const onSubmit = async (data) => {
+    // Validate that at least email or phone is provided
+    if (!data.email && !data.phoneNumber) {
+      toast.error('Please provide either email or phone number');
+      return;
+    }
+
     const result = await registerUser(data);
     if (result.success) {
       navigate('/verify-email');
@@ -65,66 +73,93 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-8 pb-20 md:pb-0">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 px-4 py-8 pb-20 md:pb-0">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Trinity Metro Bike</h1>
-          <p className="text-gray-600 mt-2">Join the crypto growth revolution</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Trinity Metro Bike</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">Join the crypto growth revolution</p>
         </div>
 
-        <Card>
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <CardHeader>
-            <CardTitle>Create Account</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-gray-900 dark:text-white">Create Account</CardTitle>
+            <CardDescription className="text-gray-600 dark:text-gray-300">
               Start growing your crypto portfolio today
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <Input
-                label="Full Name"
-                type="text"
-                placeholder="Enter your full name"
-                required
-                error={errors.fullName?.message}
-                {...register('fullName', {
-                  required: 'Full name is required',
-                  minLength: {
-                    value: 2,
-                    message: 'Name must be at least 2 characters'
-                  }
-                })}
-              />
+              <div>
+                <Input
+                  label="Full Name (Optional)"
+                  type="text"
+                  placeholder="Enter your full name (optional)"
+                  error={errors.fullName?.message}
+                  {...register('fullName', {
+                    minLength: {
+                      value: 2,
+                      message: 'Name must be at least 2 characters'
+                    }
+                  })}
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  You can skip this field if you prefer to remain anonymous
+                </p>
+              </div>
 
-              <Input
-                label="Email"
-                type="email"
-                placeholder="Enter your email"
-                required
-                error={errors.email?.message}
-                {...register('email', {
-                  required: 'Email is required',
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Invalid email address'
-                  }
-                })}
-              />
+              <div>
+                <Input
+                  label="Email (Optional)"
+                  type="email"
+                  placeholder="Enter your email address"
+                  error={errors.email?.message}
+                  {...register('email', {
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: 'Invalid email address'
+                    }
+                  })}
+                />
+                <div className="mt-1 flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <span>Email notifications and account recovery</span>
+                </div>
+              </div>
 
-              <Input
-                label="Phone Number"
-                type="tel"
-                placeholder="Enter your phone number"
-                required
-                error={errors.phoneNumber?.message}
-                {...register('phoneNumber', {
-                  required: 'Phone number is required',
-                  pattern: {
-                    value: /^\+?[\d\s-()]+$/,
-                    message: 'Invalid phone number'
-                  }
-                })}
-              />
+              <div>
+                <Input
+                  label="Phone Number (Optional)"
+                  type="tel"
+                  placeholder="Enter your phone number"
+                  error={errors.phoneNumber?.message}
+                  {...register('phoneNumber', {
+                    pattern: {
+                      value: /^\+?[\d\s-()]+$/,
+                      message: 'Invalid phone number'
+                    }
+                  })}
+                />
+                <div className="mt-1 flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  <span>SMS notifications and account recovery</span>
+                </div>
+              </div>
+
+              <div className="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 p-3 rounded-md border border-gray-200 dark:border-gray-600">
+                <div className="flex items-start space-x-2">
+                  <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="font-medium mb-1 text-gray-800 dark:text-gray-200">Important:</p>
+                    <p className="text-gray-700 dark:text-gray-300">You must provide either an email address or phone number (or both) to register. This will be used for account recovery and notifications.</p>
+                  </div>
+                </div>
+              </div>
 
               <div className="relative">
                 <Input
@@ -147,7 +182,7 @@ const Register = () => {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-8 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
@@ -178,7 +213,7 @@ const Register = () => {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-8 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? (
@@ -215,7 +250,7 @@ const Register = () => {
                 />
                 {checkingReferral && (
                   <div className="absolute right-3 top-8">
-                    <svg className="w-5 h-5 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 animate-spin text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
@@ -239,13 +274,13 @@ const Register = () => {
                     required: 'You must accept the terms and conditions'
                   })}
                 />
-                <label htmlFor="terms" className="text-sm text-gray-600">
+                <label htmlFor="terms" className="text-sm text-gray-600 dark:text-gray-300">
                   I agree to the{' '}
-                  <Link to="/terms" className="text-blue-600 hover:text-blue-500">
+                  <Link to="/terms" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
                     Terms of Service
                   </Link>{' '}
                   and{' '}
-                  <Link to="/privacy" className="text-blue-600 hover:text-blue-500">
+                  <Link to="/privacy" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
                     Privacy Policy
                   </Link>
                 </label>
@@ -256,7 +291,7 @@ const Register = () => {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full bg-gray-900 hover:bg-gray-800 dark:bg-gray-100 dark:hover:bg-gray-200 dark:text-gray-900 text-white"
                 loading={isLoading}
                 disabled={isLoading}
               >
@@ -265,11 +300,11 @@ const Register = () => {
             </form>
 
             <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Already have an account?{' '}
                 <Link
                   to="/login"
-                  className="text-blue-600 hover:text-blue-500 font-medium"
+                  className="text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-200 font-medium"
                 >
                   Sign in
                 </Link>

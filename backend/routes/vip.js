@@ -1,7 +1,8 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { authenticateToken } = require('../middleware/auth');
-const { autoCompleteTask } = require('../services/taskService');
+// Auto-complete task functionality removed - only daily earning tasks available
+const { processVipReferralBonus } = require('../services/vipReferralService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -178,13 +179,18 @@ router.post('/join', authenticateToken, async (req, res) => {
       return userVip;
     });
 
-    // Auto-complete VIP upgrade task
+    // Process referral bonuses for VIP purchase
     try {
-      await autoCompleteTask(userId, 'VIP_UPGRADE');
-    } catch (error) {
-      console.error('Error auto-completing VIP upgrade task:', error);
-      // Don't fail VIP join if task completion fails
+      console.log('Processing VIP referral bonuses...');
+      const vipAmount = parseFloat(vipLevel.amount);
+      await processVipReferralBonus(userId, vipLevelId, vipAmount);
+      console.log('VIP referral bonuses processed successfully');
+    } catch (referralError) {
+      console.error('Error processing VIP referral bonuses:', referralError);
+      // Don't fail VIP join if referral bonus processing fails
     }
+
+    // Note: Auto-complete task functionality removed - only daily earning tasks are available
 
     res.json({
       success: true,

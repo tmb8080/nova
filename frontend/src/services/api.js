@@ -46,6 +46,7 @@ export const authAPI = {
   getProfile: () => api.get('/auth/profile'),
   verifyEmail: (otp) => api.post('/auth/verify-email', { otp }),
   resendVerification: () => api.post('/auth/resend-verification'),
+  changePassword: (passwordData) => api.post('/auth/change-password', passwordData),
 };
 
 // Wallet API
@@ -66,6 +67,8 @@ export const depositAPI = {
   createUsdtDeposit: (data) => api.post('/deposit/usdt/create', data),
   getPendingCount: () => api.get('/deposit/pending-count'),
   updateTransactionHash: (depositId, transactionHash) => api.patch(`/deposit/${depositId}/transaction-hash`, { transactionHash }),
+  verifyDeposit: (depositId) => api.post(`/deposit/${depositId}/verify`),
+  getAutomaticDetectionStatus: () => api.get('/deposit/automatic-detection-status'),
 };
 
 // Withdrawal API
@@ -97,11 +100,9 @@ export const vipAPI = {
 export const taskAPI = {
   getEarningStatus: () => api.get('/tasks/earning-status'),
   startEarning: () => api.post('/tasks/start-earning'),
-  stopEarning: () => api.post('/tasks/stop-earning'),
   getEarningHistory: () => api.get('/tasks/earning-history'),
   getAvailableTasks: () => api.get('/tasks/available'),
   startTask: (taskId) => api.post(`/tasks/start/${taskId}`),
-  completeTask: (taskId) => api.post(`/tasks/complete/${taskId}`),
   getTaskHistory: () => api.get('/tasks/history'),
 };
 

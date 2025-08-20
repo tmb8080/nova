@@ -313,28 +313,10 @@ const VipSelection = () => {
           }) : (
             <div className="col-span-full text-center py-8 md:py-12">
               <div className="text-4xl md:text-6xl mb-3 md:mb-4">💎</div>
-              <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-2">No VIP Levels Available</h3>
-              <p className="text-gray-600 text-sm md:text-base">VIP levels are currently being configured.</p>
-              <div className="mt-4 text-xs text-gray-500">
-                <p>Debug info:</p>
-                <p>vipLevels exists: {vipLevels ? 'Yes' : 'No'}</p>
-                <p>vipLevels.data exists: {vipLevels?.data ? 'Yes' : 'No'}</p>
-                <p>vipLevels.data.data exists: {vipLevels?.data?.data ? 'Yes' : 'No'}</p>
-                <p>vipLevels.data.data is array: {Array.isArray(vipLevels?.data?.data) ? 'Yes' : 'No'}</p>
-                <p>vipLevels.data.data length: {vipLevels?.data?.data?.length || 0}</p>
-                <p>vipLevels.data type: {typeof vipLevels?.data}</p>
-                <p>vipLevels.data keys: {vipLevels?.data ? Object.keys(vipLevels.data).join(', ') : 'none'}</p>
-                <p>walletStats exists: {walletStats ? 'Yes' : 'No'}</p>
-                <p>walletStats.data exists: {walletStats?.data ? 'Yes' : 'No'}</p>
-                <p>walletStats.data.data.balance: {walletStats?.data?.data?.balance || 'undefined'}</p>
-                <p>walletLoading: {walletLoading ? 'Yes' : 'No'}</p>
-                <p>walletError: {walletError ? 'Yes' : 'No'}</p>
-                <p>vipLoading: {vipLoading ? 'Yes' : 'No'}</p>
-                <p>vipError: {vipError ? 'Yes' : 'No'}</p>
-                <p>Full vipLevels: {JSON.stringify(vipLevels, null, 2)}</p>
-              </div>
+              <h3 className="text-lg md:text-xl font-semibold text-white mb-2">No VIP Levels Available</h3>
+              <p className="text-gray-300 text-sm md:text-base">VIP levels are currently being configured.</p>
               <div className="mt-4">
-                <Button onClick={() => refetchVipLevels()} variant="outline" size="sm">
+                <Button onClick={() => refetchVipLevels()} className="bg-blue-600 hover:bg-blue-700 text-white">
                   Refresh VIP Levels
                 </Button>
               </div>
@@ -378,32 +360,7 @@ const VipSelection = () => {
             Skip for Now
           </Button>
           
-          {/* Debug button */}
-          <div className="mt-4">
-            <Button 
-              variant="outline" 
-              onClick={async () => {
-                console.log('Testing VIP join with first level...');
-                if (vipLevels?.data?.data && vipLevels.data.data.length > 0) {
-                  const firstVip = vipLevels.data.data[0];
-                  console.log('Testing with VIP level:', firstVip);
-                  try {
-                    const response = await vipAPI.joinVip(firstVip.id);
-                    console.log('VIP join test response:', response);
-                    alert('VIP join test successful!');
-                  } catch (error) {
-                    console.error('VIP join test error:', error);
-                    alert(`VIP join test failed: ${error.response?.data?.message || error.message}`);
-                  }
-                } else {
-                  alert('No VIP levels available for testing');
-                }
-              }}
-              className="px-4 py-2 text-xs"
-            >
-              Test VIP Join
-            </Button>
-          </div>
+
         </div>
       </div>
 

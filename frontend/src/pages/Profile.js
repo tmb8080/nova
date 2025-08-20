@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { walletAPI, vipAPI } from '../services/api';
+import { walletAPI, vipAPI, taskAPI } from '../services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import UsdtDeposit from '../components/UsdtDeposit';
 import UsdtWithdrawal from '../components/UsdtWithdrawal';
 import DepositHistory from '../components/DepositHistory';
 import WithdrawalHistory from '../components/WithdrawalHistory';
+import ChangePassword from '../components/ChangePassword';
 import toast from 'react-hot-toast';
 
 const Profile = () => {
@@ -17,6 +18,7 @@ const Profile = () => {
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
   const [showDepositHistory, setShowDepositHistory] = useState(false);
   const [showWithdrawalHistory, setShowWithdrawalHistory] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   // Fetch user wallet stats
   const { data: walletStats, isLoading: walletLoading } = useQuery({
@@ -40,17 +42,14 @@ const Profile = () => {
     queryFn: () => walletAPI.getTransactions({ limit: 10, page: 1 }),
   });
 
-  // Fetch user VIP status
-  const { data: userVipStatus, error: vipStatusError } = useQuery({
-    queryKey: ['userVipStatus'],
-    queryFn: () => vipAPI.getStatus(),
-    onSuccess: (data) => {
-      console.log('VIP Status loaded:', data);
-    },
-    onError: (error) => {
-      console.error('Error loading VIP status:', error);
-    }
+  // Fetch earning session status
+  const { data: earningStatus, isLoading: earningStatusLoading } = useQuery({
+    queryKey: ['earningStatus'],
+    queryFn: taskAPI.getEarningStatus,
+    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
   });
+
+
 
   const handleLogout = () => {
     logout();
@@ -74,6 +73,30 @@ const Profile = () => {
     });
   };
 
+  const getTransactionIcon = (type) => {
+    const icons = {
+      'DEPOSIT': '💰',
+      'WITHDRAWAL': '💸',
+      'VIP_EARNINGS': '🚴',
+      'REFERRAL_BONUS': '👥',
+      'VIP_PAYMENT': '👑',
+      'TASK_REWARD': '🎯'
+    };
+    return icons[type] || '📊';
+  };
+
+  const getTransactionColor = (type) => {
+    const colors = {
+      'DEPOSIT': 'text-green-500 bg-green-100',
+      'WITHDRAWAL': 'text-red-500 bg-red-100',
+      'VIP_EARNINGS': 'text-blue-500 bg-blue-100',
+      'REFERRAL_BONUS': 'text-purple-500 bg-purple-100',
+      'VIP_PAYMENT': 'text-yellow-500 bg-yellow-100',
+      'TASK_REWARD': 'text-indigo-500 bg-indigo-100'
+    };
+    return colors[type] || 'text-gray-500 bg-gray-100';
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-20 md:pb-0">
       {/* Modern Header */}
@@ -84,7 +107,7 @@ const Profile = () => {
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
               <h1 className="text-xl font-bold text-white">Trinity Metro</h1>
@@ -106,323 +129,370 @@ const Profile = () => {
             <span className="text-blue-300 text-sm font-medium">Profile Dashboard</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-            Profile Settings
+            My Profile
           </h1>
           <p className="text-gray-300 text-base max-w-2xl mx-auto">
-            Manage your account information and preferences
+            Manage your account, view earnings, and track your progress
           </p>
         </div>
 
-        {/* Portfolio Overview */}
+        {/* Portfolio Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Account Balance */}
-          <div className="backdrop-blur-xl bg-white/10 rounded-xl p-6 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-md">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                </svg>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-300">Account Balance</div>
-                <div className="text-2xl font-bold text-white">
-                  {walletLoading ? (
-                    <div className="animate-pulse bg-gray-600 h-8 w-24 rounded"></div>
-                  ) : (
-                    formatCurrency(walletStats?.data?.data?.balance || 0)
-                  )}
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
+            <div className="relative backdrop-blur-xl bg-white/10 rounded-2xl p-6 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300 hover:scale-105">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                  </svg>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-300">Account Balance</div>
+                  <div className="text-2xl font-bold text-white">
+                    {walletLoading ? (
+                      <div className="animate-pulse bg-gray-600 h-8 w-24 rounded"></div>
+                    ) : (
+                      formatCurrency(walletStats?.data?.data?.balance || 0)
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex space-x-2">
-              <Button
-                onClick={() => setShowDepositModal(true)}
-                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm py-2"
-              >
-                Deposit
-              </Button>
-              <Button
-                onClick={() => setShowWithdrawalModal(true)}
-                className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white text-sm py-2"
-              >
-                Withdraw (USDT/USDC)
-              </Button>
-            </div>
-            <div className="mt-2">
-              <Button
-                onClick={() => setShowDepositHistory(true)}
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white text-sm py-2"
-              >
-                View Deposit History
-              </Button>
-            </div>
-            <div className="mt-2">
-              <Button
-                onClick={() => setShowWithdrawalHistory(true)}
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-sm py-2"
-              >
-                View Withdrawal History
-              </Button>
-            </div>
-            
-            {/* Admin Access Button */}
-            {user?.isAdmin && (
-              <div className="mt-2">
+              <div className="space-y-2">
                 <Button
-                  onClick={() => window.location.href = '/admin'}
-                  className="w-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white text-sm py-2"
+                  onClick={() => setShowDepositModal(true)}
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm py-2 rounded-xl"
                 >
-                  🔐 Admin Panel
+                  💰 Deposit
+                </Button>
+                <Button
+                  onClick={() => setShowWithdrawalModal(true)}
+                  className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white text-sm py-2 rounded-xl"
+                >
+                  💸 Withdraw
                 </Button>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Total Deposits */}
-          <div className="backdrop-blur-xl bg-white/10 rounded-xl p-6 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                </svg>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-300">Total Deposits</div>
-                <div className="text-2xl font-bold text-white">
-                  {walletLoading ? (
-                    <div className="animate-pulse bg-gray-600 h-8 w-24 rounded"></div>
-                  ) : (
-                    formatCurrency(walletStats?.data?.data?.totalDeposits || 0)
-                  )}
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
+            <div className="relative backdrop-blur-xl bg-white/10 rounded-2xl p-6 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300 hover:scale-105">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                  </svg>
                 </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-300">Total Deposits</div>
+                  <div className="text-2xl font-bold text-white">
+                    {walletLoading ? (
+                      <div className="animate-pulse bg-gray-600 h-8 w-24 rounded"></div>
+                    ) : (
+                      formatCurrency(walletStats?.data?.data?.totalDeposits || 0)
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4">
+                <Button
+                  onClick={() => setShowDepositHistory(true)}
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white text-sm py-2 rounded-xl"
+                >
+                  📊 View History
+                </Button>
               </div>
             </div>
           </div>
 
-          {/* Total Earnings */}
-          <div className="backdrop-blur-xl bg-white/10 rounded-xl p-6 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-300">Total Earnings</div>
-                <div className="text-2xl font-bold text-white">
-                  {walletLoading ? (
-                    <div className="animate-pulse bg-gray-600 h-8 w-24 rounded"></div>
-                  ) : (
-                    formatCurrency(walletStats?.data?.data?.totalEarnings || 0)
-                  )}
+          {/* VIP Task Earnings */}
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
+            <div className="relative backdrop-blur-xl bg-white/10 rounded-2xl p-6 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300 hover:scale-105">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <span className="text-2xl">🚴</span>
                 </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-300">Daily Task Earnings</div>
+                  <div className="text-2xl font-bold text-white">
+                    {walletLoading ? (
+                      <div className="animate-pulse bg-gray-600 h-8 w-24 rounded"></div>
+                    ) : (
+                      formatCurrency(walletStats?.data?.data?.totalEarnings || 0)
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">From VIP tasks</div>
+                </div>
+              </div>
+              
+              {/* Earnings Progress - Show when task is active */}
+              {earningStatus?.data?.data?.hasActiveSession && (
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs text-gray-300">Session Progress</span>
+                    <span className="text-xs text-green-400 font-medium">
+                      {earningStatus.data.data.progress || 0}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-700/50 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full transition-all duration-300"
+                      style={{ 
+                        width: `${earningStatus.data.data.progress || 0}%`,
+                        animation: 'pulse 2s infinite'
+                      }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
+                    <span>Started: {earningStatus.data.data.startTime ? new Date(earningStatus.data.data.startTime).toLocaleTimeString() : 'N/A'}</span>
+                    <span>Ends: {earningStatus.data.data.endTime ? new Date(earningStatus.data.data.endTime).toLocaleTimeString() : 'N/A'}</span>
+                  </div>
+                  <div className="mt-2 text-center">
+                    <span className="text-xs text-green-400 font-medium">
+                      Earning: {formatCurrency(earningStatus.data.data.currentEarnings || 0)}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              <div className="mt-4">
+                <Button
+                  onClick={() => window.location.href = '/tasks'}
+                  className={`w-full text-sm py-2 rounded-xl ${
+                    earningStatus?.data?.data?.hasActiveSession 
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white'
+                      : 'bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white'
+                  }`}
+                >
+                  {earningStatus?.data?.data?.hasActiveSession ? '🔄 View Progress' : '🎯 Start Task'}
+                </Button>
               </div>
             </div>
           </div>
 
           {/* Referral Bonus */}
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-600">Referral Bonus</div>
-                <div className="text-2xl font-bold text-gray-900">
-                  {walletLoading ? (
-                    <div className="animate-pulse bg-gray-200 h-8 w-24 rounded"></div>
-                  ) : (
-                    formatCurrency(walletStats?.data?.data?.totalReferralBonus || 0)
-                  )}
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
+            <div className="relative backdrop-blur-xl bg-white/10 rounded-2xl p-6 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300 hover:scale-105">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
                 </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-300">Referral Bonus</div>
+                  <div className="text-2xl font-bold text-white">
+                    {walletLoading ? (
+                      <div className="animate-pulse bg-gray-600 h-8 w-24 rounded"></div>
+                    ) : (
+                      formatCurrency(walletStats?.data?.data?.totalReferralBonus || 0)
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">5% commission</div>
+                </div>
+              </div>
+              <div className="mt-4">
+                <Button
+                  onClick={() => window.location.href = '/invite'}
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white text-sm py-2 rounded-xl"
+                >
+                  👥 Invite Friends
+                </Button>
               </div>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Profile Information */}
+          {/* Main Content Area */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Deposit Section */}
-          
+            {/* Recent Transactions */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl blur-3xl"></div>
+              <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-xl font-bold text-white">Recent Transactions</CardTitle>
+                      <CardDescription className="text-gray-300">
+                        Your latest account activity and earnings
+                      </CardDescription>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        onClick={() => setShowDepositModal(true)}
+                        className="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1 rounded-lg"
+                      >
+                        💰 Deposit
+                      </Button>
+                      <Button
+                        onClick={() => setShowWithdrawalModal(true)}
+                        className="bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1 rounded-lg"
+                      >
+                        💸 Withdraw
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {transactionsLoading ? (
+                    <div className="space-y-4">
+                      {[...Array(5)].map((_, i) => (
+                        <div key={i} className="animate-pulse">
+                          <div className="h-16 bg-slate-700/50 rounded-xl"></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : transactions?.data?.transactions?.length > 0 ? (
+                    <div className="space-y-3">
+                      {transactions.data.transactions.slice(0, 8).map((transaction) => (
+                        <div key={transaction.id} className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl border border-slate-600/30 hover:bg-slate-700/50 transition-all duration-200">
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${getTransactionColor(transaction.type)}`}>
+                              {getTransactionIcon(transaction.type)}
+                            </div>
+                            <div>
+                              <div className="font-medium text-white">{transaction.description}</div>
+                              <div className="text-sm text-gray-400">{formatDate(transaction.createdAt)}</div>
+                            </div>
+                          </div>
+                          <div className={`font-semibold text-lg ${
+                            transaction.type === 'DEPOSIT' || transaction.type === 'VIP_EARNINGS' || transaction.type === 'REFERRAL_BONUS' 
+                              ? 'text-green-400' 
+                              : 'text-red-400'
+                          }`}>
+                            {transaction.type === 'DEPOSIT' || transaction.type === 'VIP_EARNINGS' || transaction.type === 'REFERRAL_BONUS' ? '+' : ''}{formatCurrency(transaction.amount)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Account Statistics */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Account Statistics</CardTitle>
-                <CardDescription>
-                  Overview of your account activity and performance
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {walletLoading ? '...' : formatCurrency(walletStats?.data?.data?.balance || 0)}
-                    </div>
-                    <div className="text-sm text-gray-600">Current Balance</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {transactionsLoading ? '...' : transactions?.data?.transactions?.length || 0}
-                    </div>
-                    <div className="text-sm text-gray-600">Total Transactions</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {formatDate(user?.createdAt || new Date())}
-                    </div>
-                    <div className="text-sm text-gray-600">Member Since</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recent Transactions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Transactions</CardTitle>
-                <CardDescription>
-                  Your latest account activity
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {transactionsLoading ? (
-                  <div className="space-y-4">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="animate-pulse">
-                        <div className="h-16 bg-gray-200 rounded-lg"></div>
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-2xl blur-3xl"></div>
+              <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-white">Account Statistics</CardTitle>
+                  <CardDescription className="text-gray-300">
+                    Overview of your account activity and performance
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="text-center p-4 bg-slate-700/30 rounded-xl border border-slate-600/30">
+                      <div className="text-3xl font-bold text-white mb-2">
+                        {walletLoading ? '...' : formatCurrency(walletStats?.data?.data?.balance || 0)}
                       </div>
-                    ))}
-                  </div>
-                ) : transactions?.data?.transactions?.length > 0 ? (
-                  <div className="space-y-4">
-                    {transactions.data.transactions.slice(0, 5).map((transaction) => (
-                      <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            transaction.type === 'DEPOSIT' ? 'bg-green-100' :
-                            transaction.type === 'WITHDRAWAL' ? 'bg-red-100' :
-                            transaction.type === 'VIP_EARNINGS' ? 'bg-blue-100' :
-                            'bg-gray-100'
-                          }`}>
-                            <svg className={`w-5 h-5 ${
-                              transaction.type === 'DEPOSIT' ? 'text-green-600' :
-                              transaction.type === 'WITHDRAWAL' ? 'text-red-600' :
-                              transaction.type === 'VIP_EARNINGS' ? 'text-blue-600' :
-                              'text-gray-600'
-                            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                            </svg>
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-900">{transaction.description}</div>
-                            <div className="text-sm text-gray-500">{formatDate(transaction.createdAt)}</div>
-                          </div>
-                        </div>
-                        <div className={`font-semibold ${
-                          transaction.type === 'DEPOSIT' ? 'text-green-600' :
-                          transaction.type === 'WITHDRAWAL' ? 'text-red-600' :
-                          'text-gray-900'
-                        }`}>
-                          {transaction.type === 'DEPOSIT' ? '+' : ''}{formatCurrency(transaction.amount)}
-                        </div>
+                      <div className="text-sm text-gray-300">Current Balance</div>
+                    </div>
+                    <div className="text-center p-4 bg-slate-700/30 rounded-xl border border-slate-600/30">
+                      <div className="text-3xl font-bold text-white mb-2">
+                        {formatDate(user?.createdAt || new Date())}
                       </div>
-                    ))}
+                      <div className="text-sm text-gray-300">Member Since</div>
+                    </div>
                   </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="text-gray-400 text-6xl mb-4">📊</div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">No Transactions Yet</h3>
-                    <p className="text-gray-600">Your transaction history will appear here once you start using the platform.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
             {/* User Profile */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                  <div className="mt-1 p-3 bg-gray-50 rounded-lg text-gray-900">
-                    {user?.fullName || 'N/A'}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Email</label>
-                  <div className="mt-1 p-3 bg-gray-50 rounded-lg text-gray-900">
-                    {user?.email || 'N/A'}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Phone</label>
-                  <div className="mt-1 p-3 bg-gray-50 rounded-lg text-gray-900">
-                    {user?.phone || 'N/A'}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Referral Code</label>
-                  <div className="mt-1 p-3 bg-gray-50 rounded-lg text-gray-900 font-mono">
-                    {user?.referralCode || 'N/A'}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Member Since</label>
-                  <div className="mt-1 p-3 bg-gray-50 rounded-lg text-gray-900">
-                    {formatDate(user?.createdAt || new Date())}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* VIP Status */}
-            {userVipStatus?.data?.data?.userVip && (
-              <Card>
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl blur-3xl"></div>
+              <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle>VIP Status</CardTitle>
+                  <CardTitle className="text-xl font-bold text-white">Profile Information</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-center">
-                    <div className="text-3xl mb-2">👑</div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                      {userVipStatus.data.data.userVip.vipLevel?.name}
-                    </h3>
-                    <p className="text-gray-600 mb-3">
-                      Daily Earnings: {formatCurrency(userVipStatus.data.data.userVip.vipLevel?.dailyEarning || 0)}
-                    </p>
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                      <div className="text-sm text-green-800">
-                        <div className="font-medium">Today's Earnings</div>
-                        <div className="text-lg font-bold">
-                          {formatCurrency(userVipStatus.data.data.todayEarnings || 0)}
-                        </div>
-                      </div>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+                    <div className="p-3 bg-slate-700/30 rounded-lg text-white border border-slate-600/30">
+                      {user?.fullName || 'N/A'}
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                    <div className="p-3 bg-slate-700/30 rounded-lg text-white border border-slate-600/30">
+                      {user?.email || 'N/A'}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Phone</label>
+                    <div className="p-3 bg-slate-700/30 rounded-lg text-white border border-slate-600/30">
+                      {user?.phone || 'N/A'}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Referral Code</label>
+                    <div className="p-3 bg-slate-700/30 rounded-lg text-white font-mono border border-slate-600/30">
+                      {user?.referralCode || 'N/A'}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Member Since</label>
+                    <div className="p-3 bg-slate-700/30 rounded-lg text-white border border-slate-600/30">
+                      {formatDate(user?.createdAt || new Date())}
+                    </div>
+                  </div>
+                  
+                  {/* Change Password Button */}
+                  <div className="pt-4">
+                    <Button
+                      onClick={() => setShowChangePassword(true)}
+                      className="w-full bg-gradient-to-r from-blue-600 to-purple-700 hover:from-blue-700 hover:to-purple-800 text-white rounded-xl"
+                    >
+                      🔐 Change Password
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
+            </div>
+
+
+
+            {/* Admin Access */}
+            {user?.isAdmin && (
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-pink-500/10 rounded-2xl blur-3xl"></div>
+                <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
+                  <CardContent className="pt-6">
+                    <Button
+                      onClick={() => window.location.href = '/admin'}
+                      className="w-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white rounded-xl"
+                    >
+                      🔐 Admin Panel
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
             )}
 
             {/* Logout */}
-            <Card>
-              <CardContent className="pt-6">
-                <Button
-                  onClick={handleLogout}
-                  className="w-full bg-gray-600 hover:bg-gray-700 text-white"
-                >
-                  Logout
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-gray-500/10 to-slate-500/10 rounded-2xl blur-3xl"></div>
+              <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
+                <CardContent className="pt-6">
+                  <Button
+                    onClick={handleLogout}
+                    className="w-full bg-gradient-to-r from-gray-600 to-slate-700 hover:from-gray-700 hover:to-slate-800 text-white rounded-xl"
+                  >
+                    🚪 Logout
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
@@ -465,6 +535,11 @@ const Profile = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Change Password Modal */}
+      {showChangePassword && (
+        <ChangePassword onClose={() => setShowChangePassword(false)} />
       )}
     </div>
   );

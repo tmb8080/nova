@@ -28,36 +28,51 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 pb-20 md:pb-0">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 px-4 pb-20 md:pb-0">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Trinity Metro Bike</h1>
-          <p className="text-gray-600 mt-2">Your crypto growth platform</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Trinity Metro Bike</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">Your crypto growth platform</p>
         </div>
 
-        <Card>
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <CardHeader>
-            <CardTitle>Welcome Back</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-gray-900 dark:text-white">Welcome Back</CardTitle>
+            <CardDescription className="text-gray-600 dark:text-gray-300">
               Sign in to your account to continue
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <Input
-                label="Email"
-                type="email"
-                placeholder="Enter your email"
-                required
-                error={errors.email?.message}
-                {...register('email', {
-                  required: 'Email is required',
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Invalid email address'
-                  }
-                })}
-              />
+              <div>
+                <Input
+                  label="Email or Phone Number"
+                  type="text"
+                  placeholder="Enter your email or phone number"
+                  required
+                  error={errors.identifier?.message}
+                  {...register('identifier', {
+                    required: 'Email or phone number is required'
+                  })}
+                />
+                <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center space-x-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <span>Email</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    <span>Phone</span>
+                  </div>
+                </div>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  You can use either your email address or phone number to sign in
+                </p>
+              </div>
 
               <div className="relative">
                 <Input
@@ -76,7 +91,7 @@ const Login = () => {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-8 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
@@ -94,7 +109,7 @@ const Login = () => {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full bg-gray-900 hover:bg-gray-800 dark:bg-gray-100 dark:hover:bg-gray-200 dark:text-gray-900 text-white"
                 loading={isLoading}
                 disabled={isLoading}
               >
@@ -103,34 +118,34 @@ const Login = () => {
             </form>
 
             <div className="mt-6 text-center space-y-2">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Don't have an account?{' '}
                 <Link
                   to="/register"
-                  className="text-blue-600 hover:text-blue-500 font-medium"
+                  className="text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-200 font-medium"
                 >
                   Sign up
                 </Link>
               </p>
               
               <Link
-                to="/forgot-password"
-                className="text-sm text-blue-600 hover:text-blue-500"
+                to="/help"
+                className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
               >
-                Forgot your password?
+                Need help?
               </Link>
             </div>
           </CardContent>
         </Card>
 
         <div className="mt-8 text-center">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             By signing in, you agree to our{' '}
-            <Link to="/terms" className="text-blue-600 hover:text-blue-500">
+            <Link to="/terms" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
               Terms of Service
             </Link>{' '}
             and{' '}
-            <Link to="/privacy" className="text-blue-600 hover:text-blue-500">
+            <Link to="/privacy" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
               Privacy Policy
             </Link>
           </p>

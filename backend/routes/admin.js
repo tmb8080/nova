@@ -744,4 +744,290 @@ router.post('/vip-levels/seed', async (req, res) => {
   }
 });
 
+// Admin: Get deposit and withdrawal verification dashboard
+router.get('/verification-dashboard', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    // Get pending deposits count
+    const pendingDepositsCount = await prisma.deposit.count({
+      where: {
+        status: 'PENDING',
+        depositType: 'USDT_DIRECT'
+      }
+    });
+
+    // Get pending withdrawals count
+    const pendingWithdrawalsCount = await prisma.withdrawal.count({
+      where: {
+        status: 'PENDING'
+      }
+    });
+
+    // Get recent deposits (last 7 days)
+    const recentDeposits = await prisma.deposit.findMany({
+      where: {
+        createdAt: {
+          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        }
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10
+    });
+
+    // Get recent withdrawals (last 7 days)
+    const recentWithdrawals = await prisma.withdrawal.findMany({
+      where: {
+        createdAt: {
+          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        }
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10
+    });
+
+    // Get deposit statistics
+    const depositStats = await prisma.deposit.aggregate({
+      where: {
+        status: 'CONFIRMED',
+        createdAt: {
+          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
+        }
+      },
+      _sum: {
+        amount: true
+      },
+      _count: true
+    });
+
+    // Get withdrawal statistics
+    const withdrawalStats = await prisma.withdrawal.aggregate({
+      where: {
+        status: { in: ['COMPLETED', 'APPROVED'] },
+        createdAt: {
+          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
+        }
+      },
+      _sum: {
+        amount: true
+      },
+      _count: true
+    });
+
+    res.json({
+      success: true,
+      data: {
+        pendingDepositsCount,
+        pendingWithdrawalsCount,
+        recentDeposits,
+        recentWithdrawals,
+        monthlyStats: {
+          deposits: {
+            total: parseFloat(depositStats._sum.amount || 0),
+            count: depositStats._count
+          },
+          withdrawals: {
+            total: parseFloat(withdrawalStats._sum.amount || 0),
+            count: withdrawalStats._count
+          }
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching verification dashboard:', error);
+    res.status(500).json({
+      error: 'Failed to fetch verification dashboard',
+      message: error.message
+    });
+  }
+});
+
+// Admin: Get system wallet addresses
+router.get('/system-addresses', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const addresses = {
+      walletAddresses: {
+        TRC20: process.env.TRON_WALLET_ADDRESS || 'Not configured',
+        BEP20: process.env.BSC_WALLET_ADDRESS || 'Not configured',
+        ERC20: process.env.ETH_WALLET_ADDRESS || 'Not configured',
+        POLYGON: process.env.POLYGON_WALLET_ADDRESS || 'Not configured'
+      },
+      tokenContracts: {
+        USDT: {
+          TRC20: process.env.USDT_TRC20_CONTRACT || 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
+          BEP20: process.env.USDT_BEP20_CONTRACT || '0x55d398326f99059fF775485246999027B3197955',
+          ERC20: process.env.USDT_ERC20_CONTRACT || '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+          POLYGON: process.env.USDT_POLYGON_CONTRACT || '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'
+        },
+        USDC: {
+          BEP20: process.env.USDC_BEP20_CONTRACT || '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
+          ERC20: process.env.USDC_ERC20_CONTRACT || '0xA0b86a33E6441b8C4C8C8C8C8C8C8C8C8C8C8C8C',
+          POLYGON: process.env.USDC_POLYGON_CONTRACT || '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'
+        }
+      }
+    };
+
+    res.json({
+      success: true,
+      data: addresses
+    });
+
+  } catch (error) {
+    console.error('Error fetching system addresses:', error);
+    res.status(500).json({
+      error: 'Failed to fetch system addresses',
+      message: error.message
+    });
+  }
+});
+
+// Admin: Update system wallet addresses
+router.put('/system-addresses', [
+  body('addresses.USDT.TRC20').optional().isLength({ min: 30, max: 50 }).withMessage('Invalid TRC20 address'),
+  body('addresses.USDT.BEP20').optional().isLength({ min: 40, max: 50 }).withMessage('Invalid BEP20 address'),
+  body('addresses.USDT.ERC20').optional().isLength({ min: 40, max: 50 }).withMessage('Invalid ERC20 address'),
+  body('addresses.USDT.POLYGON').optional().isLength({ min: 40, max: 50 }).withMessage('Invalid POLYGON address')
+], authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { addresses } = req.body;
+
+    // In a real implementation, you would update these in a secure configuration store
+    // For now, we'll just return the addresses that would be updated
+    const updatedAddresses = {
+      USDT: {
+        TRC20: addresses.USDT?.TRC20 || process.env.USDT_TRC20_ADDRESS,
+        BEP20: addresses.USDT?.BEP20 || process.env.USDT_BEP20_ADDRESS,
+        ERC20: addresses.USDT?.ERC20 || process.env.USDT_ERC20_ADDRESS,
+        POLYGON: addresses.USDT?.POLYGON || process.env.USDT_POLYGON_ADDRESS
+      }
+    };
+
+    res.json({
+      success: true,
+      message: 'System addresses updated successfully (Note: Environment variables need to be updated manually)',
+      data: updatedAddresses
+    });
+
+  } catch (error) {
+    console.error('Error updating system addresses:', error);
+    res.status(500).json({
+      error: 'Failed to update system addresses',
+      message: error.message
+    });
+  }
+});
+
+// Admin: Get verification logs
+router.get('/verification-logs', [
+  query('type').optional().isIn(['deposit', 'withdrawal']).withMessage('Invalid type'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100')
+], authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { type, page = 1, limit = 20 } = req.query;
+    const skip = (page - 1) * limit;
+
+    let deposits = [];
+    let withdrawals = [];
+
+    if (!type || type === 'deposit') {
+      deposits = await prisma.deposit.findMany({
+        where: {
+          status: { in: ['CONFIRMED', 'FAILED'] },
+          webhookData: {
+            not: null
+          }
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true
+            }
+          }
+        },
+        orderBy: { updatedAt: 'desc' },
+        skip,
+        take: limit
+      });
+    }
+
+    if (!type || type === 'withdrawal') {
+      withdrawals = await prisma.withdrawal.findMany({
+        where: {
+          status: { in: ['COMPLETED', 'APPROVED', 'REJECTED'] },
+          processedBy: {
+            not: null
+          }
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true
+            }
+          }
+        },
+        orderBy: { processedAt: 'desc' },
+        skip,
+        take: limit
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        deposits,
+        withdrawals
+      },
+      pagination: {
+        currentPage: parseInt(page),
+        itemsPerPage: parseInt(limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching verification logs:', error);
+    res.status(500).json({
+      error: 'Failed to fetch verification logs',
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;

@@ -4,6 +4,8 @@ const { sendEmail } = require('./emailService');
 const prisma = new PrismaClient();
 
 // Process daily wallet growth for all users
+// DISABLED: Only VIP task earnings are allowed
+/*
 const processWalletGrowth = async () => {
   try {
     console.log('Starting wallet growth processing...');
@@ -76,7 +78,7 @@ const processWalletGrowth = async () => {
 
           results.push({
             userId: wallet.userId,
-            userName: wallet.user.fullName,
+            userName: wallet.user.fullName || wallet.user.email || wallet.user.phone || 'User',
             previousBalance: currentBalance,
             growthAmount,
             newBalance: parseFloat(result.balance),
@@ -87,7 +89,7 @@ const processWalletGrowth = async () => {
         console.error(`Error processing growth for wallet ${wallet.id}:`, error);
         results.push({
           userId: wallet.userId,
-          userName: wallet.user.fullName,
+          userName: wallet.user.fullName || wallet.user.email || wallet.user.phone || 'User',
           success: false,
           error: error.message
         });
@@ -99,21 +101,33 @@ const processWalletGrowth = async () => {
       .filter(r => r.success)
       .reduce((sum, r) => sum + r.growthAmount, 0);
 
-    console.log(`Wallet growth processing completed:`);
-    console.log(`- Successful: ${successCount}/${wallets.length}`);
-    console.log(`- Total growth distributed: ${totalGrowth.toFixed(8)}`);
-
+    console.log(`Wallet growth processing completed. ${successCount} wallets updated. Total growth: $${totalGrowth.toFixed(2)}`);
+    
     return {
+      success: true,
       processed: wallets.length,
       successful: successCount,
       totalGrowth,
       results
     };
-
   } catch (error) {
-    console.error('Error in wallet growth processing:', error);
+    console.error('Error in processWalletGrowth:', error);
     throw error;
   }
+};
+*/
+
+// DISABLED: Only VIP task earnings are allowed
+const processWalletGrowth = async () => {
+  console.log('Wallet growth processing is DISABLED. Only VIP task earnings are allowed.');
+  return {
+    success: true,
+    processed: 0,
+    successful: 0,
+    totalGrowth: 0,
+    results: [],
+    message: 'Wallet growth is disabled. Only VIP task earnings are allowed.'
+  };
 };
 
 // Get wallet balance and statistics
@@ -156,10 +170,19 @@ const getWalletStats = async (userId) => {
       _sum: { amount: true }
     });
 
+    // Calculate totalEarnings only from VIP_EARNINGS (daily task earnings)
+    const dailyTaskEarnings = await prisma.transaction.aggregate({
+      where: {
+        userId,
+        type: 'VIP_EARNINGS'
+      },
+      _sum: { amount: true }
+    });
+
     return {
       balance: parseFloat(wallet.balance),
       totalDeposits: parseFloat(wallet.totalDeposits),
-      totalEarnings: parseFloat(wallet.totalEarnings),
+      totalEarnings: parseFloat(dailyTaskEarnings._sum.amount || 0), // Only daily task earnings
       totalReferralBonus: parseFloat(wallet.totalReferralBonus),
       lastGrowthUpdate: wallet.lastGrowthUpdate,
       referralCode: wallet.user.referralCode,
@@ -226,7 +249,7 @@ const processReferralBonus = async (referrerId, referredUserId, depositAmount, d
           userId: referrerId,
           type: 'REFERRAL_BONUS',
           amount: bonusAmount,
-          description: `Referral bonus from ${referredUser.fullName} (${depositAmount} deposit)`,
+          description: `Referral bonus from ${referredUser.fullName || referredUser.email || referredUser.phone || 'User'} (${depositAmount} deposit)`,
           referenceId: referredUserId,
           metadata: {
             depositId: depositId,
@@ -260,8 +283,8 @@ const processReferralBonus = async (referrerId, referredUserId, depositAmount, d
         to: referrer.email,
         template: 'referralBonus',
         data: {
-          fullName: referrer.fullName,
-          referredUser: referredUser.fullName,
+          fullName: referrer.fullName || referrer.email || referrer.phone || 'User',
+          referredUser: referredUser.fullName || referredUser.email || referredUser.phone || 'User',
           bonusAmount: bonusAmount.toFixed(8),
           depositAmount: depositAmount.toFixed(8),
           currency: 'USD',

@@ -240,7 +240,7 @@ const AdminWithdrawalHistory = () => {
               <div className="p-4 md:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                   <div>
-                    <h3 className="text-base md:text-lg font-semibold text-white">{withdrawal.user.fullName}</h3>
+                    <h3 className="text-base md:text-lg font-semibold text-white">{withdrawal.user.fullName || withdrawal.user.email || withdrawal.user.phone || 'User'}</h3>
                     <p className="text-gray-300 text-sm">{withdrawal.user.email}</p>
                   </div>
                   <div className="text-left sm:text-right">

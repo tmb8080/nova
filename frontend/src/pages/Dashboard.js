@@ -43,13 +43,7 @@ const Dashboard = () => {
     queryFn: () => referralAPI.getStats(),
   });
 
-  // Fetch recent transactions
-  const { data: transactions, isLoading: transactionsLoading } = useQuery({
-    queryKey: ['transactions', { limit: 5 }],
-    queryFn: () => walletAPI.getTransactions({ limit: 5, page: 1 }),
-    refetchInterval: 15000, // Auto-refresh every 15 seconds
-    refetchIntervalInBackground: true,
-  });
+
 
   // Fetch projected earnings data for chart
   const { data: projectedEarnings } = useQuery({
@@ -87,7 +81,7 @@ const Dashboard = () => {
       if (difference > 0) {
         toast.success(`Balance updated! +${formatCurrency(difference)}`);
       } else if (difference < 0) {
-        toast.info(`Balance updated! ${formatCurrency(difference)}`);
+        toast(`Balance updated! ${formatCurrency(difference)}`);
       }
     }
     
@@ -434,17 +428,7 @@ const Dashboard = () => {
                     )}
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-sm text-gray-300">Daily Earnings</div>
-                <div className="font-bold text-2xl text-emerald-400">
-                  {formatCurrency(userVipStatus?.data?.data?.userVip?.vipLevel?.dailyEarning || 0)}
-                </div>
-                                  {userVipStatus?.data?.data?.userVip && (
-                    <div className="text-xs text-gray-400">
-                      Total: {formatCurrency(userVipStatus.data.data.userVip.totalPaid || 0)}
-                    </div>
-                  )}
-              </div>
+
             </div>
             
             {/* Progress to Next Level */}
@@ -574,15 +558,12 @@ const Dashboard = () => {
                       </div>
 
                       {/* Compact Stats Grid */}
-                      <div className="grid grid-cols-3 gap-1 md:gap-3">
+                      <div className="grid grid-cols-2 gap-1 md:gap-3">
                         <div className="text-center bg-white/10 backdrop-blur-sm rounded-lg p-1.5 md:p-3 border border-white/20">
                           <div className="text-xs text-gray-300 mb-1">Daily Tasks</div>
                           <div className="text-sm md:text-lg font-bold text-white">1</div>
                         </div>
-                        <div className="text-center bg-white/10 backdrop-blur-sm rounded-lg p-1.5 md:p-3 border border-white/20">
-                          <div className="text-xs text-gray-300 mb-1">Daily Earnings</div>
-                          <div className="text-sm md:text-lg font-bold text-emerald-400">{formatCurrency(levelDailyEarning)}</div>
-                        </div>
+
                         <div className="text-center bg-white/10 backdrop-blur-sm rounded-lg p-1.5 md:p-3 border border-white/20">
                           <div className="text-xs text-gray-300 mb-1">Investment</div>
                           <div className="text-sm md:text-lg font-bold text-white">{formatCurrency(levelAmount)}</div>
@@ -792,64 +773,7 @@ const Dashboard = () => {
           <VipDashboard />
         </div>
 
-        {/* Recent Transactions */}
-        <Card className="mt-6">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Recent Transactions</CardTitle>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/transactions">View All</Link>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {transactionsLoading ? (
-              <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="flex items-center space-x-4 animate-pulse">
-                    <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
-                    <div className="flex-1">
-                      <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                    </div>
-                    <div className="h-4 bg-gray-200 rounded w-20"></div>
-                  </div>
-                ))}
-              </div>
-            ) : transactions?.data?.transactions?.length > 0 ? (
-              <div className="space-y-4">
-                {transactions.data.transactions.map((transaction) => (
-                  <div key={transaction.id} className="flex items-center space-x-4">
-                    {getTransactionIcon(transaction.type)}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {transaction.description}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {formatDate(transaction.createdAt)}
-                      </p>
-                    </div>
-                    <div className="text-sm font-medium">
-                      <span className={transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {transaction.amount >= 0 ? '+' : ''}{formatCurrency(transaction.amount)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                <p className="text-gray-500">No transactions yet</p>
-                <p className="text-sm text-gray-400 mt-1">
-                  Make your first deposit to get started
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+
 
         {/* USDT Deposit Modal */}
         {showUsdtDeposit && (

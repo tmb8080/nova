@@ -11,7 +11,11 @@ import toast from 'react-hot-toast';
 const Deposit = () => {
   const queryClient = useQueryClient();
   const [selectedAmount, setSelectedAmount] = useState(null);
-  const [selectedCurrency, setSelectedCurrency] = useState('BTC');
+  const [selectedCurrency, setSelectedCurrency] = useState('USDT');
+  const [selectedNetwork, setSelectedNetwork] = useState('BEP20');
+  const [depositMethod, setDepositMethod] = useState('direct'); // 'direct' or 'coinbase'
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [pendingDeposit, setPendingDeposit] = useState(null);
 
   const {
     register,
@@ -22,26 +26,90 @@ const Deposit = () => {
   } = useForm({
     defaultValues: {
       amount: '',
-      currency: 'BTC'
+      currency: 'USDT',
+      network: 'BEP20',
+      transactionHash: ''
     }
   });
 
   const watchedAmount = watch('amount');
   const watchedCurrency = watch('currency');
+  const watchedNetwork = watch('network');
+  const watchedTransactionHash = watch('transactionHash');
 
   // Fetch deposit history
   const { data: deposits, isLoading: depositsLoading } = useQuery({
     queryKey: ['deposits', { limit: 10, page: 1 }],
-    queryFn: () => depositAPI.getDeposits({ limit: 10, page: 1 }),
+    queryFn: () => depositAPI.getMyDeposits({ limit: 10, page: 1 }),
   });
 
-  // Create deposit mutation
-  const createDepositMutation = useMutation({
+  // Fetch USDT addresses
+  const { data: usdtAddresses, isLoading: addressesLoading } = useQuery({
+    queryKey: ['usdt-addresses'],
+    queryFn: depositAPI.getUsdtAddresses,
+    enabled: depositMethod === 'direct'
+  });
+
+  // Fetch pending deposits count
+  const { data: pendingCount } = useQuery({
+    queryKey: ['pending-deposits-count'],
+    queryFn: depositAPI.getPendingCount,
+  });
+
+  // Fetch automatic detection status
+  const { data: autoDetectionStatus } = useQuery({
+    queryKey: ['automatic-detection-status'],
+    queryFn: depositAPI.getAutomaticDetectionStatus,
+    refetchInterval: 30000, // Check every 30 seconds
+  });
+
+  // Create USDT deposit mutation
+  const createUsdtDepositMutation = useMutation({
+    mutationFn: depositAPI.createUsdtDeposit,
+    onSuccess: (data) => {
+      setPendingDeposit(data.data);
+      toast.success('Deposit created successfully! Please send the funds and provide transaction hash.');
+      queryClient.invalidateQueries(['deposits']);
+      queryClient.invalidateQueries(['pending-deposits-count']);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to create deposit');
+    },
+  });
+
+  // Update transaction hash mutation
+  const updateTransactionHashMutation = useMutation({
+    mutationFn: ({ depositId, transactionHash }) => 
+      depositAPI.updateTransactionHash(depositId, transactionHash),
+    onSuccess: (data) => {
+      toast.success('Transaction hash updated successfully!');
+      queryClient.invalidateQueries(['deposits']);
+      setPendingDeposit(null);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update transaction hash');
+    },
+  });
+
+  // Verify deposit mutation
+  const verifyDepositMutation = useMutation({
+    mutationFn: (depositId) => depositAPI.verifyDeposit(depositId),
+    onSuccess: (data) => {
+      toast.success('Deposit verified successfully!');
+      queryClient.invalidateQueries(['deposits']);
+      setPendingDeposit(null);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to verify deposit');
+    },
+  });
+
+  // Create Coinbase deposit mutation
+  const createCoinbaseDepositMutation = useMutation({
     mutationFn: depositAPI.createDeposit,
     onSuccess: (data) => {
-      // Redirect to Coinbase Commerce checkout
-      if (data.data.checkoutUrl) {
-        window.location.href = data.data.checkoutUrl;
+      if (data.data.coinbaseUrl) {
+        window.location.href = data.data.coinbaseUrl;
       }
       queryClient.invalidateQueries(['deposits']);
     },
@@ -51,18 +119,25 @@ const Deposit = () => {
   });
 
   const predefinedAmounts = [
-    { amount: 0.001, currency: 'BTC', usd: 50 },
-    { amount: 0.002, currency: 'BTC', usd: 100 },
-    { amount: 0.005, currency: 'BTC', usd: 250 },
-    { amount: 0.01, currency: 'BTC', usd: 500 },
-    { amount: 0.02, currency: 'BTC', usd: 1000 },
-    { amount: 0.05, currency: 'BTC', usd: 2500 },
+    { amount: 30, currency: 'USDT', usd: 30 },
+    { amount: 50, currency: 'USDT', usd: 50 },
+    { amount: 100, currency: 'USDT', usd: 100 },
+    { amount: 200, currency: 'USDT', usd: 200 },
+    { amount: 500, currency: 'USDT', usd: 500 },
+    { amount: 1000, currency: 'USDT', usd: 1000 },
+  ];
+
+  const networks = [
+    { code: 'BEP20', name: 'BSC (BEP20)', description: 'Binance Smart Chain', fee: '~$0.5' },
+    { code: 'TRC20', name: 'TRON (TRC20)', description: 'TRON Network', fee: '~$1' },
+    { code: 'ERC20', name: 'Ethereum (ERC20)', description: 'Ethereum Mainnet', fee: '~$10-50' },
+    { code: 'POLYGON', name: 'Polygon', description: 'Polygon Network', fee: '~$0.01' },
   ];
 
   const currencies = [
-    { code: 'BTC', name: 'Bitcoin', icon: '₿' },
-    { code: 'ETH', name: 'Ethereum', icon: 'Ξ' },
-    { code: 'USDT', name: 'Tether', icon: '₮' },
+    { code: 'USDT', name: 'Tether USD', icon: '₮', method: 'direct' },
+    { code: 'BTC', name: 'Bitcoin', icon: '₿', method: 'coinbase' },
+    { code: 'ETH', name: 'Ethereum', icon: 'Ξ', method: 'coinbase' },
   ];
 
   const onSubmit = async (data) => {
@@ -71,10 +146,19 @@ const Deposit = () => {
       return;
     }
 
-    createDepositMutation.mutate({
-      amount: parseFloat(data.amount),
-      currency: data.currency,
-    });
+    if (depositMethod === 'direct') {
+      // USDT Direct Deposit
+      createUsdtDepositMutation.mutate({
+        amount: parseFloat(data.amount),
+        network: data.network,
+      });
+    } else {
+      // Coinbase Commerce Deposit
+      createCoinbaseDepositMutation.mutate({
+        amount: parseFloat(data.amount),
+        currency: data.currency,
+      });
+    }
   };
 
   const handlePredefinedAmount = (amount, currency) => {
@@ -82,6 +166,34 @@ const Deposit = () => {
     setSelectedCurrency(currency);
     setValue('amount', amount.toString());
     setValue('currency', currency);
+  };
+
+  const handleNetworkChange = (network) => {
+    setSelectedNetwork(network);
+    setValue('network', network);
+  };
+
+  const handleCurrencyChange = (currency) => {
+    const currencyData = currencies.find(c => c.code === currency);
+    setSelectedCurrency(currency);
+    setValue('currency', currency);
+    setDepositMethod(currencyData.method);
+  };
+
+  const handleVerifyDeposit = async (depositId) => {
+    if (!watchedTransactionHash) {
+      toast.error('Please provide transaction hash first');
+      return;
+    }
+
+    // First update transaction hash
+    await updateTransactionHashMutation.mutateAsync({
+      depositId,
+      transactionHash: watchedTransactionHash
+    });
+
+    // Then verify the deposit
+    verifyDepositMutation.mutate(depositId);
   };
 
   const formatCurrency = (amount, currency) => {
@@ -110,7 +222,7 @@ const Deposit = () => {
       PENDING: { color: 'bg-yellow-100 text-yellow-800', text: 'Pending' },
       CONFIRMED: { color: 'bg-green-100 text-green-800', text: 'Confirmed' },
       FAILED: { color: 'bg-red-100 text-red-800', text: 'Failed' },
-      CANCELLED: { color: 'bg-gray-100 text-gray-800', text: 'Cancelled' },
+      EXPIRED: { color: 'bg-gray-100 text-gray-800', text: 'Expired' },
     };
 
     const config = statusConfig[status] || statusConfig.PENDING;
@@ -120,6 +232,11 @@ const Deposit = () => {
         {config.text}
       </span>
     );
+  };
+
+  const getWalletAddress = (network) => {
+    if (!usdtAddresses?.data) return 'Loading...';
+    return usdtAddresses.data[network] || 'Not available';
   };
 
   return (
@@ -133,6 +250,88 @@ const Deposit = () => {
           </p>
         </div>
 
+        {/* Pending Deposit Alert */}
+        {pendingDeposit && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-blue-800">
+                  Pending Deposit: {formatCurrency(pendingDeposit.amount, pendingDeposit.currency)}
+                </h3>
+                <p className="text-sm text-blue-700 mt-1">
+                  Please send {formatCurrency(pendingDeposit.amount, pendingDeposit.currency)} to the address below and provide the transaction hash.
+                </p>
+                
+                {/* Wallet Address */}
+                <div className="mt-3 p-3 bg-white rounded border">
+                  <p className="text-xs text-gray-600 mb-1">Send to this address:</p>
+                  <div className="flex items-center space-x-2">
+                    <code className="text-sm bg-gray-100 px-2 py-1 rounded flex-1 break-all">
+                      {getWalletAddress(pendingDeposit.network)}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(getWalletAddress(pendingDeposit.network));
+                        toast.success('Address copied to clipboard!');
+                      }}
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Automatic Detection Status */}
+                <div className="mt-3">
+                  <div className={`border rounded-lg p-3 ${
+                    autoDetectionStatus?.data?.isRunning 
+                      ? 'bg-green-50 border-green-200' 
+                      : 'bg-yellow-50 border-yellow-200'
+                  }`}>
+                    <div className="flex items-center">
+                      {autoDetectionStatus?.data?.isRunning ? (
+                        <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                      )}
+                      <div>
+                        <p className={`text-sm font-medium ${
+                          autoDetectionStatus?.data?.isRunning ? 'text-green-800' : 'text-yellow-800'
+                        }`}>
+                          {autoDetectionStatus?.data?.isRunning ? 'Automatic Detection Active' : 'Automatic Detection Inactive'}
+                        </p>
+                        <p className={`text-xs mt-1 ${
+                          autoDetectionStatus?.data?.isRunning ? 'text-green-700' : 'text-yellow-700'
+                        }`}>
+                          {autoDetectionStatus?.data?.message || 'Checking status...'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 flex space-x-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPendingDeposit(null)}
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Deposit Form */}
           <div className="lg:col-span-2">
@@ -140,7 +339,7 @@ const Deposit = () => {
               <CardHeader>
                 <CardTitle>Deposit Funds</CardTitle>
                 <CardDescription>
-                  Choose an amount and currency to deposit into your wallet
+                  Choose your preferred deposit method and currency
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -148,17 +347,14 @@ const Deposit = () => {
                   {/* Currency Selection */}
                   <div className="space-y-3">
                     <label className="text-sm font-medium text-gray-700">
-                      Select Currency
+                      Select Currency & Method
                     </label>
                     <div className="grid grid-cols-3 gap-3">
                       {currencies.map((currency) => (
                         <button
                           key={currency.code}
                           type="button"
-                          onClick={() => {
-                            setValue('currency', currency.code);
-                            setSelectedCurrency(currency.code);
-                          }}
+                          onClick={() => handleCurrencyChange(currency.code)}
                           className={`p-4 border rounded-lg text-center transition-colors ${
                             watchedCurrency === currency.code
                               ? 'border-blue-500 bg-blue-50 text-blue-700'
@@ -168,16 +364,46 @@ const Deposit = () => {
                           <div className="text-2xl mb-1">{currency.icon}</div>
                           <div className="font-medium">{currency.code}</div>
                           <div className="text-xs text-gray-500">{currency.name}</div>
+                          <div className="text-xs text-blue-600 mt-1">
+                            {currency.method === 'direct' ? 'Direct Transfer' : 'Coinbase'}
+                          </div>
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Predefined Amounts */}
-                  {watchedCurrency === 'BTC' && (
+                  {/* Network Selection for USDT */}
+                  {depositMethod === 'direct' && (
                     <div className="space-y-3">
                       <label className="text-sm font-medium text-gray-700">
-                        Quick Select (BTC)
+                        Select Network
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {networks.map((network) => (
+                          <button
+                            key={network.code}
+                            type="button"
+                            onClick={() => handleNetworkChange(network.code)}
+                            className={`p-3 border rounded-lg text-left transition-colors ${
+                              watchedNetwork === network.code
+                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                : 'border-gray-300 hover:border-gray-400'
+                            }`}
+                          >
+                            <div className="font-medium">{network.name}</div>
+                            <div className="text-xs text-gray-500">{network.description}</div>
+                            <div className="text-xs text-green-600">Fee: {network.fee}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Predefined Amounts */}
+                  {watchedCurrency === 'USDT' && (
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-gray-700">
+                        Quick Select (USDT)
                       </label>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         {predefinedAmounts.map((preset) => (
@@ -191,7 +417,7 @@ const Deposit = () => {
                                 : 'border-gray-300 hover:border-gray-400'
                             }`}
                           >
-                            <div className="font-medium">₿{preset.amount}</div>
+                            <div className="font-medium">₮{preset.amount}</div>
                             <div className="text-xs text-gray-500">≈ ${preset.usd}</div>
                           </button>
                         ))}
@@ -214,8 +440,8 @@ const Deposit = () => {
                         {...register('amount', {
                           required: 'Amount is required',
                           min: {
-                            value: 0.0001,
-                            message: 'Minimum deposit amount is 0.0001'
+                            value: depositMethod === 'direct' ? 30 : 0.0001,
+                            message: `Minimum deposit amount is ${depositMethod === 'direct' ? '30 USDT' : '0.0001'}`
                           }
                         })}
                       />
@@ -231,10 +457,10 @@ const Deposit = () => {
                   <Button
                     type="submit"
                     className="w-full"
-                    loading={createDepositMutation.isPending}
-                    disabled={createDepositMutation.isPending || !watchedAmount}
+                    loading={createUsdtDepositMutation.isPending || createCoinbaseDepositMutation.isPending}
+                    disabled={createUsdtDepositMutation.isPending || createCoinbaseDepositMutation.isPending || !watchedAmount}
                   >
-                    {createDepositMutation.isPending 
+                    {createUsdtDepositMutation.isPending || createCoinbaseDepositMutation.isPending
                       ? 'Creating Deposit...' 
                       : `Deposit ${watchedAmount ? formatCurrency(parseFloat(watchedAmount), watchedCurrency) : ''}`
                     }
@@ -252,7 +478,10 @@ const Deposit = () => {
                         Secure Payments
                       </h3>
                       <p className="text-xs text-blue-700 mt-1">
-                        All deposits are processed securely through Coinbase Commerce. Your funds will be credited to your wallet once the transaction is confirmed on the blockchain.
+                        {depositMethod === 'direct' 
+                          ? 'Direct USDT transfers are verified on the blockchain. Your funds will be credited once the transaction is confirmed.'
+                          : 'All deposits are processed securely through Coinbase Commerce. Your funds will be credited to your wallet once the transaction is confirmed on the blockchain.'
+                        }
                       </p>
                     </div>
                   </div>
@@ -269,37 +498,131 @@ const Deposit = () => {
                 <CardTitle className="text-lg">How Deposits Work</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-medium text-blue-600">1</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Choose Amount</p>
-                    <p className="text-xs text-gray-500">Select or enter the amount you want to deposit</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-medium text-blue-600">2</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Secure Payment</p>
-                    <p className="text-xs text-gray-500">Complete payment through Coinbase Commerce</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-medium text-blue-600">3</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Start Earning</p>
-                    <p className="text-xs text-gray-500">Your balance grows daily with our profit-sharing system</p>
-                  </div>
-                </div>
+                {depositMethod === 'direct' ? (
+                  <>
+                    <div className="flex items-start space-x-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium text-blue-600">1</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Create Deposit</p>
+                        <p className="text-xs text-gray-500">Select amount and network, get wallet address</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start space-x-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium text-blue-600">2</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Send USDT</p>
+                        <p className="text-xs text-gray-500">Transfer USDT to the provided address</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start space-x-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium text-blue-600">3</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Automatic Verification</p>
+                        <p className="text-xs text-gray-500">System automatically detects and verifies your transaction</p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-start space-x-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium text-blue-600">1</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Choose Amount</p>
+                        <p className="text-xs text-gray-500">Select or enter the amount you want to deposit</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start space-x-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium text-blue-600">2</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Secure Payment</p>
+                        <p className="text-xs text-gray-500">Complete payment through Coinbase Commerce</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start space-x-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium text-blue-600">3</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Start Earning</p>
+                        <p className="text-xs text-gray-500">Your balance grows daily with our profit-sharing system</p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
+
+            {/* Instructions Toggle */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Deposit Instructions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowInstructions(!showInstructions)}
+                  className="w-full"
+                >
+                  {showInstructions ? 'Hide Instructions' : 'Show Instructions'}
+                </Button>
+                
+                {showInstructions && (
+                  <div className="mt-4 space-y-4 text-sm">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                      <h4 className="font-medium text-yellow-800 mb-2">Important Notes:</h4>
+                                             <ul className="text-yellow-700 space-y-1 text-xs">
+                         <li>• Minimum USDT deposit: 30 USDT</li>
+                         <li>• Always double-check the wallet address</li>
+                         <li>• Use the correct network (BEP20, TRC20, etc.)</li>
+                         <li>• Automatic detection will verify your transaction</li>
+                         <li>• No need to provide transaction hash manually</li>
+                       </ul>
+                    </div>
+                    
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <h4 className="font-medium text-blue-800 mb-2">Network Fees:</h4>
+                      <ul className="text-blue-700 space-y-1 text-xs">
+                        <li>• BEP20 (BSC): ~$0.5 - Recommended</li>
+                        <li>• TRC20 (TRON): ~$1 - Fast</li>
+                        <li>• ERC20 (Ethereum): ~$10-50 - Expensive</li>
+                        <li>• Polygon: ~$0.01 - Very cheap</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Pending Deposits Count */}
+            {pendingCount?.data?.pendingCount > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Pending Deposits</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {pendingCount.data.pendingCount}
+                    </div>
+                    <p className="text-sm text-gray-600">deposits awaiting verification</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Recent Deposits */}
             <Card>
@@ -326,6 +649,7 @@ const Deposit = () => {
                           </p>
                           <p className="text-xs text-gray-500">
                             {formatDate(deposit.createdAt)}
+                            {deposit.network && ` • ${deposit.network}`}
                           </p>
                         </div>
                         <div>

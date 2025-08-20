@@ -7,6 +7,11 @@ const { updateWalletBalance } = require('../services/walletService');
 const { sendEmail } = require('../services/emailService');
 const { getNetworkFee, getAvailableNetworks } = require('../services/networkFeeService');
 const { isValidCryptoAddress, generateTransactionRef } = require('../utils/helpers');
+const { 
+  verifyWithdrawalRequest, 
+  processVerifiedWithdrawal,
+  getWithdrawalStats 
+} = require('../services/withdrawalVerificationService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -355,6 +360,64 @@ router.put('/admin/:withdrawalId/process', [
   }
 });
 
+// Admin: Verify withdrawal request before processing
+router.post('/admin/:withdrawalId/verify', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { withdrawalId } = req.params;
+
+    // Verify the withdrawal request
+    const verificationResult = await verifyWithdrawalRequest(withdrawalId);
+
+    res.json({
+      success: true,
+      message: verificationResult.message,
+      data: verificationResult
+    });
+
+  } catch (error) {
+    console.error('Error verifying withdrawal request:', error);
+    res.status(500).json({
+      error: 'Failed to verify withdrawal request',
+      message: error.message
+    });
+  }
+});
+
+// Admin: Process verified withdrawal
+router.post('/admin/:withdrawalId/process-verified', [
+  body('transactionHash').optional().isLength({ min: 10, max: 100 }).withMessage('Invalid transaction hash')
+], authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { withdrawalId } = req.params;
+    const { transactionHash } = req.body;
+    const adminId = req.user.id;
+
+    // Process the verified withdrawal
+    const result = await processVerifiedWithdrawal(withdrawalId, adminId, transactionHash);
+
+    res.json({
+      success: true,
+      message: result.message,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Error processing verified withdrawal:', error);
+    res.status(500).json({
+      error: 'Failed to process verified withdrawal',
+      message: error.message
+    });
+  }
+});
+
 // Get network fees for a currency
 router.get('/network-fees/:currency', authenticateToken, async (req, res) => {
   try {
@@ -370,6 +433,26 @@ router.get('/network-fees/:currency', authenticateToken, async (req, res) => {
     console.error('Error fetching network fees:', error);
     res.status(500).json({
       error: 'Failed to fetch network fees',
+      message: error.message
+    });
+  }
+});
+
+// Get withdrawal statistics for user
+router.get('/stats', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const stats = await getWithdrawalStats(userId);
+    
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Error fetching withdrawal stats:', error);
+    res.status(500).json({
+      error: 'Failed to fetch withdrawal statistics',
       message: error.message
     });
   }

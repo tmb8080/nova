@@ -10,11 +10,7 @@ const Invite = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch referral stats
-  const { data: referralStats, isLoading: statsLoading } = useQuery({
-    queryKey: ['referralStats'],
-    queryFn: () => referralAPI.getStats(),
-  });
+
 
   const copyReferralLink = () => {
     const referralLink = `${window.location.origin}/register?ref=${user?.referralCode || 'user'}`;
@@ -147,7 +143,7 @@ const Invite = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <Button
                       onClick={() => {
-                        const text = `Join Trinity Metro using my referral link and get $5 bonus! ${window.location.origin}/register?ref=${user?.referralCode || 'user'}`;
+                        const text = `Join Trinity Metro and start earning with daily task sessions! Use my referral link: ${window.location.origin}/register?ref=${user?.referralCode || 'user'}`;
                         navigator.clipboard.writeText(text);
                         toast.success('Message copied to clipboard!');
                       }}
@@ -164,7 +160,7 @@ const Invite = () => {
                         if (navigator.share) {
                           navigator.share({
                             title: 'Join Trinity Metro',
-                            text: 'Use my referral link and get $5 bonus!',
+                            text: 'Start earning with daily task sessions!',
                             url: url
                           });
                         } else {
@@ -192,57 +188,21 @@ const Invite = () => {
                     </div>
                     <h4 className="font-semibold text-green-800">Referral Benefits</h4>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="flex items-center space-x-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm text-green-700">You earn <strong>$10</strong> per referral</span>
+                      <span className="text-sm text-green-700">You earn <strong>5% commission</strong> on referrals</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm text-green-700">Friend gets <strong>$5</strong> bonus</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm text-green-700">Both earn from investments</span>
+                      <span className="text-sm text-green-700">Both earn from <strong>Daily Task Earnings</strong></span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Referral Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-blue-600 mb-2">
-                      {statsLoading ? '...' : referralStats?.data?.totalReferrals || 0}
-                    </div>
-                    <div className="text-sm text-gray-600">Total Referrals</div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-green-600 mb-2">
-                      {statsLoading ? '...' : referralStats?.data?.activeReferrals || 0}
-                    </div>
-                    <div className="text-sm text-gray-600">Active Referrals</div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-purple-600 mb-2">
-                      {statsLoading ? '...' : formatCurrency(referralStats?.data?.totalEarnings || 0)}
-                    </div>
-                    <div className="text-sm text-gray-600">Total Earnings</div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+
 
 
           </div>
@@ -278,8 +238,17 @@ const Invite = () => {
                     3
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">Earn Rewards</h4>
-                    <p className="text-sm text-gray-600">Both of you get bonuses</p>
+                    <h4 className="font-medium text-gray-900">Earn Daily Rewards</h4>
+                    <p className="text-sm text-gray-600">Both earn from daily task sessions</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">
+                    4
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900">Get Commission</h4>
+                    <p className="text-sm text-gray-600">You earn 5% on their earnings</p>
                   </div>
                 </div>
               </CardContent>
@@ -288,20 +257,20 @@ const Invite = () => {
             {/* Rewards Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Rewards</CardTitle>
+                <CardTitle>Earning System</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Signup Bonus</span>
-                  <span className="font-medium text-green-600">$5</span>
+                  <span className="text-sm text-gray-600">Daily Task Earnings</span>
+                  <span className="font-medium text-green-600">24h Sessions</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Referral Bonus</span>
-                  <span className="font-medium text-green-600">$10</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Investment Commission</span>
+                  <span className="text-sm text-gray-600">Referral Commission</span>
                   <span className="font-medium text-green-600">5%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">VIP Level Bonus</span>
+                  <span className="font-medium text-green-600">Higher Rates</span>
                 </div>
               </CardContent>
             </Card>

@@ -131,7 +131,13 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: AUTH_ACTIONS.LOGIN_START });
       
-      const response = await authAPI.login(credentials);
+      // Transform the credentials to match backend expectations
+      const loginData = {
+        identifier: credentials.identifier,
+        password: credentials.password
+      };
+      
+      const response = await authAPI.login(loginData);
       const { token, user } = response.data;
 
       dispatch({
@@ -139,7 +145,8 @@ export const AuthProvider = ({ children }) => {
         payload: { token, user }
       });
 
-      toast.success(`Welcome back, ${user.fullName}!`);
+      const displayName = user.fullName || user.email || user.phone || 'User';
+      toast.success(`Welcome back, ${displayName}!`);
       return { success: true };
 
     } catch (error) {
@@ -158,7 +165,16 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: AUTH_ACTIONS.LOGIN_START });
       
-      const response = await authAPI.register(userData);
+      // Transform the user data to match backend expectations
+      const registerData = {
+        fullName: userData.fullName || null,
+        email: userData.email || null,
+        phone: userData.phoneNumber || null,
+        password: userData.password,
+        referralCode: userData.referralCode || null
+      };
+      
+      const response = await authAPI.register(registerData);
       const { token, user } = response.data;
 
       dispatch({
@@ -166,7 +182,8 @@ export const AuthProvider = ({ children }) => {
         payload: { token, user }
       });
 
-      toast.success(`Welcome to Trinity Metro Bike, ${user.fullName}!`);
+      const displayName = user.fullName || user.email || user.phone || 'User';
+      toast.success(`Welcome to Trinity Metro Bike, ${displayName}!`);
       return { success: true };
 
     } catch (error) {

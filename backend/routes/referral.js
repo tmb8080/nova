@@ -4,6 +4,7 @@ const { PrismaClient } = require('@prisma/client');
 
 const { authenticateToken } = require('../middleware/auth');
 const { generateReferralLink } = require('../utils/helpers');
+const { getReferralStats } = require('../services/vipReferralService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -13,53 +14,81 @@ router.get('/stats', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Get referral statistics
-    const [referrals, referralBonuses, totalEarnings] = await Promise.all([
-      // Get all referrals
-      prisma.user.findMany({
-        where: { referredBy: userId },
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          createdAt: true,
-          wallet: {
-            select: {
-              totalDeposits: true,
-              balance: true
-            }
+    // Get multi-level referral statistics
+    const referralStats = await getReferralStats(userId);
+
+    // Get direct referrals (Level 1)
+    const directReferrals = await prisma.user.findMany({
+      where: { referredBy: userId },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phone: true,
+        createdAt: true,
+        userVip: {
+          include: {
+            vipLevel: true
           }
         },
-        orderBy: { createdAt: 'desc' }
-      }),
+        wallet: {
+          select: {
+            totalDeposits: true,
+            balance: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
 
-      // Get referral bonuses
-      prisma.referralBonus.findMany({
-        where: { referrerId: userId },
-        orderBy: { createdAt: 'desc' },
-        take: 10
-      }),
-
-      // Get total referral earnings
-      prisma.transaction.aggregate({
-        where: {
-          userId,
-          type: 'REFERRAL_BONUS'
+    // Get indirect referrals (Level 2)
+    const level1UserIds = directReferrals.map(user => user.id);
+    const indirectReferrals = await prisma.user.findMany({
+      where: {
+        referredBy: {
+          in: level1UserIds
+        }
+      },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phone: true,
+        createdAt: true,
+        userVip: {
+          include: {
+            vipLevel: true
+          }
         },
-        _sum: { amount: true }
-      })
-    ]);
+        wallet: {
+          select: {
+            totalDeposits: true,
+            balance: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
 
-    // Calculate statistics
-    const totalReferrals = referrals.length;
-    const totalReferralEarnings = parseFloat(totalEarnings._sum.amount || 0);
-    const totalReferralDeposits = referrals.reduce((sum, referral) => 
-      sum + parseFloat(referral.wallet?.totalDeposits || 0), 0
-    );
+    // Get recent referral bonuses
+    const recentBonuses = await prisma.referralBonus.findMany({
+      where: { referrerId: userId },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      include: {
+        referred: {
+          select: {
+            fullName: true,
+            email: true,
+            phone: true
+          }
+        }
+      }
+    });
 
     // Get referral link
     const referralLink = generateReferralLink(
-      process.env.FRONTEND_URL || 'https://bambe.shop',
+      process.env.FRONTEND_URL || 'https://tmbtest.vercel.app',
       req.user.referralCode
     );
 
@@ -68,11 +97,20 @@ router.get('/stats', authenticateToken, async (req, res) => {
       data: {
         referralCode: req.user.referralCode,
         referralLink,
-        totalReferrals,
-        totalReferralEarnings,
-        totalReferralDeposits,
-        referrals,
-        recentBonuses: referralBonuses
+        // Multi-level statistics
+        directReferrals: referralStats.directReferrals,
+        indirectReferrals: referralStats.indirectReferrals,
+        totalReferrals: referralStats.totalReferrals,
+        totalBonuses: referralStats.totalBonuses,
+        level1Bonuses: referralStats.level1Bonuses,
+        level2Bonuses: referralStats.level2Bonuses,
+        // Detailed referral lists
+        directReferralList: directReferrals,
+        indirectReferralList: indirectReferrals,
+        recentBonuses: recentBonuses,
+        // Bonus rates
+        level1Rate: 5, // 5%
+        level2Rate: 3  // 3%
       }
     });
 
@@ -337,7 +375,7 @@ router.get('/validate/:code', async (req, res) => {
       success: true,
       valid: true,
       data: {
-        referrerName: user.fullName,
+        referrerName: user.fullName || 'User',
         memberSince: user.createdAt
       }
     });

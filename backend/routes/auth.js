@@ -9,7 +9,7 @@ const { authenticateToken } = require('../middleware/auth');
 const { sendEmail } = require('../services/emailService');
 const { sendSMS } = require('../services/smsService');
 const { generateOTP } = require('../utils/helpers');
-const { autoCompleteTask } = require('../services/taskService');
+// Auto-complete task functionality removed - only daily earning tasks available
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -21,9 +21,14 @@ const generateReferralCode = () => {
 
 // Register new user
 router.post('/register', [
-  body('fullName').trim().isLength({ min: 2 }).withMessage('Full name must be at least 2 characters'),
-  body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
-  body('phone').optional().isMobilePhone().withMessage('Please provide a valid phone number'),
+  body('fullName').optional({ checkFalsy: true }).trim().isLength({ min: 2 }).withMessage('Full name must be at least 2 characters if provided'),
+  body('email').optional({ checkFalsy: true }).isEmail().normalizeEmail().withMessage('Please provide a valid email if provided'),
+  body('phone').optional({ checkFalsy: true }).custom((value) => {
+    if (value && value.length < 8) {
+      throw new Error('Phone number must be at least 8 digits');
+    }
+    return true;
+  }).withMessage('Please provide a valid phone number if provided'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('referralCode').optional({ checkFalsy: true }).isLength({ min: 6, max: 6 }).withMessage('Invalid referral code')
 ], async (req, res) => {
@@ -38,11 +43,24 @@ router.post('/register', [
 
     const { fullName, email, phone, password, referralCode } = req.body;
 
+    // Validate that at least email or phone is provided
+    if (!email && !phone) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: [{
+          type: 'field',
+          msg: 'At least email or phone number is required',
+          path: 'email',
+          location: 'body'
+        }]
+      });
+    }
+
     // Check if user already exists
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [
-          { email },
+          ...(email ? [{ email }] : []),
           ...(phone ? [{ phone }] : [])
         ]
       }
@@ -90,13 +108,13 @@ router.post('/register', [
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
-          fullName,
-          email,
-          phone,
+          fullName: fullName || null,
+          email: email || null,
+          phone: phone || null,
           password: hashedPassword,
           referralCode: newReferralCode,
           referredBy: referrerId,
-          isEmailVerified: true, // Auto-verify email since verification is disabled
+          isEmailVerified: email ? true : false, // Auto-verify email if provided
           isPhoneVerified: phone ? false : true // Only verify phone if provided
         }
       });
@@ -143,25 +161,12 @@ router.post('/register', [
 
 // Login user
 router.post('/login', [
+  body('identifier').notEmpty().withMessage('Email or phone is required'),
   body('password').notEmpty().withMessage('Password is required')
 ], async (req, res) => {
   try {
-    // Custom validation for email or identifier
-    const { identifier, email, password } = req.body;
-    const loginIdentifier = identifier || email;
+    const { identifier, password } = req.body;
     
-    if (!loginIdentifier) {
-      return res.status(400).json({
-        error: 'Validation failed',
-        details: [{
-          type: 'field',
-          msg: 'Email or phone is required',
-          path: 'identifier',
-          location: 'body'
-        }]
-      });
-    }
-
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -174,8 +179,8 @@ router.post('/login', [
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: loginIdentifier },
-          { phone: loginIdentifier }
+          { email: identifier },
+          { phone: identifier }
         ]
       },
       include: {
@@ -213,13 +218,7 @@ router.post('/login', [
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
-    // Auto-complete daily login task
-    try {
-      await autoCompleteTask(user.id, 'DAILY_LOGIN');
-    } catch (error) {
-      console.error('Error auto-completing daily login task:', error);
-      // Don't fail login if task completion fails
-    }
+    // Note: Auto-complete task functionality removed - only daily earning tasks are available
 
     res.json({
       message: 'Login successful',
@@ -297,6 +296,89 @@ router.post('/logout', authenticateToken, (req, res) => {
   res.json({
     message: 'Logout successful'
   });
+});
+
+// Change password
+router.post('/change-password', authenticateToken, [
+  body('currentPassword').isLength({ min: 6 }).withMessage('Current password is required'),
+  body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters'),
+  body('confirmPassword').custom((value, { req }) => {
+    if (value !== req.body.newPassword) {
+      throw new Error('Password confirmation does not match password');
+    }
+    return true;
+  })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    // Get user with current password
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+
+    // Update password
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedNewPassword }
+    });
+
+    // Send email notification
+    try {
+      await sendEmail({
+        to: user.email,
+        template: 'passwordChanged',
+        data: {
+          fullName: user.fullName || user.email || user.phone || 'User',
+          email: user.email,
+          changedAt: new Date().toLocaleString()
+        }
+      });
+    } catch (emailError) {
+      console.error('Failed to send password change email:', emailError);
+      // Don't fail the password change if email fails
+    }
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to change password'
+    });
+  }
 });
 
 module.exports = router;

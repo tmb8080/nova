@@ -12,8 +12,8 @@ datasource db {
 
 model User {
   id            String   @id @default(uuid())
-  fullName      String
-  email         String   @unique
+  fullName      String?
+  email         String?  @unique
   phone         String?  @unique
   password      String
   isEmailVerified Boolean @default(false)
@@ -172,9 +172,11 @@ model ReferralBonus {
   id          String   @id @default(uuid())
   referrerId  String
   referredId  String
-  depositId   String
+  depositId   String?
+  vipPaymentId String?
   bonusAmount Decimal  @db.Decimal(18, 8)
   bonusRate   Decimal  @db.Decimal(5, 4)
+  level       Int      @default(1) // 1 for direct, 2 for indirect
   createdAt   DateTime @default(now())
 
   // Relations
@@ -326,12 +328,23 @@ enum TaskStatus {
 }
 
 enum TaskType {
-  DAILY_LOGIN
-  REFERRAL
-  DEPOSIT
-  VIP_UPGRADE
-  SOCIAL_SHARE
-  SURVEY
-  WATCH_VIDEO
-  CUSTOM
+  DAILY_EARNING
+}
+
+model OrphanTransaction {
+  id              String   @id @default(uuid())
+  transactionHash String   @unique
+  fromAddress     String
+  toAddress       String
+  amount          Decimal  @db.Decimal(18, 8)
+  currency        String
+  network         String
+  blockNumber     Int
+  status          String   @default("UNMATCHED") // UNMATCHED, MATCHED, PROCESSED
+  matchedDepositId String?
+  processedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("orphan_transactions")
 }

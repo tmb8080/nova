@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Import components
 import Layout from './components/layout/Layout';
+import HelpButton from './components/ui/HelpButton';
 
 // Import pages
 import Login from './pages/Login';
@@ -80,6 +81,7 @@ function App() {
                 element={
                   <PublicRoute>
                     <Login />
+                    <HelpButton />
                   </PublicRoute>
                 }
               />
@@ -88,12 +90,21 @@ function App() {
                 element={
                   <PublicRoute>
                     <Register />
+                    <HelpButton />
                   </PublicRoute>
                 }
               />
 
               {/* Email verification route (semi-protected) */}
-              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route 
+                path="/verify-email" 
+                element={
+                  <>
+                    <VerifyEmail />
+                    <HelpButton />
+                  </>
+                } 
+              />
 
               {/* Protected routes */}
               <Route
@@ -161,6 +172,7 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AdminPanel />
+                    <HelpButton />
                   </ProtectedRoute>
                 }
               />
@@ -176,6 +188,7 @@ function App() {
                         <p className="text-gray-600">Coming soon...</p>
                       </div>
                     </div>
+                    <HelpButton />
                   </ProtectedRoute>
                 }
               />
@@ -185,13 +198,14 @@ function App() {
                   <ProtectedRoute>
                     <div className="min-h-screen flex items-center justify-center">
                       <div className="text-center">
-                        <h1 className="text-2xl font-bold text-gray-900 mb-4">Referral Page</h1>
-                        <p className="text-gray-600">Coming soon...</p>
-                      </div>
+                      <h1 className="text-2xl font-bold text-gray-900 mb-4">Referral Page</h1>
+                      <p className="text-gray-600">Coming soon...</p>
                     </div>
-                  </ProtectedRoute>
-                }
-              />
+                  </div>
+                  <HelpButton />
+                </ProtectedRoute>
+              }
+            />
               <Route
                 path="/transactions"
                 element={
@@ -202,6 +216,7 @@ function App() {
                         <p className="text-gray-600">Coming soon...</p>
                       </div>
                     </div>
+                    <HelpButton />
                   </ProtectedRoute>
                 }
               />
@@ -218,6 +233,7 @@ function App() {
                         <p className="text-gray-600">Coming soon...</p>
                       </div>
                     </div>
+                    <HelpButton />
                   </ProtectedRoute>
                 }
               />
@@ -229,18 +245,21 @@ function App() {
               <Route
                 path="*"
                 element={
-                  <div className="min-h-screen flex items-center justify-center">
-                    <div className="text-center">
-                      <h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
-                      <p className="text-gray-600 mb-4">Page not found</p>
-                      <a
-                        href="/dashboard"
-                        className="text-blue-600 hover:text-blue-500 font-medium"
-                      >
-                        Go to Dashboard
-                      </a>
+                  <>
+                    <div className="min-h-screen flex items-center justify-center">
+                      <div className="text-center">
+                        <h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
+                        <p className="text-gray-600 mb-4">Page not found</p>
+                        <a
+                          href="/dashboard"
+                          className="text-blue-600 hover:text-blue-500 font-medium"
+                        >
+                          Go to Dashboard
+                        </a>
+                      </div>
                     </div>
-                  </div>
+                    <HelpButton />
+                  </>
                 }
               />
             </Routes>

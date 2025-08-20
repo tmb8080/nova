@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 /**
- * Start daily earning session
+ * Start daily earning session (the only task available)
  */
 async function startEarningSession(userId) {
   try {
@@ -61,7 +61,7 @@ async function startEarningSession(userId) {
         startTime: session.startTime,
         expectedEndTime: session.expectedEndTime,
         dailyEarningRate: session.dailyEarningRate,
-        message: 'Earning session started successfully! Your earnings will accumulate for the next 24 hours.'
+        message: 'Daily earning session started successfully! Your earnings will accumulate for the next 24 hours.'
       }
     };
   } catch (error) {
@@ -100,7 +100,7 @@ async function getEarningSessionStatus(userId) {
         data: {
           hasActiveSession: false,
           canStart: true,
-          message: 'No active session. Click "Start Earning" to begin your daily profit cycle.'
+          message: 'No active session. Click "Start Daily Task" to begin your 24-hour earning cycle.'
         }
       };
     }
@@ -131,6 +131,9 @@ async function getEarningSessionStatus(userId) {
         data: {
           balance: {
             increment: session.dailyEarningRate
+          },
+          totalEarnings: {
+            increment: session.dailyEarningRate
           }
         }
       });
@@ -139,9 +142,9 @@ async function getEarningSessionStatus(userId) {
       await prisma.transaction.create({
         data: {
           userId: userId,
-          type: 'EARNING',
+          type: 'VIP_EARNINGS',
           amount: session.dailyEarningRate,
-          description: `Daily earnings from ${session.vipLevel.name} VIP level`,
+          description: `Daily task earnings from ${session.vipLevel.name} VIP level`,
           status: 'COMPLETED'
         }
       });
@@ -177,77 +180,11 @@ async function getEarningSessionStatus(userId) {
           minutes: remainingMinutes
         },
         progress: (elapsedHours / 24) * 100,
-        message: `Earning session active! Current earnings: $${currentEarnings.toFixed(2)}. Time remaining: ${remainingHours}h ${remainingMinutes}m`
+        message: `Daily task active! Current earnings: $${currentEarnings.toFixed(2)}. Time remaining: ${remainingHours}h ${remainingMinutes}m`
       }
     };
   } catch (error) {
     console.error('Error getting earning session status:', error);
-    throw error;
-  }
-}
-
-/**
- * Stop earning session manually (optional)
- */
-async function stopEarningSession(userId) {
-  try {
-    const session = await prisma.earningsSession.findFirst({
-      where: {
-        userId: userId,
-        status: 'ACTIVE'
-      }
-    });
-
-    if (!session) {
-      throw new Error('No active earning session found.');
-    }
-
-    const now = new Date();
-    const startTime = new Date(session.startTime);
-    const elapsedHours = Math.min((now - startTime) / (1000 * 60 * 60), 24);
-    const earnedAmount = (elapsedHours / 24) * parseFloat(session.dailyEarningRate);
-
-    // Update session
-    await prisma.earningsSession.update({
-      where: { id: session.id },
-      data: {
-        status: 'STOPPED',
-        actualEndTime: now,
-        totalEarnings: earnedAmount
-      }
-    });
-
-    // Add earnings to wallet
-    await prisma.wallet.update({
-      where: { userId: userId },
-      data: {
-        balance: {
-          increment: earnedAmount
-        }
-      }
-    });
-
-    // Create transaction record
-    await prisma.transaction.create({
-      data: {
-        userId: userId,
-        type: 'EARNING',
-        amount: earnedAmount,
-        description: `Manual stop - earnings from ${elapsedHours.toFixed(2)} hours`,
-        status: 'COMPLETED'
-      }
-    });
-
-    return {
-      success: true,
-      data: {
-        message: `Earning session stopped. You earned $${earnedAmount.toFixed(2)} for ${elapsedHours.toFixed(2)} hours.`,
-        earnedAmount: earnedAmount,
-        elapsedHours: elapsedHours
-      }
-    };
-  } catch (error) {
-    console.error('Error stopping earning session:', error);
     throw error;
   }
 }
@@ -291,69 +228,62 @@ async function getEarningHistory(userId) {
 }
 
 /**
- * Get available tasks for a user
+ * Get available daily earning task
  */
 async function getAvailableTasks(userId) {
   try {
-    // Get all active tasks
-    const tasks = await prisma.task.findMany({
-      where: { isActive: true },
-      orderBy: { createdAt: 'desc' }
+    // Get the daily earning task
+    const task = await prisma.task.findFirst({
+      where: { 
+        type: 'DAILY_EARNING',
+        isActive: true 
+      }
     });
+
+    if (!task) {
+      return {
+        success: true,
+        data: []
+      };
+    }
 
     // Get user's task progress
-    const userTasks = await prisma.userTask.findMany({
-      where: { userId },
-      include: { task: true }
+    const userTask = await prisma.userTask.findFirst({
+      where: { 
+        userId,
+        taskId: task.id
+      }
     });
 
-    // Map tasks with user progress
-    const tasksWithProgress = tasks.map(task => {
-      const userTask = userTasks.find(ut => ut.taskId === task.id);
-      
-      if (!userTask) {
-        return {
-          ...task,
-          status: 'PENDING',
-          canStart: true,
-          canComplete: false,
-          progress: 0
-        };
-      }
+    // Check if user can start the task
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-      // Check if task can be repeated
-      let canStart = false;
-      let canComplete = false;
-      
-      if (task.isRepeatable && userTask.status === 'COMPLETED') {
-        // Check cooldown period
-        if (task.cooldownHours) {
-          const cooldownTime = new Date(userTask.completedAt.getTime() + task.cooldownHours * 60 * 60 * 1000);
-          canStart = new Date() >= cooldownTime;
-        } else {
-          canStart = true;
-        }
-      } else if (userTask.status === 'PENDING') {
-        canStart = true;
-      } else if (userTask.status === 'IN_PROGRESS') {
-        canComplete = true;
+    const activeSession = await prisma.earningsSession.findFirst({
+      where: {
+        userId: userId,
+        startTime: {
+          gte: today,
+          lt: tomorrow
+        },
+        status: 'ACTIVE'
       }
-
-      return {
-        ...task,
-        status: userTask.status,
-        startedAt: userTask.startedAt,
-        completedAt: userTask.completedAt,
-        rewardEarned: userTask.rewardEarned,
-        canStart,
-        canComplete,
-        progress: userTask.status === 'COMPLETED' ? 100 : 0
-      };
     });
+
+    const canStart = !activeSession;
 
     return {
       success: true,
-      data: tasksWithProgress
+      data: [{
+        ...task,
+        status: activeSession ? 'IN_PROGRESS' : 'PENDING',
+        canStart,
+        canComplete: false,
+        progress: activeSession ? 50 : 0,
+        message: activeSession ? 'Daily task in progress' : 'Ready to start daily task'
+      }]
     };
   } catch (error) {
     console.error('Error getting available tasks:', error);
@@ -362,7 +292,7 @@ async function getAvailableTasks(userId) {
 }
 
 /**
- * Start a task
+ * Start the daily earning task
  */
 async function startTask(userId, taskId) {
   try {
@@ -371,43 +301,36 @@ async function startTask(userId, taskId) {
       where: { id: taskId }
     });
 
-    if (!task || !task.isActive) {
-      throw new Error('Task not found or inactive');
+    if (!task || !task.isActive || task.type !== 'DAILY_EARNING') {
+      throw new Error('Invalid task or task not available');
     }
 
     // Check if user can start this task
-    const existingUserTask = await prisma.userTask.findUnique({
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const existingSession = await prisma.earningsSession.findFirst({
       where: {
-        userId_taskId: {
-          userId,
-          taskId
-        }
+        userId: userId,
+        startTime: {
+          gte: today,
+          lt: tomorrow
+        },
+        status: 'ACTIVE'
       }
     });
 
-    if (existingUserTask) {
-      if (existingUserTask.status === 'IN_PROGRESS') {
-        throw new Error('Task already in progress');
-      }
-      
-      if (existingUserTask.status === 'COMPLETED' && !task.isRepeatable) {
-        throw new Error('Task already completed and not repeatable');
-      }
-
-      if (existingUserTask.status === 'COMPLETED' && task.isRepeatable) {
-        // Check cooldown period
-        if (task.cooldownHours) {
-          const cooldownTime = new Date(existingUserTask.completedAt.getTime() + task.cooldownHours * 60 * 60 * 1000);
-          if (new Date() < cooldownTime) {
-            const remainingHours = Math.ceil((cooldownTime - new Date()) / (1000 * 60 * 60));
-            throw new Error(`Task is on cooldown. Try again in ${remainingHours} hours`);
-          }
-        }
-      }
+    if (existingSession) {
+      throw new Error('You already have an active daily earning session');
     }
 
-    // Create or update user task
-    const userTask = await prisma.userTask.upsert({
+    // Start the earning session
+    const result = await startEarningSession(userId);
+
+    // Create or update user task record
+    await prisma.userTask.upsert({
       where: {
         userId_taskId: {
           userId,
@@ -431,8 +354,8 @@ async function startTask(userId, taskId) {
     return {
       success: true,
       data: {
-        message: `Task "${task.title}" started successfully`,
-        userTask
+        message: 'Daily earning task started successfully',
+        ...result.data
       }
     };
   } catch (error) {
@@ -442,92 +365,7 @@ async function startTask(userId, taskId) {
 }
 
 /**
- * Complete a task and add reward to wallet
- */
-async function completeTask(userId, taskId) {
-  try {
-    // Get user task
-    const userTask = await prisma.userTask.findUnique({
-      where: {
-        userId_taskId: {
-          userId,
-          taskId
-        }
-      },
-      include: { task: true }
-    });
-
-    if (!userTask) {
-      throw new Error('Task not found for user');
-    }
-
-    if (userTask.status !== 'IN_PROGRESS') {
-      throw new Error('Task is not in progress');
-    }
-
-    const task = userTask.task;
-    const rewardAmount = parseFloat(task.reward);
-
-    // Complete task and add reward to wallet in a transaction
-    const result = await prisma.$transaction(async (tx) => {
-      // Update user task
-      const updatedUserTask = await tx.userTask.update({
-        where: { id: userTask.id },
-        data: {
-          status: 'COMPLETED',
-          completedAt: new Date(),
-          rewardEarned: rewardAmount
-        }
-      });
-
-      // Add reward to user's wallet
-      const updatedWallet = await tx.wallet.update({
-        where: { userId },
-        data: {
-          balance: {
-            increment: rewardAmount
-          },
-          totalEarnings: {
-            increment: rewardAmount
-          }
-        }
-      });
-
-      // Create transaction record
-      const transaction = await tx.transaction.create({
-        data: {
-          userId,
-          type: 'TASK_REWARD',
-          amount: rewardAmount,
-          description: `Task completion reward: ${task.title}`,
-          referenceId: userTask.id,
-          metadata: {
-            taskId: task.id,
-            taskType: task.type,
-            taskTitle: task.title
-          }
-        }
-      });
-
-      return { updatedUserTask, updatedWallet, transaction };
-    });
-
-    return {
-      success: true,
-      data: {
-        message: `Task "${task.title}" completed! You earned $${rewardAmount.toFixed(2)}`,
-        reward: rewardAmount,
-        taskTitle: task.title
-      }
-    };
-  } catch (error) {
-    console.error('Error completing task:', error);
-    throw error;
-  }
-}
-
-/**
- * Get user's task history
+ * Get user's task history (only daily earning tasks)
  */
 async function getTaskHistory(userId) {
   try {
@@ -556,76 +394,11 @@ async function getTaskHistory(userId) {
   }
 }
 
-/**
- * Auto-complete certain task types based on user actions
- */
-async function autoCompleteTask(userId, taskType, metadata = {}) {
-  try {
-    // Find tasks of the specified type
-    const tasks = await prisma.task.findMany({
-      where: {
-        type: taskType,
-        isActive: true
-      }
-    });
-
-    const results = [];
-
-    for (const task of tasks) {
-      try {
-        // Check if user can complete this task
-        const userTask = await prisma.userTask.findUnique({
-          where: {
-            userId_taskId: {
-              userId,
-              taskId: task.id
-            }
-          }
-        });
-
-        if (!userTask || userTask.status === 'PENDING') {
-          // Start and complete the task automatically
-          await startTask(userId, task.id);
-          const result = await completeTask(userId, task.id);
-          results.push({
-            taskId: task.id,
-            taskTitle: task.title,
-            status: 'completed',
-            reward: parseFloat(task.reward)
-          });
-        }
-      } catch (error) {
-        console.error(`Error auto-completing task ${task.id}:`, error);
-        results.push({
-          taskId: task.id,
-          taskTitle: task.title,
-          status: 'failed',
-          error: error.message
-        });
-      }
-    }
-
-    return {
-      success: true,
-      data: {
-        message: `Auto-completed ${results.filter(r => r.status === 'completed').length} tasks`,
-        results
-      }
-    };
-  } catch (error) {
-    console.error('Error auto-completing tasks:', error);
-    throw error;
-  }
-}
-
 module.exports = {
   startEarningSession,
   getEarningSessionStatus,
-  stopEarningSession,
   getEarningHistory,
   getAvailableTasks,
   startTask,
-  completeTask,
-  getTaskHistory,
-  autoCompleteTask
+  getTaskHistory
 };

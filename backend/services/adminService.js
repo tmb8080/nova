@@ -189,9 +189,12 @@ const getSystemStats = async () => {
         _sum: { balance: true }
       }),
       
-      // Total earnings
-      prisma.wallet.aggregate({
-        _sum: { totalEarnings: true }
+      // Total VIP task earnings (only from VIP_EARNINGS transactions)
+      prisma.transaction.aggregate({
+        where: {
+          type: 'VIP_EARNINGS'
+        },
+        _sum: { amount: true }
       }),
       
       // Total referral bonus
@@ -272,7 +275,7 @@ const getSystemStats = async () => {
       todayWithdrawals: todayWithdrawals._sum.amount || 0,
       
       totalWalletBalance: totalWalletBalance._sum.balance || 0,
-      totalEarnings: totalEarnings._sum.totalEarnings || 0,
+      totalEarnings: totalEarnings._sum.amount || 0,
       totalReferralBonus: totalReferralBonus._sum.totalReferralBonus || 0,
       systemBalance: systemBalance,
       

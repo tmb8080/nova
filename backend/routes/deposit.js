@@ -3,9 +3,15 @@ const { body, query, validationResult } = require('express-validator');
 const axios = require('axios');
 const { PrismaClient } = require('@prisma/client');
 
-const { authenticateToken, requireEmailVerification } = require('../middleware/auth');
+const { authenticateToken, requireEmailVerification, requireAdmin } = require('../middleware/auth');
 const { updateWalletBalance, processReferralBonus } = require('../services/walletService');
 const { sendEmail } = require('../services/emailService');
+const { 
+  verifyUsdtDeposit, 
+  manualVerifyDeposit, 
+  getPendingDepositsForVerification,
+  batchVerifyDeposits 
+} = require('../services/depositVerificationService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -397,6 +403,198 @@ router.patch('/:depositId/transaction-hash', [
       error: 'Failed to update transaction hash',
       message: error.message
     });
+  }
+});
+
+// Verify deposit transaction (for users)
+router.post('/:depositId/verify', authenticateToken, requireEmailVerification, async (req, res) => {
+  try {
+    const { depositId } = req.params;
+    const userId = req.user.id;
+
+    // Check if deposit exists and belongs to user
+    const deposit = await prisma.deposit.findFirst({
+      where: {
+        id: depositId,
+        userId
+      }
+    });
+
+    if (!deposit) {
+      return res.status(404).json({
+        error: 'Deposit not found',
+        message: 'The specified deposit does not exist or does not belong to you'
+      });
+    }
+
+    if (deposit.status !== 'PENDING') {
+      return res.status(400).json({
+        error: 'Cannot verify deposit',
+        message: `Deposit is already ${deposit.status.toLowerCase()}`
+      });
+    }
+
+    if (!deposit.transactionHash || !deposit.network) {
+      return res.status(400).json({
+        error: 'Missing information',
+        message: 'Transaction hash and network are required for verification'
+      });
+    }
+
+    // Verify the deposit
+    const verificationResult = await verifyUsdtDeposit(
+      depositId,
+      deposit.transactionHash,
+      deposit.network
+    );
+
+    if (verificationResult.verified) {
+      // Process the deposit confirmation
+      const { processUsdtDepositConfirmation } = require('../services/depositService');
+      await processUsdtDepositConfirmation(depositId, deposit.transactionHash);
+    }
+
+    res.json({
+      success: true,
+      message: verificationResult.message,
+      data: verificationResult
+    });
+
+  } catch (error) {
+    console.error('Error verifying deposit:', error);
+    res.status(500).json({
+      error: 'Failed to verify deposit',
+      message: error.message
+    });
+  }
+});
+
+// Admin: Get pending deposits for verification
+router.get('/admin/pending-verification', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const deposits = await getPendingDepositsForVerification();
+
+    res.json({
+      success: true,
+      data: deposits
+    });
+
+  } catch (error) {
+    console.error('Error fetching pending deposits for verification:', error);
+    res.status(500).json({
+      error: 'Failed to fetch pending deposits',
+      message: error.message
+    });
+  }
+});
+
+// Admin: Manually verify deposit
+router.post('/admin/:depositId/manual-verify', [
+  body('verificationNotes').optional().isLength({ max: 500 }).withMessage('Verification notes too long')
+], authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { depositId } = req.params;
+    const { verificationNotes } = req.body;
+    const adminId = req.user.id;
+
+    // Manually verify the deposit
+    const verificationResult = await manualVerifyDeposit(depositId, adminId, verificationNotes);
+
+    if (verificationResult.verified) {
+      // Process the deposit confirmation
+      const { processUsdtDepositConfirmation } = require('../services/depositService');
+      await processUsdtDepositConfirmation(depositId, null);
+    }
+
+    res.json({
+      success: true,
+      message: verificationResult.message,
+      data: verificationResult
+    });
+
+  } catch (error) {
+    console.error('Error manually verifying deposit:', error);
+    res.status(500).json({
+      error: 'Failed to manually verify deposit',
+      message: error.message
+    });
+  }
+});
+
+// Admin: Batch verify deposits
+router.post('/admin/batch-verify', [
+  body('depositIds').isArray({ min: 1 }).withMessage('At least one deposit ID is required'),
+  body('depositIds.*').isUUID().withMessage('Invalid deposit ID format')
+], authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { depositIds } = req.body;
+
+    // Batch verify deposits
+    const results = await batchVerifyDeposits(depositIds);
+
+    // Process successful verifications
+    const successfulVerifications = results.filter(result => result.verified);
+    for (const verification of successfulVerifications) {
+      try {
+        const { processUsdtDepositConfirmation } = require('../services/depositService');
+        await processUsdtDepositConfirmation(verification.depositId, null);
+      } catch (error) {
+        console.error(`Error processing deposit ${verification.depositId}:`, error);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Batch verification completed. ${successfulVerifications.length} deposits verified successfully.`,
+      data: {
+        total: depositIds.length,
+        successful: successfulVerifications.length,
+        failed: results.length - successfulVerifications.length,
+        results
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in batch verification:', error);
+    res.status(500).json({
+      error: 'Failed to batch verify deposits',
+      message: error.message
+    });
+  }
+});
+
+// Check automatic detection status
+router.get('/automatic-detection-status', authenticateToken, async (req, res) => {
+  try {
+    // Check if automatic detection is running
+    const isRunning = global.automaticDetectionRunning || false;
+    
+    res.json({ 
+      success: true, 
+      data: { 
+        isRunning,
+        message: isRunning ? 'Automatic detection is active' : 'Automatic detection is not running'
+      } 
+    });
+  } catch (error) {
+    console.error('Error checking automatic detection status:', error);
+    res.status(500).json({ error: 'Failed to check status', message: error.message });
   }
 });
 

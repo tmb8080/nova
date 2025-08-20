@@ -1,5 +1,6 @@
 import React from 'react';
 import MobileBottomNav from '../MobileBottomNav';
+import HelpButton from '../ui/HelpButton';
 
 const Layout = ({ children }) => {
   return (
@@ -8,6 +9,7 @@ const Layout = ({ children }) => {
         {children}
       </div>
       <MobileBottomNav />
+      <HelpButton />
     </div>
   );
 };

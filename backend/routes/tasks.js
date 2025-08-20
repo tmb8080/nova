@@ -3,77 +3,49 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const taskService = require('../services/taskService');
 
-// Start earning session
+// Start daily earning task
 router.post('/start-earning', authenticateToken, async (req, res) => {
   try {
     const result = await taskService.startEarningSession(req.user.id);
     res.json(result);
   } catch (error) {
-    console.error('Error starting earning session:', error);
+    console.error('Error starting daily earning task:', error);
     res.status(400).json({
       success: false,
-      message: error.message || 'Failed to start earning session'
+      message: error.message || 'Failed to start daily earning task'
     });
   }
 });
 
-// Get earning session status
+// Get daily earning task status
 router.get('/earning-status', authenticateToken, async (req, res) => {
   try {
     const result = await taskService.getEarningSessionStatus(req.user.id);
     res.json(result);
   } catch (error) {
-    console.error('Error getting earning session status:', error);
-    res.status(400).json({
+    console.error('Error getting earning status:', error);
+    res.status(500).json({
       success: false,
-      message: error.message || 'Failed to get earning session status'
+      message: error.message || 'Failed to get earning status'
     });
   }
 });
 
-// Stop earning session manually
-router.post('/stop-earning', authenticateToken, async (req, res) => {
-  try {
-    const result = await taskService.stopEarningSession(req.user.id);
-    res.json(result);
-  } catch (error) {
-    console.error('Error stopping earning session:', error);
-    res.status(400).json({
-      success: false,
-      message: error.message || 'Failed to stop earning session'
-    });
-  }
-});
-
-// Get earning history
-router.get('/earning-history', authenticateToken, async (req, res) => {
-  try {
-    const result = await taskService.getEarningHistory(req.user.id);
-    res.json(result);
-  } catch (error) {
-    console.error('Error getting earning history:', error);
-    res.status(400).json({
-      success: false,
-      message: error.message || 'Failed to get earning history'
-    });
-  }
-});
-
-// Get available tasks
+// Get available daily earning task
 router.get('/available', authenticateToken, async (req, res) => {
   try {
     const result = await taskService.getAvailableTasks(req.user.id);
     res.json(result);
   } catch (error) {
     console.error('Error getting available tasks:', error);
-    res.status(400).json({
+    res.status(500).json({
       success: false,
       message: error.message || 'Failed to get available tasks'
     });
   }
 });
 
-// Start a task
+// Start daily earning task
 router.post('/start/:taskId', authenticateToken, async (req, res) => {
   try {
     const { taskId } = req.params;
@@ -88,21 +60,6 @@ router.post('/start/:taskId', authenticateToken, async (req, res) => {
   }
 });
 
-// Complete a task
-router.post('/complete/:taskId', authenticateToken, async (req, res) => {
-  try {
-    const { taskId } = req.params;
-    const result = await taskService.completeTask(req.user.id, taskId);
-    res.json(result);
-  } catch (error) {
-    console.error('Error completing task:', error);
-    res.status(400).json({
-      success: false,
-      message: error.message || 'Failed to complete task'
-    });
-  }
-});
-
 // Get task history
 router.get('/history', authenticateToken, async (req, res) => {
   try {
@@ -110,9 +67,23 @@ router.get('/history', authenticateToken, async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('Error getting task history:', error);
-    res.status(400).json({
+    res.status(500).json({
       success: false,
       message: error.message || 'Failed to get task history'
+    });
+  }
+});
+
+// Get earning history
+router.get('/earning-history', authenticateToken, async (req, res) => {
+  try {
+    const result = await taskService.getEarningHistory(req.user.id);
+    res.json(result);
+  } catch (error) {
+    console.error('Error getting earning history:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get earning history'
     });
   }
 });

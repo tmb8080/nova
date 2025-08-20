@@ -349,9 +349,9 @@ const AdminPanel = () => {
                      <div className="text-xs text-gray-400 mt-1">Active VIP members</div>
                    </div>
                    <div className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
-                     <div className="text-gray-300 text-sm">Total Earnings</div>
+                     <div className="text-gray-300 text-sm">VIP Task Earnings</div>
                      <div className="text-xl font-bold text-blue-400">{formatCurrency(stats?.totalEarnings || 0)}</div>
-                     <div className="text-xs text-gray-400 mt-1">User earnings</div>
+                     <div className="text-xs text-gray-400 mt-1">From VIP tasks only</div>
                    </div>
                    <div className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
                      <div className="text-gray-300 text-sm">Referral Bonuses</div>
@@ -432,7 +432,7 @@ const AdminPanel = () => {
                   <div key={withdrawal.id} className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h3 className="text-lg font-semibold text-white">{withdrawal.user.fullName}</h3>
+                        <h3 className="text-lg font-semibold text-white">{withdrawal.user.fullName || withdrawal.user.email || withdrawal.user.phone || 'User'}</h3>
                         <p className="text-gray-300">{withdrawal.user.email}</p>
                       </div>
                       <div className="text-right">
@@ -501,7 +501,7 @@ const AdminPanel = () => {
                   <div key={deposit.id} className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h3 className="text-lg font-semibold text-white">{deposit.user.fullName}</h3>
+                        <h3 className="text-lg font-semibold text-white">{deposit.user.fullName || deposit.user.email || deposit.user.phone || 'User'}</h3>
                         <p className="text-gray-300">{deposit.user.email}</p>
                       </div>
                       <div className="text-right">
@@ -573,7 +573,7 @@ const AdminPanel = () => {
                   <div key={user.id} className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-lg font-semibold text-white">{user.fullName}</h3>
+                        <h3 className="text-lg font-semibold text-white">{user.fullName || user.email || user.phone || 'User'}</h3>
                         <p className="text-gray-300">{user.email}</p>
                         <p className="text-sm text-gray-400">Joined: {formatDate(user.createdAt)}</p>
                       </div>
@@ -770,7 +770,7 @@ const AdminPanel = () => {
                 <div className="bg-white/10 rounded-lg p-4 mb-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-300 text-sm">User:</span>
-                    <span className="text-white font-medium">{selectedDeposit.user.fullName}</span>
+                    <span className="text-white font-medium">{selectedDeposit.user.fullName || selectedDeposit.user.email || selectedDeposit.user.phone || 'User'}</span>
                   </div>
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-300 text-sm">Amount:</span>
