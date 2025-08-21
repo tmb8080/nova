@@ -350,12 +350,14 @@ router.post('/start-earning', authenticateToken, async (req, res) => {
 // Process completed earning sessions (called by cron job)
 router.post('/process-earnings', authenticateToken, async (req, res) => {
   try {
-    // Find completed sessions that haven't been paid
+    console.log('Manual earnings processing requested...');
+    
+    // Find completed sessions that haven't been paid yet
     const completedSessions = await prisma.earningsSession.findMany({
       where: {
-        status: 'ACTIVE',
-        expectedEndTime: {
-          lt: new Date()
+        status: 'COMPLETED',
+        totalEarnings: {
+          not: null
         }
       },
       include: {
@@ -363,35 +365,54 @@ router.post('/process-earnings', authenticateToken, async (req, res) => {
           include: {
             wallet: true
           }
-        }
+        },
+        vipLevel: true
       }
     });
+
+    console.log(`Found ${completedSessions.length} completed sessions to process manually`);
 
     const results = [];
 
     for (const session of completedSessions) {
       try {
+        // Check if this session has already been processed (by checking if a transaction exists)
+        const existingTransaction = await prisma.transaction.findFirst({
+          where: {
+            userId: session.userId,
+            type: 'VIP_EARNINGS',
+            referenceId: session.id
+          }
+        });
+
+        if (existingTransaction) {
+          console.log(`Session ${session.id} already processed, skipping...`);
+          results.push({
+            sessionId: session.id,
+            userId: session.userId,
+            status: 'skipped',
+            message: 'Already processed'
+          });
+          continue;
+        }
+
+        const earningsAmount = parseFloat(session.totalEarnings);
+        console.log(`Processing session ${session.id} for user ${session.userId}, amount: ${earningsAmount}`);
+
         await prisma.$transaction(async (tx) => {
-          // Add earnings to wallet
+          // Add earnings to wallet - update both balance and dailyEarnings
           await tx.wallet.update({
             where: { userId: session.userId },
             data: {
+              balance: {
+                increment: earningsAmount
+              },
               dailyEarnings: {
-                increment: session.dailyEarningRate
+                increment: earningsAmount
               },
               totalEarnings: {
-                increment: session.dailyEarningRate
+                increment: earningsAmount
               }
-            }
-          });
-
-          // Mark session as completed
-          await tx.earningsSession.update({
-            where: { id: session.id },
-            data: {
-              status: 'COMPLETED',
-              actualEndTime: new Date(),
-              totalEarnings: session.dailyEarningRate
             }
           });
 
@@ -400,8 +421,9 @@ router.post('/process-earnings', authenticateToken, async (req, res) => {
             data: {
               userId: session.userId,
               type: 'VIP_EARNINGS',
-              amount: session.dailyEarningRate,
-              description: 'Daily VIP earnings'
+              amount: earningsAmount,
+              description: `Daily VIP earnings completed - ${session.vipLevel?.name || 'VIP'} level`,
+              referenceId: session.id
             }
           });
         });
@@ -409,10 +431,13 @@ router.post('/process-earnings', authenticateToken, async (req, res) => {
         results.push({
           sessionId: session.id,
           userId: session.userId,
-          amount: session.dailyEarningRate,
+          amount: earningsAmount,
           status: 'success'
         });
+
+        console.log(`✅ Successfully paid ${earningsAmount} to user ${session.userId} for session ${session.id}`);
       } catch (error) {
+        console.error(`❌ Error processing session ${session.id}:`, error);
         results.push({
           sessionId: session.id,
           userId: session.userId,
@@ -422,16 +447,23 @@ router.post('/process-earnings', authenticateToken, async (req, res) => {
       }
     }
 
+    const successCount = results.filter(r => r.status === 'success').length;
+    const skippedCount = results.filter(r => r.status === 'skipped').length;
+    const errorCount = results.filter(r => r.status === 'error').length;
+
+    console.log(`📊 Manual processing completed: ${successCount} successful, ${skippedCount} skipped, ${errorCount} failed`);
+
     res.json({
       success: true,
-      message: `Processed ${results.length} earning sessions`,
+      message: `Processed ${successCount} earning sessions (${skippedCount} skipped, ${errorCount} failed)`,
       data: results
     });
   } catch (error) {
-    console.error('Error processing earnings:', error);
+    console.error('❌ Error processing earnings:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to process earnings'
+      message: 'Failed to process earnings',
+      error: error.message
     });
   }
 });

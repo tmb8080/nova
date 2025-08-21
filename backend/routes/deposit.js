@@ -181,7 +181,7 @@ router.get('/usdt/addresses', authenticateToken, async (req, res) => {
     const addresses = {
       TRC20: process.env.USDT_TRC20_ADDRESS || 'TJwzxqg5FbGRibyMRArrnSo828WppqvQjd',
       BEP20: process.env.USDT_BEP20_ADDRESS || '0x1016f7DAF8b1816C0979992Ab3c8C8D8D8D8D8D8D',
-      ERC20: process.env.USDT_ERC20_ADDRESS || '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+      ERC20: process.env.USDT_ERC20_ADDRESS || '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09',
       POLYGON: process.env.USDT_POLYGON_ADDRESS || '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'
     };
 

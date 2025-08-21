@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 // Configuration
-const BASE_URL = 'https://bambe.shop/api';
+const BASE_URL = 'http://bambe.shop/api';
 const ADMIN_TOKEN = 'your_admin_token_here';
 const USER_TOKEN = 'your_user_token_here';
 

@@ -15,7 +15,7 @@ const initializeAdminSettings = async () => {
           dailyGrowthRate: parseFloat(process.env.DEFAULT_DAILY_GROWTH_RATE) || 0.01,
           referralBonusRate: parseFloat(process.env.DEFAULT_REFERRAL_BONUS_RATE) || 0.05,
           minDepositAmount: parseFloat(process.env.MIN_DEPOSIT_AMOUNT) || 10,
-          minWithdrawalAmount: parseFloat(process.env.MIN_WITHDRAWAL_AMOUNT) || 20,
+          minWithdrawalAmount: parseFloat(process.env.MIN_WITHDRAWAL_AMOUNT) || 10,
           isDepositEnabled: true,
           isWithdrawalEnabled: true,
           isRegistrationEnabled: true,

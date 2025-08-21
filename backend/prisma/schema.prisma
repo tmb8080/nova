@@ -142,7 +142,7 @@ model AdminSettings {
   referralBonusRate     Decimal  @default(0.05) @db.Decimal(5, 4) // 5% = 0.05
   minDepositAmount      Decimal  @default(10) @db.Decimal(18, 8)
   minUsdtDepositAmount  Decimal  @default(30) @db.Decimal(18, 8)
-  minWithdrawalAmount   Decimal  @default(20) @db.Decimal(18, 8)
+  minWithdrawalAmount   Decimal  @default(10) @db.Decimal(18, 8)
   minUsdcWithdrawalAmount Decimal @default(20) @db.Decimal(18, 8)
   isDepositEnabled      Boolean  @default(true)
   isWithdrawalEnabled   Boolean  @default(true)

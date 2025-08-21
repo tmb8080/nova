@@ -22,7 +22,7 @@ const taskRoutes = require('./routes/tasks');
 // Import services
 const { processWalletGrowth } = require('./services/walletService');
 const { initializeAdminSettings } = require('./services/adminService');
-const { processCompletedEarningSessions } = require('./services/vipService');
+const { processCompletedEarningSessions, completeExpiredEarningSessions } = require('./services/vipService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -154,6 +154,11 @@ cron.schedule('0 0 * * *', async () => {
 cron.schedule('0 * * * *', async () => {
   console.log('Processing completed VIP earning sessions...');
   try {
+    // First complete any expired sessions
+    await completeExpiredEarningSessions();
+    console.log('Expired sessions completed');
+    
+    // Then process completed sessions for payment
     await processCompletedEarningSessions();
     console.log('VIP earnings processing completed');
   } catch (error) {

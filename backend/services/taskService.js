@@ -116,38 +116,49 @@ async function getEarningSessionStatus(userId) {
 
     // If session is expired, mark it as completed
     if (isExpired) {
-      await prisma.earningsSession.update({
-        where: { id: session.id },
-        data: { 
-          status: 'COMPLETED',
-          actualEndTime: endTime,
-          totalEarnings: session.dailyEarningRate
-        }
-      });
-
-      // Add earnings to user's wallet
-      await prisma.wallet.update({
-        where: { userId: userId },
-        data: {
-          balance: {
-            increment: session.dailyEarningRate
-          },
-          totalEarnings: {
-            increment: session.dailyEarningRate
+      console.log(`Session ${session.id} expired, marking as completed and processing earnings...`);
+      
+      await prisma.$transaction(async (tx) => {
+        // Mark session as completed
+        await tx.earningsSession.update({
+          where: { id: session.id },
+          data: { 
+            status: 'COMPLETED',
+            actualEndTime: endTime,
+            totalEarnings: session.dailyEarningRate
           }
-        }
+        });
+
+        // Add earnings to user's wallet - update both balance and dailyEarnings
+        await tx.wallet.update({
+          where: { userId: userId },
+          data: {
+            balance: {
+              increment: session.dailyEarningRate
+            },
+            dailyEarnings: {
+              increment: session.dailyEarningRate
+            },
+            totalEarnings: {
+              increment: session.dailyEarningRate
+            }
+          }
+        });
+
+        // Create transaction record
+        await tx.transaction.create({
+          data: {
+            userId: userId,
+            type: 'VIP_EARNINGS',
+            amount: session.dailyEarningRate,
+            description: `Daily task earnings from ${session.vipLevel.name} VIP level`,
+            referenceId: session.id,
+            status: 'COMPLETED'
+          }
+        });
       });
 
-      // Create transaction record
-      await prisma.transaction.create({
-        data: {
-          userId: userId,
-          type: 'VIP_EARNINGS',
-          amount: session.dailyEarningRate,
-          description: `Daily task earnings from ${session.vipLevel.name} VIP level`,
-          status: 'COMPLETED'
-        }
-      });
+      console.log(`✅ Session ${session.id} completed and earnings processed: ${session.dailyEarningRate}`);
 
       return {
         success: true,

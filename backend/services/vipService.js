@@ -2,6 +2,81 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 /**
+ * Complete expired earning sessions
+ */
+async function completeExpiredEarningSessions() {
+  try {
+    console.log('Completing expired earning sessions...');
+    
+    const now = new Date();
+    
+    // Find active sessions that have expired
+    const expiredSessions = await prisma.earningsSession.findMany({
+      where: {
+        status: 'ACTIVE',
+        expectedEndTime: {
+          lt: now
+        }
+      },
+      include: {
+        user: {
+          include: {
+            wallet: true
+          }
+        },
+        vipLevel: true
+      }
+    });
+
+    console.log(`Found ${expiredSessions.length} expired sessions to complete`);
+
+    const results = [];
+
+    for (const session of expiredSessions) {
+      try {
+        console.log(`Completing expired session ${session.id} for user ${session.userId}`);
+        
+        // Mark session as completed with full daily earnings
+        await prisma.earningsSession.update({
+          where: { id: session.id },
+          data: {
+            status: 'COMPLETED',
+            actualEndTime: new Date(session.expectedEndTime),
+            totalEarnings: session.dailyEarningRate
+          }
+        });
+
+        results.push({
+          sessionId: session.id,
+          userId: session.userId,
+          amount: session.dailyEarningRate,
+          status: 'completed'
+        });
+
+        console.log(`✅ Session ${session.id} marked as completed with earnings: $${session.dailyEarningRate}`);
+      } catch (error) {
+        console.error(`❌ Error completing session ${session.id}:`, error);
+        results.push({
+          sessionId: session.id,
+          userId: session.userId,
+          status: 'error',
+          error: error.message
+        });
+      }
+    }
+
+    const completedCount = results.filter(r => r.status === 'completed').length;
+    const errorCount = results.filter(r => r.status === 'error').length;
+    
+    console.log(`📊 Session completion: ${completedCount} completed, ${errorCount} failed`);
+    return results;
+  } catch (error) {
+    console.error('❌ Error in completeExpiredEarningSessions:', error);
+    throw error;
+  }
+}
+
+/**
  * Process completed earning sessions and pay users
  */
 async function processCompletedEarningSessions() {
@@ -21,9 +96,12 @@ async function processCompletedEarningSessions() {
           include: {
             wallet: true
           }
-        }
+        },
+        vipLevel: true
       }
     });
+
+    console.log(`Found ${completedSessions.length} completed sessions to process`);
 
     const results = [];
 
@@ -44,13 +122,17 @@ async function processCompletedEarningSessions() {
         }
 
         const earningsAmount = parseFloat(session.totalEarnings);
+        console.log(`Processing session ${session.id} for user ${session.userId}, amount: ${earningsAmount}`);
 
         await prisma.$transaction(async (tx) => {
-          // Add earnings to wallet
+          // Add earnings to wallet - update both balance and dailyEarnings
           await tx.wallet.update({
             where: { userId: session.userId },
             data: {
               balance: {
+                increment: earningsAmount
+              },
+              dailyEarnings: {
                 increment: earningsAmount
               },
               totalEarnings: {
@@ -65,7 +147,7 @@ async function processCompletedEarningSessions() {
               userId: session.userId,
               type: 'VIP_EARNINGS',
               amount: earningsAmount,
-              description: 'Daily VIP earnings completed',
+              description: `Daily VIP earnings completed - ${session.vipLevel?.name || 'VIP'} level`,
               referenceId: session.id
             }
           });
@@ -78,9 +160,9 @@ async function processCompletedEarningSessions() {
           status: 'success'
         });
 
-        console.log(`Paid ${earningsAmount} to user ${session.userId}`);
+        console.log(`✅ Successfully paid ${earningsAmount} to user ${session.userId} for session ${session.id}`);
       } catch (error) {
-        console.error(`Error processing session ${session.id}:`, error);
+        console.error(`❌ Error processing session ${session.id}:`, error);
         results.push({
           sessionId: session.id,
           userId: session.userId,
@@ -90,10 +172,13 @@ async function processCompletedEarningSessions() {
       }
     }
 
-    console.log(`Processed ${results.length} earning sessions`);
+    const successCount = results.filter(r => r.status === 'success').length;
+    const errorCount = results.filter(r => r.status === 'error').length;
+    
+    console.log(`📊 Processing completed: ${successCount} successful, ${errorCount} failed`);
     return results;
   } catch (error) {
-    console.error('Error in processCompletedEarningSessions:', error);
+    console.error('❌ Error in processCompletedEarningSessions:', error);
     throw error;
   }
 }
@@ -384,5 +469,6 @@ module.exports = {
   canWithdrawToday,
   createOrUpdateVipLevels,
   getAllVipLevels,
-  getVipLevelById
+  getVipLevelById,
+  completeExpiredEarningSessions
 };

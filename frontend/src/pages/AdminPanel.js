@@ -649,7 +649,7 @@ const AdminPanel = () => {
                       <input
                         type="number"
                         name="minWithdrawalAmount"
-                        defaultValue={settings?.data?.minWithdrawalAmount || 20}
+                        defaultValue={settings?.data?.minWithdrawalAmount || 10}
                         step="0.01"
                         className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />

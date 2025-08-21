@@ -16,7 +16,7 @@ const testWithdrawal = {
   amount: '50',
   currency: 'USDT',
   network: 'TRC20',
-  walletAddress: 'TABC1234567890ABCDEF1234567890ABCDEF1234'
+  walletAddress: 'TUF38LTyPaqfdanHBpGMs5Xid6heLcxxpK'
 };
 
 // Helper function to make authenticated requests
@@ -173,8 +173,8 @@ const testAddressValidation = async () => {
   console.log('\n=== Testing Address Validation ===');
 
   const testAddresses = [
-    { address: 'TABC1234567890ABCDEF1234567890ABCDEF1234', network: 'TRC20', expected: true },
-    { address: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6', network: 'ERC20', expected: true },
+    { address: 'TUF38LTyPaqfdanHBpGMs5Xid6heLcxxpK', network: 'TRC20', expected: true },
+    { address: '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09', network: 'ERC20', expected: true },
     { address: 'invalid_address', network: 'TRC20', expected: false },
     { address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', network: 'BTC', expected: true }
   ];

@@ -35,7 +35,7 @@ const UsdtDeposit = ({ onClose, vipLevel = null }) => {
       currencies: 'USDT',
       minAmount: minUsdtAmount,
       color: 'bg-blue-500',
-      address: 'TJwzxqg5FbGRibyMRArrnSo828WppqvQjd'
+      address: 'TUF38LTyPaqfdanHBpGMs5Xid6heLcxxpK'
     },
     { 
       key: 'ERC20', 
@@ -43,7 +43,7 @@ const UsdtDeposit = ({ onClose, vipLevel = null }) => {
       currencies: 'USDT/USDC',
       minAmount: minUsdtAmount,
       color: 'bg-purple-500',
-      address: '0x1ecADEB88c63921B5cd9ac365C276f0a8e0360bD'
+      address: '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09'
     },
     { 
       key: 'BEP20', 
@@ -51,7 +51,7 @@ const UsdtDeposit = ({ onClose, vipLevel = null }) => {
       currencies: 'USDT/USDC',
       minAmount: minUsdtAmount,
       color: 'bg-yellow-500',
-      address: '0x1ecADEB88c63921B5cd9ac365C276f0a8e0360bD'
+      address: '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09'
     },
     { 
       key: 'POLYGON', 
@@ -59,7 +59,7 @@ const UsdtDeposit = ({ onClose, vipLevel = null }) => {
       currencies: 'USDT/USDC',
       minAmount: minUsdtAmount,
       color: 'bg-purple-600',
-      address: '0x1ecADEB88c63921B5cd9ac365C276f0a8e0360bD'
+      address: '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09'
     },
     { 
       key: 'ARBITRUM', 
@@ -67,7 +67,7 @@ const UsdtDeposit = ({ onClose, vipLevel = null }) => {
       currencies: 'USDT/USDC',
       minAmount: minUsdtAmount,
       color: 'bg-blue-600',
-      address: '0x1ecADEB88c63921B5cd9ac365C276f0a8e0360bD'
+      address: '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09'
     },
     { 
       key: 'OPTIMISM', 
@@ -75,7 +75,7 @@ const UsdtDeposit = ({ onClose, vipLevel = null }) => {
       currencies: 'USDT/USDC',
       minAmount: minUsdtAmount,
       color: 'bg-red-500',
-      address: '0x1ecADEB88c63921B5cd9ac365C276f0a8e0360bD'
+      address: '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09'
     }
   ];
 
