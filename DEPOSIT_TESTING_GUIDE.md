@@ -64,30 +64,30 @@ node test_deposit_system.js
 #### **1. USDT Deposit Endpoints**
 ```bash
 # Get USDT addresses
-curl -X GET http://bambe.shop/api/deposit/usdt/addresses \
+curl -X GET https://bambe.shop/api/deposit/usdt/addresses \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # Create USDT deposit
-curl -X POST http://bambe.shop/api/deposit/usdt/create \
+curl -X POST https://bambe.shop/api/deposit/usdt/create \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"amount": "100", "network": "BEP20"}'
 
 # Update transaction hash
-curl -X PATCH http://bambe.shop/api/deposit/DEPOSIT_ID/transaction-hash \
+curl -X PATCH https://bambe.shop/api/deposit/DEPOSIT_ID/transaction-hash \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"transactionHash": "0x1234567890abcdef..."}'
 
 # Verify deposit
-curl -X POST http://bambe.shop/api/deposit/DEPOSIT_ID/verify \
+curl -X POST https://bambe.shop/api/deposit/DEPOSIT_ID/verify \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 #### **2. Coinbase Deposit Endpoints**
 ```bash
 # Create Coinbase deposit
-curl -X POST http://bambe.shop/api/deposit/create \
+curl -X POST https://bambe.shop/api/deposit/create \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"amount": "0.001", "currency": "BTC"}'
@@ -96,42 +96,42 @@ curl -X POST http://bambe.shop/api/deposit/create \
 #### **3. Deposit History Endpoints**
 ```bash
 # Get user deposits
-curl -X GET "http://bambe.shop/api/deposit/my-deposits?limit=10&page=1" \
+curl -X GET "https://bambe.shop/api/deposit/my-deposits?limit=10&page=1" \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # Get pending count
-curl -X GET http://bambe.shop/api/deposit/pending-count \
+curl -X GET https://bambe.shop/api/deposit/pending-count \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # Get deposit details
-curl -X GET http://bambe.shop/api/deposit/DEPOSIT_ID \
+curl -X GET https://bambe.shop/api/deposit/DEPOSIT_ID \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 #### **4. Admin Endpoints**
 ```bash
 # Get pending deposits for verification
-curl -X GET http://bambe.shop/api/deposit/admin/pending-verification \
+curl -X GET https://bambe.shop/api/deposit/admin/pending-verification \
   -H "Authorization: Bearer ADMIN_TOKEN"
 
 # Manual verification
-curl -X POST http://bambe.shop/api/deposit/admin/DEPOSIT_ID/manual-verify \
+curl -X POST https://bambe.shop/api/deposit/admin/DEPOSIT_ID/manual-verify \
   -H "Authorization: Bearer ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"verificationNotes": "Manually verified"}'
 
 # Batch verification
-curl -X POST http://bambe.shop/api/deposit/admin/batch-verify \
+curl -X POST https://bambe.shop/api/deposit/admin/batch-verify \
   -H "Authorization: Bearer ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"depositIds": ["id1", "id2", "id3"]}'
 
 # Verification dashboard
-curl -X GET http://bambe.shop/api/admin/verification-dashboard \
+curl -X GET https://bambe.shop/api/admin/verification-dashboard \
   -H "Authorization: Bearer ADMIN_TOKEN"
 
 # System addresses
-curl -X GET http://bambe.shop/api/admin/system-addresses \
+curl -X GET https://bambe.shop/api/admin/system-addresses \
   -H "Authorization: Bearer ADMIN_TOKEN"
 ```
 
@@ -206,7 +206,7 @@ await testAdminDepositFeatures();
 ```bash
 # Test multiple concurrent deposits
 for i in {1..10}; do
-  curl -X POST http://bambe.shop/api/deposit/usdt/create \
+  curl -X POST https://bambe.shop/api/deposit/usdt/create \
     -H "Authorization: Bearer YOUR_TOKEN" \
     -H "Content-Type: application/json" \
     -d "{\"amount\": \"50\", \"network\": \"BEP20\"}" &

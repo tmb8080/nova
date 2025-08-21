@@ -55,7 +55,7 @@ The frontend will automatically show the status:
 ### **Backend Status Check**
 ```bash
 # Check if backend is running
-curl http://bambe.shop/api/deposit/automatic-detection-status
+curl https://bambe.shop/api/deposit/automatic-detection-status
 ```
 
 ## 🎨 **Updated UI Features**
@@ -143,7 +143,7 @@ tail -f logs/backend.log
 ### **Issue: Automatic Detection Not Starting**
 ```bash
 # Check if backend is running
-curl http://bambe.shop/api/health
+curl https://bambe.shop/api/health
 
 # Check environment variables
 echo $BSC_WALLET_ADDRESS

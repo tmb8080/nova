@@ -7,7 +7,7 @@ const testBasicConnectivity = async () => {
   try {
     // Test if backend is running
     console.log('1. Testing backend connectivity...');
-    const response = await axios.get('http://bambe.shop/api/deposit/usdt/addresses');
+    const response = await axios.get('https://bambe.shop/api/deposit/usdt/addresses');
     console.log('❌ Backend should require authentication');
   } catch (error) {
     if (error.response?.status === 401) {
