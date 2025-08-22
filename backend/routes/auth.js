@@ -130,8 +130,17 @@ router.post('/register', [
     });
 
     // Generate JWT token
+    const tokenPayload = { 
+      userId: result.id 
+    };
+    
+    // Only include email in token if it exists
+    if (result.email) {
+      tokenPayload.email = result.email;
+    }
+    
     const token = jwt.sign(
-      { userId: result.id, email: result.email },
+      tokenPayload,
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );

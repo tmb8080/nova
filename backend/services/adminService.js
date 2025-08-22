@@ -92,12 +92,29 @@ const getAdminSettings = async () => {
 // Update admin settings
 const updateAdminSettings = async (updates) => {
   try {
-    const settings = await prisma.adminSettings.findFirst();
+    let settings = await prisma.adminSettings.findFirst();
     
     if (!settings) {
-      throw new Error('Admin settings not found');
+      // Create default admin settings if they don't exist
+      console.log('Creating default admin settings...');
+      settings = await prisma.adminSettings.create({
+        data: {
+          dailyGrowthRate: parseFloat(process.env.DEFAULT_DAILY_GROWTH_RATE) || 0.01,
+          referralBonusRate: parseFloat(process.env.DEFAULT_REFERRAL_BONUS_RATE) || 0.05,
+          minDepositAmount: parseFloat(process.env.MIN_DEPOSIT_AMOUNT) || 30,
+          minUsdtDepositAmount: parseFloat(process.env.MIN_USDT_DEPOSIT_AMOUNT) || 30,
+          minWithdrawalAmount: parseFloat(process.env.MIN_WITHDRAWAL_AMOUNT) || 10,
+          minUsdcWithdrawalAmount: parseFloat(process.env.MIN_USDC_WITHDRAWAL_AMOUNT) || 20,
+          isDepositEnabled: true, // Enable deposits by default
+          isWithdrawalEnabled: true,
+          isRegistrationEnabled: true,
+          maintenanceMode: false
+        }
+      });
+      console.log('✅ Default admin settings created');
     }
 
+    // Update the settings
     const updatedSettings = await prisma.adminSettings.update({
       where: { id: settings.id },
       data: updates

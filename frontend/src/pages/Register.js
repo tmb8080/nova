@@ -68,7 +68,14 @@ const Register = () => {
 
     const result = await registerUser(data);
     if (result.success) {
-      navigate('/verify-email');
+      // Check if user has email to determine redirect
+      if (data.email) {
+        // User has email, redirect to email verification
+        navigate('/verify-email');
+      } else {
+        // User only has phone, redirect directly to dashboard
+        navigate('/dashboard');
+      }
     }
   };
 

@@ -1,8 +1,27 @@
 const { PrismaClient } = require('@prisma/client');
 const axios = require('axios');
 const { ethers } = require('ethers');
+const fs = require('fs');
+const path = require('path');
 
 const prisma = new PrismaClient();
+
+// Status file path for communication with main server
+const STATUS_FILE_PATH = path.join(__dirname, '../automatic_detection_status.json');
+
+// Update status file
+const updateStatus = (isRunning, message = '') => {
+  try {
+    const status = {
+      isRunning,
+      message,
+      lastUpdated: new Date().toISOString()
+    };
+    fs.writeFileSync(STATUS_FILE_PATH, JSON.stringify(status, null, 2));
+  } catch (error) {
+    console.error('Error updating status file:', error);
+  }
+};
 
 // Configuration
 const NETWORKS = {
@@ -35,97 +54,115 @@ const NETWORKS = {
 // Initialize providers
 const initializeProviders = () => {
   Object.keys(NETWORKS).forEach(network => {
-    if (NETWORKS[network].rpcUrl) {
-      NETWORKS[network].provider = new ethers.providers.JsonRpcProvider(NETWORKS[network].rpcUrl);
+    if (NETWORKS[network].rpcUrl && !NETWORKS[network].rpcUrl.includes('YOUR_INFURA_KEY')) {
+      try {
+        NETWORKS[network].provider = new ethers.JsonRpcProvider(NETWORKS[network].rpcUrl);
+        console.log(`✅ Provider initialized for ${network}`);
+      } catch (error) {
+        console.log(`❌ Failed to initialize provider for ${network}:`, error.message);
+      }
     }
   });
 };
 
-// Monitor wallet for incoming transactions
-const startWalletMonitoring = async () => {
-  console.log('Starting automatic wallet monitoring...');
+// Start polling-based monitoring
+const startPollingMonitoring = async () => {
+  console.log('Starting polling-based monitoring...');
   
-  initializeProviders();
-  
-  // Start monitoring for each network
-  Object.keys(NETWORKS).forEach(network => {
-    if (NETWORKS[network].provider) {
-      monitorNetworkTransactions(network);
-    }
-  });
-};
-
-// Monitor transactions on a specific network
-const monitorNetworkTransactions = async (network) => {
-  const networkConfig = NETWORKS[network];
-  const provider = networkConfig.provider;
-  const walletAddress = getWalletAddressForNetwork(network);
-  
-  if (!walletAddress) {
-    console.log(`No wallet address configured for ${network}`);
-    return;
-  }
-
-  console.log(`Monitoring ${network} transactions for wallet: ${walletAddress}`);
-
-  // Monitor USDT transfers
-  if (networkConfig.contracts.USDT) {
-    monitorTokenTransfers(network, 'USDT', networkConfig.contracts.USDT, walletAddress);
-  }
-
-  // Monitor USDC transfers
-  if (networkConfig.contracts.USDC) {
-    monitorTokenTransfers(network, 'USDC', networkConfig.contracts.USDC, walletAddress);
-  }
-};
-
-// Monitor specific token transfers
-const monitorTokenTransfers = async (network, token, contractAddress, walletAddress) => {
-  const provider = NETWORKS[network].provider;
-  
-  // Create filter for Transfer events to your wallet
-  const filter = {
-    address: contractAddress,
-    topics: [
-      ethers.utils.id("Transfer(address,address,uint256)"),
-      null, // from address (any)
-      ethers.utils.hexZeroPad(walletAddress, 32) // to address (your wallet)
-    ]
-  };
-
-  // Listen for Transfer events
-  provider.on(filter, async (log) => {
+  // Poll every 30 seconds
+  setInterval(async () => {
     try {
-      console.log(`Detected ${token} transfer on ${network}:`, log.transactionHash);
-      
-      // Parse transfer event
-      const transferData = parseTransferEvent(log, token);
-      
-      // Process the transfer
-      await processIncomingTransfer(network, token, transferData);
-      
+      await pollAllNetworks();
     } catch (error) {
-      console.error(`Error processing ${token} transfer on ${network}:`, error);
+      console.error('Error in polling cycle:', error);
     }
-  });
+  }, 30000); // 30 seconds
+  
+  console.log('Polling monitoring started (every 30 seconds)');
 };
 
-// Parse transfer event data
-const parseTransferEvent = (log, token) => {
-  const iface = new ethers.utils.Interface([
-    "event Transfer(address indexed from, address indexed to, uint256 value)"
-  ]);
+// Poll all networks for transactions
+const pollAllNetworks = async () => {
+  const networks = Object.keys(NETWORKS);
   
-  const parsedLog = iface.parseLog(log);
-  
-  return {
-    from: parsedLog.args.from,
-    to: parsedLog.args.to,
-    amount: parsedLog.args.value.toString(),
-    transactionHash: log.transactionHash,
-    blockNumber: log.blockNumber,
-    token: token
-  };
+  for (const network of networks) {
+    try {
+      await pollNetworkTransactions(network);
+    } catch (error) {
+      console.error(`Error polling ${network}:`, error);
+    }
+  }
+};
+
+// Poll specific network for transactions
+const pollNetworkTransactions = async (network) => {
+  try {
+    const walletAddress = getWalletAddressForNetwork(network);
+    if (!walletAddress) {
+      console.log(`No wallet address configured for ${network}`);
+      return;
+    }
+
+    console.log(`Polling ${network} for transactions...`);
+
+    // Get recent transactions using blockchain API
+    const transactions = await getRecentTransactions(network, walletAddress);
+    
+    for (const tx of transactions) {
+      await processIncomingTransfer(network, tx.token, {
+        from: tx.from,
+        to: tx.to,
+        amount: tx.amount,
+        transactionHash: tx.hash,
+        blockNumber: tx.blockNumber,
+        token: tx.token
+      });
+    }
+    
+  } catch (error) {
+    console.error(`Error polling ${network} transactions:`, error);
+  }
+};
+
+// Get recent transactions from blockchain API
+const getRecentTransactions = async (network, walletAddress) => {
+  try {
+    // Use blockchain explorer APIs to get recent transactions
+    let apiUrl;
+    
+    switch (network) {
+      case 'BSC':
+        apiUrl = `https://api.bscscan.com/api?module=account&action=tokentx&address=${walletAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${process.env.BSCSCAN_API_KEY || 'YourApiKeyToken'}`;
+        break;
+      case 'POLYGON':
+        apiUrl = `https://api.polygonscan.com/api?module=account&action=tokentx&address=${walletAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${process.env.POLYGONSCAN_API_KEY || 'YourApiKeyToken'}`;
+        break;
+      case 'ETHEREUM':
+        apiUrl = `https://api.etherscan.io/api?module=account&action=tokentx&address=${walletAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${process.env.ETHERSCAN_API_KEY || 'YourApiKeyToken'}`;
+        break;
+      default:
+        return [];
+    }
+
+    const response = await axios.get(apiUrl);
+    
+    if (response.data.status === '1') {
+      return response.data.result.map(tx => ({
+        from: tx.from,
+        to: tx.to,
+        amount: tx.value,
+        hash: tx.hash,
+        blockNumber: tx.blockNumber,
+        token: getTokenFromContract(tx.contractAddress, network)
+      }));
+    }
+    
+    return [];
+    
+  } catch (error) {
+    console.error(`Error getting recent transactions for ${network}:`, error);
+    return [];
+  }
 };
 
 // Process incoming transfer
@@ -135,7 +172,7 @@ const processIncomingTransfer = async (network, token, transferData) => {
 
     // Convert amount to decimal
     const decimals = token === 'USDT' ? 18 : 6; // USDT on BSC has 18 decimals
-    const amount = ethers.utils.formatUnits(transferData.amount, decimals);
+    const amount = ethers.formatUnits(transferData.amount, decimals);
 
     // Find matching pending deposit
     const matchingDeposit = await findMatchingDeposit(amount, network, transferData.from, token);
@@ -216,6 +253,7 @@ const processAutomaticDeposit = async (depositId, transactionHash) => {
 // Create orphan transaction record
 const createOrphanTransaction = async (transferData, network, token, amount) => {
   try {
+    // Create a record of unmatched transactions
     await prisma.orphanTransaction.create({
       data: {
         transactionHash: transferData.transactionHash,
@@ -228,96 +266,11 @@ const createOrphanTransaction = async (transferData, network, token, amount) => 
         status: 'UNMATCHED'
       }
     });
-
-    console.log(`Created orphan transaction record: ${transferData.transactionHash}`);
+    
+    console.log(`Orphan transaction recorded: ${transferData.transactionHash}`);
     
   } catch (error) {
     console.error('Error creating orphan transaction:', error);
-  }
-};
-
-// Polling method for networks without event support
-const startPollingMonitoring = async () => {
-  console.log('Starting polling-based monitoring...');
-  
-  setInterval(async () => {
-    await pollAllNetworks();
-  }, 30000); // Poll every 30 seconds
-};
-
-// Poll all networks for new transactions
-const pollAllNetworks = async () => {
-  for (const network of Object.keys(NETWORKS)) {
-    await pollNetworkTransactions(network);
-  }
-};
-
-// Poll specific network for transactions
-const pollNetworkTransactions = async (network) => {
-  try {
-    const walletAddress = getWalletAddressForNetwork(network);
-    if (!walletAddress) return;
-
-    // Get recent transactions using blockchain API
-    const transactions = await getRecentTransactions(network, walletAddress);
-    
-    for (const tx of transactions) {
-      await processIncomingTransfer(network, tx.token, {
-        from: tx.from,
-        to: tx.to,
-        amount: tx.amount,
-        transactionHash: tx.hash,
-        blockNumber: tx.blockNumber,
-        token: tx.token
-      });
-    }
-    
-  } catch (error) {
-    console.error(`Error polling ${network} transactions:`, error);
-  }
-};
-
-// Get recent transactions from blockchain API
-const getRecentTransactions = async (network, walletAddress) => {
-  try {
-    let apiUrl;
-    let apiKey;
-    
-    switch (network) {
-      case 'BSC':
-        apiKey = process.env.BSCSCAN_API_KEY;
-        apiUrl = `https://api.bscscan.com/api?module=account&action=tokentx&address=${walletAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${apiKey}`;
-        break;
-      case 'POLYGON':
-        apiKey = process.env.POLYGONSCAN_API_KEY;
-        apiUrl = `https://api.polygonscan.com/api?module=account&action=tokentx&address=${walletAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${apiKey}`;
-        break;
-      case 'ETHEREUM':
-        apiKey = process.env.ETHERSCAN_API_KEY;
-        apiUrl = `https://api.etherscan.io/api?module=account&action=tokentx&address=${walletAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${apiKey}`;
-        break;
-      default:
-        return [];
-    }
-
-    const response = await axios.get(apiUrl);
-    
-    if (response.data.status === '1') {
-      return response.data.result.map(tx => ({
-        from: tx.from,
-        to: tx.to,
-        amount: tx.value,
-        hash: tx.hash,
-        blockNumber: tx.blockNumber,
-        token: getTokenFromContract(tx.contractAddress, network)
-      }));
-    }
-    
-    return [];
-    
-  } catch (error) {
-    console.error(`Error getting recent transactions for ${network}:`, error);
-    return [];
   }
 };
 
@@ -359,29 +312,38 @@ const getTokenFromContract = (contractAddress, network) => {
 // Start monitoring
 const startMonitoring = async () => {
   try {
+    console.log('🚀 Starting automatic transaction detection...');
+    
     // Set global flag
     global.automaticDetectionRunning = true;
     
-    // Start event-based monitoring
-    await startWalletMonitoring();
+    // Update status file
+    updateStatus(true, 'Automatic detection is active and monitoring transactions');
     
-    // Start polling-based monitoring as backup
+    // Initialize providers (for future use)
+    initializeProviders();
+    
+    // Start polling-based monitoring
     await startPollingMonitoring();
     
-    console.log('Automatic detection monitoring started successfully');
+    console.log('✅ Automatic detection monitoring started successfully');
     
   } catch (error) {
-    console.error('Error starting automatic detection:', error);
+    console.error('❌ Error starting automatic detection:', error);
     global.automaticDetectionRunning = false;
+    updateStatus(false, 'Failed to start automatic detection: ' + error.message);
   }
 };
 
 // Stop monitoring
 const stopMonitoring = () => {
-  console.log('Stopping automatic detection monitoring...');
+  console.log('🛑 Stopping automatic detection monitoring...');
   
   // Set global flag
   global.automaticDetectionRunning = false;
+  
+  // Update status file
+  updateStatus(false, 'Automatic detection has been stopped');
   
   // Stop all providers
   Object.keys(NETWORKS).forEach(network => {

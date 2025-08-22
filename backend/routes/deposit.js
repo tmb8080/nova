@@ -303,6 +303,47 @@ router.get('/pending-count', authenticateToken, async (req, res) => {
   }
 });
 
+// Check automatic detection status
+router.get('/automatic-detection-status', authenticateToken, async (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const statusFilePath = path.join(__dirname, '../automatic_detection_status.json');
+    
+    let isRunning = false;
+    let message = 'Automatic detection is not running';
+    
+    // Try to read status from file
+    if (fs.existsSync(statusFilePath)) {
+      try {
+        const statusData = JSON.parse(fs.readFileSync(statusFilePath, 'utf8'));
+        isRunning = statusData.isRunning || false;
+        message = statusData.message || (isRunning ? 'Automatic detection is active' : 'Automatic detection is not running');
+      } catch (fileError) {
+        console.error('Error reading status file:', fileError);
+        // Fallback to global variable
+        isRunning = global.automaticDetectionRunning || false;
+        message = isRunning ? 'Automatic detection is active' : 'Automatic detection is not running';
+      }
+    } else {
+      // Fallback to global variable if file doesn't exist
+      isRunning = global.automaticDetectionRunning || false;
+      message = isRunning ? 'Automatic detection is active' : 'Automatic detection is not running';
+    }
+    
+    res.json({ 
+      success: true, 
+      data: { 
+        isRunning,
+        message
+      } 
+    });
+  } catch (error) {
+    console.error('Error checking automatic detection status:', error);
+    res.status(500).json({ error: 'Failed to check status', message: error.message });
+  }
+});
+
 // Get deposit details
 router.get('/:depositId', authenticateToken, async (req, res) => {
   try {
@@ -576,25 +617,6 @@ router.post('/admin/batch-verify', [
       error: 'Failed to batch verify deposits',
       message: error.message
     });
-  }
-});
-
-// Check automatic detection status
-router.get('/automatic-detection-status', authenticateToken, async (req, res) => {
-  try {
-    // Check if automatic detection is running
-    const isRunning = global.automaticDetectionRunning || false;
-    
-    res.json({ 
-      success: true, 
-      data: { 
-        isRunning,
-        message: isRunning ? 'Automatic detection is active' : 'Automatic detection is not running'
-      } 
-    });
-  } catch (error) {
-    console.error('Error checking automatic detection status:', error);
-    res.status(500).json({ error: 'Failed to check status', message: error.message });
   }
 });
 

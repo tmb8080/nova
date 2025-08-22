@@ -85,7 +85,7 @@ export const referralAPI = {
   getHistory: (params) => api.get('/referral/history', { params }),
   getBonuses: (params) => api.get('/referral/bonuses', { params }),
   getTree: () => api.get('/referral/tree'),
-  validateCode: (code) => api.post('/referral/validate', { code }),
+  validateCode: (code) => api.get(`/referral/validate/${code}`),
 };
 
 // VIP API

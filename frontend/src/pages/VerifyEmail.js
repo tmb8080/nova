@@ -31,9 +31,14 @@ const VerifyEmail = () => {
     return () => clearTimeout(timer);
   }, [countdown]);
 
-  // Redirect if already verified
+  // Redirect if already verified or if user has no email
   useEffect(() => {
     if (user?.isEmailVerified) {
+      navigate('/dashboard');
+    }
+    
+    // If user has no email, redirect to dashboard (no need to verify)
+    if (user && !user.email) {
       navigate('/dashboard');
     }
   }, [user, navigate]);
@@ -103,7 +108,7 @@ const VerifyEmail = () => {
             <CardDescription className="text-center">
               We've sent a 6-digit verification code to
               <br />
-              <strong>{user.email}</strong>
+              <strong>{user.email || 'your email address'}</strong>
             </CardDescription>
           </CardHeader>
           <CardContent>

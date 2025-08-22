@@ -636,8 +636,45 @@ router.get('/settings', async (req, res) => {
   }
 });
 
-// Update admin settings
+// Update admin settings (PUT method)
 router.put('/settings', [
+  body('dailyGrowthRate').optional().isFloat({ min: 0, max: 1 }).withMessage('Daily growth rate must be between 0 and 1'),
+  body('referralBonusRate').optional().isFloat({ min: 0, max: 1 }).withMessage('Referral bonus rate must be between 0 and 1'),
+  body('minDepositAmount').optional().isFloat({ min: 0 }).withMessage('Minimum deposit amount must be positive'),
+  body('minWithdrawalAmount').optional().isFloat({ min: 0 }).withMessage('Minimum withdrawal amount must be positive'),
+  body('isDepositEnabled').optional().isBoolean().withMessage('Deposit enabled must be boolean'),
+  body('isWithdrawalEnabled').optional().isBoolean().withMessage('Withdrawal enabled must be boolean'),
+  body('isRegistrationEnabled').optional().isBoolean().withMessage('Registration enabled must be boolean'),
+  body('maintenanceMode').optional().isBoolean().withMessage('Maintenance mode must be boolean')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const updates = req.body;
+    const updatedSettings = await updateAdminSettings(updates);
+    
+    res.json({
+      success: true,
+      message: 'Admin settings updated successfully',
+      data: updatedSettings
+    });
+  } catch (error) {
+    console.error('Error updating admin settings:', error);
+    res.status(500).json({
+      error: 'Failed to update admin settings',
+      message: error.message
+    });
+  }
+});
+
+// Update admin settings (PATCH method - for frontend compatibility)
+router.patch('/settings', [
   body('dailyGrowthRate').optional().isFloat({ min: 0, max: 1 }).withMessage('Daily growth rate must be between 0 and 1'),
   body('referralBonusRate').optional().isFloat({ min: 0, max: 1 }).withMessage('Referral bonus rate must be between 0 and 1'),
   body('minDepositAmount').optional().isFloat({ min: 0 }).withMessage('Minimum deposit amount must be positive'),
