@@ -3,6 +3,8 @@ const axios = require('axios');
 const { ethers } = require('ethers');
 const fs = require('fs');
 const path = require('path');
+const WalletAddressService = require('./walletAddressService');
+const CompanyWalletService = require('./companyWalletService');
 
 const prisma = new PrismaClient();
 
@@ -97,26 +99,37 @@ const pollAllNetworks = async () => {
 // Poll specific network for transactions
 const pollNetworkTransactions = async (network) => {
   try {
-    const walletAddress = getWalletAddressForNetwork(network);
-    if (!walletAddress) {
-      console.log(`No wallet address configured for ${network}`);
+    // Get all user wallet addresses for this network
+    const userAddresses = await WalletAddressService.getAllActiveWalletAddresses();
+    const networkAddresses = userAddresses.filter(addr => addr.network === network);
+    
+    if (networkAddresses.length === 0) {
+      console.log(`No user wallet addresses configured for ${network}`);
       return;
     }
 
-    console.log(`Polling ${network} for transactions...`);
+    console.log(`Polling ${network} for transactions across ${networkAddresses.length} user addresses...`);
 
-    // Get recent transactions using blockchain API
-    const transactions = await getRecentTransactions(network, walletAddress);
-    
-    for (const tx of transactions) {
-      await processIncomingTransfer(network, tx.token, {
-        from: tx.from,
-        to: tx.to,
-        amount: tx.amount,
-        transactionHash: tx.hash,
-        blockNumber: tx.blockNumber,
-        token: tx.token
-      });
+    // Check transactions for each user address
+    for (const addressInfo of networkAddresses) {
+      try {
+        // Get recent transactions for this user's address
+        const transactions = await getRecentTransactions(network, addressInfo.address);
+        
+        for (const tx of transactions) {
+          // Process transaction for this specific user
+          await processIncomingTransferForUser(network, tx.token, {
+            from: tx.from,
+            to: tx.to,
+            amount: tx.amount,
+            transactionHash: tx.hash,
+            blockNumber: tx.blockNumber,
+            token: tx.token
+          }, addressInfo.user);
+        }
+      } catch (error) {
+        console.error(`Error checking transactions for user ${addressInfo.user.id} on ${network}:`, error);
+      }
     }
     
   } catch (error) {
@@ -192,6 +205,102 @@ const processIncomingTransfer = async (network, token, transferData) => {
     
   } catch (error) {
     console.error('Error processing incoming transfer:', error);
+  }
+};
+
+// Process incoming transfer for specific user (NEW)
+const processIncomingTransferForUser = async (network, token, transferData, user) => {
+  try {
+    console.log(`Processing ${token} transfer for user ${user.id}:`, transferData);
+
+    // Convert amount to decimal
+    const decimals = token === 'USDT' ? 18 : 6; // USDT on BSC has 18 decimals
+    const amount = ethers.formatUnits(transferData.amount, decimals);
+
+    // Create automatic deposit for this user
+    await createAutomaticDepositForUser(user.id, amount, token, network, transferData.transactionHash, transferData);
+    
+  } catch (error) {
+    console.error('Error processing incoming transfer for user:', error);
+  }
+};
+
+// Create automatic deposit for specific user
+const createAutomaticDepositForUser = async (userId, amount, token, network, transactionHash, transferData) => {
+  try {
+    console.log(`Creating automatic deposit for user ${userId}: ${amount} ${token} on ${network}`);
+
+    // Check if this transaction already exists
+    const existingDeposit = await prisma.deposit.findFirst({
+      where: {
+        transactionHash,
+        userId
+      }
+    });
+
+    if (existingDeposit) {
+      console.log(`Deposit already exists for transaction ${transactionHash}`);
+      return;
+    }
+
+    // Create deposit record
+    const deposit = await prisma.deposit.create({
+      data: {
+        userId,
+        amount: parseFloat(amount),
+        currency: token,
+        network: getDepositTypeFromNetwork(network),
+        depositType: 'AUTOMATIC_DETECTION',
+        status: 'COMPLETED', // Automatically complete since we detected the transfer
+        transactionHash,
+        adminNotes: `Automatic detection: ${transferData.from} -> ${transferData.to}`,
+        webhookData: {
+          network,
+          fromAddress: transferData.from,
+          toAddress: transferData.to,
+          blockNumber: transferData.blockNumber,
+          detectedAt: new Date().toISOString()
+        }
+      }
+    });
+
+    // Update user's wallet balance
+    await prisma.wallet.update({
+      where: { userId },
+      data: {
+        balance: {
+          increment: parseFloat(amount)
+        },
+        totalDeposits: {
+          increment: parseFloat(amount)
+        }
+      }
+    });
+
+    // Record transaction to company wallet
+    try {
+      await CompanyWalletService.recordDeposit(
+        network,
+        amount,
+        token,
+        transferData.from,
+        transactionHash,
+        {
+          userId,
+          userAddress: transferData.to,
+          blockNumber: transferData.blockNumber,
+          detectedAt: new Date().toISOString()
+        }
+      );
+    } catch (error) {
+      console.error('Error recording to company wallet:', error);
+      // Don't fail the user deposit if company wallet recording fails
+    }
+
+    console.log(`✅ Automatic deposit completed for user ${userId}: ${amount} ${token}`);
+    
+  } catch (error) {
+    console.error('Error creating automatic deposit for user:', error);
   }
 };
 
@@ -357,5 +466,7 @@ module.exports = {
   startMonitoring,
   stopMonitoring,
   processIncomingTransfer,
+  processIncomingTransferForUser,
+  createAutomaticDepositForUser,
   findMatchingDeposit
 };

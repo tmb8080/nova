@@ -1,11 +1,15 @@
 const express = require('express');
 const { query, validationResult } = require('express-validator');
 const { authenticateToken } = require('../middleware/auth');
+const { PrismaClient } = require('@prisma/client');
 const { 
   getWalletStats, 
   getTransactionHistory, 
   calculateProjectedEarnings 
 } = require('../services/walletService');
+const WalletAddressService = require('../services/walletAddressService');
+
+const prisma = new PrismaClient();
 
 const router = express.Router();
 
@@ -177,6 +181,61 @@ router.post('/withdraw-earnings', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to withdraw earnings'
+    });
+  }
+});
+
+/**
+ * Get wallet addresses for authenticated user
+ */
+router.get('/addresses', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const addresses = await WalletAddressService.getUserWalletAddresses(userId);
+    
+    res.json({
+      success: true,
+      data: addresses
+    });
+  } catch (error) {
+    console.error('Error getting wallet addresses:', error);
+    res.status(500).json({
+      error: 'Failed to get wallet addresses',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Get all active wallet addresses (admin only)
+ */
+router.get('/all-addresses', authenticateToken, async (req, res) => {
+  try {
+    // Check if user is admin
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { isAdmin: true }
+    });
+
+    if (!user?.isAdmin) {
+      return res.status(403).json({
+        error: 'Access denied',
+        message: 'Admin access required'
+      });
+    }
+
+    const addresses = await WalletAddressService.getAllActiveWalletAddresses();
+    
+    res.json({
+      success: true,
+      data: addresses
+    });
+  } catch (error) {
+    console.error('Error getting all wallet addresses:', error);
+    res.status(500).json({
+      error: 'Failed to get wallet addresses',
+      message: error.message
     });
   }
 });

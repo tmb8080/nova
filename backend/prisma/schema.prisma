@@ -38,6 +38,7 @@ model User {
   referralBonusesGiven ReferralBonus[] @relation("ReferralBonusReferrer")
   referralBonusesReceived ReferralBonus[] @relation("ReferralBonusReferred")
   userTasks     UserTask[]
+  walletAddresses UserWalletAddress[]
 
   @@map("users")
 }
@@ -59,6 +60,58 @@ model Wallet {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("wallets")
+}
+
+model UserWalletAddress {
+  id        String   @id @default(uuid())
+  userId    String
+  network   String   // BSC, POLYGON, ETHEREUM, TRON
+  address   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, network])
+  @@map("user_wallet_addresses")
+}
+
+model CompanyWallet {
+  id            String   @id @default(uuid())
+  network       String   @unique
+  address       String
+  balance       Decimal  @default(0) @db.Decimal(18, 8)
+  totalDeposits Decimal  @default(0) @db.Decimal(18, 8)
+  totalWithdrawals Decimal @default(0) @db.Decimal(18, 8)
+  isActive      Boolean  @default(true)
+  lastUpdated   DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  // Relations
+  transactions CompanyWalletTransaction[]
+
+  @@map("company_wallets")
+}
+
+model CompanyWalletTransaction {
+  id              String   @id @default(uuid())
+  companyWalletId String
+  type            String   // DEPOSIT, WITHDRAWAL
+  amount          Decimal  @db.Decimal(18, 8)
+  currency        String
+  fromAddress     String?
+  toAddress       String?
+  transactionHash String?
+  network         String
+  status          String   @default("COMPLETED")
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  // Relations
+  companyWallet   CompanyWallet @relation(fields: [companyWalletId], references: [id])
+
+  @@map("company_wallet_transactions")
 }
 
 model Deposit {

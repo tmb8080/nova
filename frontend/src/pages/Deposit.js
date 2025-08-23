@@ -17,6 +17,8 @@ const Deposit = () => {
   const [showInstructions, setShowInstructions] = useState(false);
   const [pendingDeposit, setPendingDeposit] = useState(null);
 
+
+
   const {
     register,
     handleSubmit,
@@ -43,11 +45,18 @@ const Deposit = () => {
     queryFn: () => depositAPI.getMyDeposits({ limit: 10, page: 1 }),
   });
 
-  // Fetch USDT addresses
-  const { data: usdtAddresses, isLoading: addressesLoading } = useQuery({
+  // Fetch user's wallet addresses
+  const { data: userAddresses, isLoading: addressesLoading } = useQuery({
+    queryKey: ['userWalletAddresses'],
+    queryFn: () => depositAPI.getUserWalletAddresses(),
+    enabled: depositMethod === 'direct'
+  });
+
+  // Fetch USDT addresses (fallback)
+  const { data: usdtAddresses, isLoading: fallbackLoading } = useQuery({
     queryKey: ['usdt-addresses'],
     queryFn: depositAPI.getUsdtAddresses,
-    enabled: depositMethod === 'direct'
+    enabled: depositMethod === 'direct' && (!userAddresses?.data || userAddresses.data.length === 0)
   });
 
   // Fetch pending deposits count
@@ -127,12 +136,43 @@ const Deposit = () => {
     { amount: 1000, currency: 'USDT', usd: 1000 },
   ];
 
-  const networks = [
-    { code: 'BEP20', name: 'BSC (BEP20)', description: 'Binance Smart Chain', fee: '~$0.5' },
-    { code: 'TRC20', name: 'TRON (TRC20)', description: 'TRON Network', fee: '~$1' },
-    { code: 'ERC20', name: 'Ethereum (ERC20)', description: 'Ethereum Mainnet', fee: '~$10-50' },
-    { code: 'POLYGON', name: 'Polygon', description: 'Polygon Network', fee: '~$0.01' },
-  ];
+  // Dynamic networks based on user addresses
+  const networks = React.useMemo(() => {
+    if (userAddresses?.data && Array.isArray(userAddresses.data) && userAddresses.data.length > 0) {
+      // Use user's wallet addresses
+      return userAddresses.data.map(addr => {
+        const networkConfig = {
+          'BSC': { name: 'BSC (BEP20)', description: 'Binance Smart Chain', fee: '~$0.5' },
+          'POLYGON': { name: 'Polygon', description: 'Polygon Network', fee: '~$0.01' },
+          'ETHEREUM': { name: 'Ethereum (ERC20)', description: 'Ethereum Mainnet', fee: '~$10-50' },
+          'TRON': { name: 'TRON (TRC20)', description: 'TRON Network', fee: '~$1' }
+        };
+        
+        const config = networkConfig[addr.network] || { 
+          name: addr.network, 
+          description: `${addr.network} Network`, 
+          fee: '~$1' 
+        };
+        
+        return {
+          code: addr.network,
+          name: config.name,
+          description: config.description,
+          fee: config.fee,
+          address: addr.address,
+          isUserAddress: true
+        };
+      });
+    } else {
+      // Fallback to default networks
+      return [
+        { code: 'BEP20', name: 'BSC (BEP20)', description: 'Binance Smart Chain', fee: '~$0.5' },
+        { code: 'TRC20', name: 'TRON (TRC20)', description: 'TRON Network', fee: '~$1' },
+        { code: 'ERC20', name: 'Ethereum (ERC20)', description: 'Ethereum Mainnet', fee: '~$10-50' },
+        { code: 'POLYGON', name: 'Polygon', description: 'Polygon Network', fee: '~$0.01' },
+      ];
+    }
+  }, [userAddresses]);
 
   const currencies = [
     { code: 'USDT', name: 'Tether USD', icon: '₮', method: 'direct' },
@@ -235,8 +275,20 @@ const Deposit = () => {
   };
 
   const getWalletAddress = (network) => {
-    if (!usdtAddresses?.data) return 'Loading...';
-    return usdtAddresses.data[network] || 'Not available';
+    // First try to get from user addresses
+    if (userAddresses?.data && Array.isArray(userAddresses.data)) {
+      const userAddress = userAddresses.data.find(addr => addr.network === network);
+      if (userAddress) {
+        return userAddress.address;
+      }
+    }
+    
+    // Fallback to old addresses
+    if (usdtAddresses?.data) {
+      return usdtAddresses.data[network] || 'Not available';
+    }
+    
+    return 'Loading...';
   };
 
   return (
@@ -378,6 +430,47 @@ const Deposit = () => {
                       <label className="text-sm font-medium text-gray-700">
                         Select Network
                       </label>
+                      
+                      {/* Loading State */}
+                      {addressesLoading && (
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3">
+                          <div className="flex items-center">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 mr-2"></div>
+                            <p className="text-sm text-gray-600">Loading your wallet addresses...</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* User Addresses Status */}
+                      {!addressesLoading && userAddresses?.data && Array.isArray(userAddresses.data) && userAddresses.data.length > 0 && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                          <div className="flex items-center">
+                            <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div>
+                              <p className="text-sm font-medium text-green-800">✓ Personal Wallet Addresses Active</p>
+                              <p className="text-xs text-green-700 mt-1">Using your unique deposit addresses for secure transactions</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Fallback Addresses Status */}
+                      {!addressesLoading && (!userAddresses?.data || !Array.isArray(userAddresses.data) || userAddresses.data.length === 0) && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+                          <div className="flex items-center">
+                            <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            <div>
+                              <p className="text-sm font-medium text-yellow-800">⚠️ Using Company Wallet Addresses</p>
+                              <p className="text-xs text-yellow-700 mt-1">Personal addresses not available, using shared company addresses</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="grid grid-cols-2 gap-3">
                         {networks.map((network) => (
                           <button
@@ -393,6 +486,14 @@ const Deposit = () => {
                             <div className="font-medium">{network.name}</div>
                             <div className="text-xs text-gray-500">{network.description}</div>
                             <div className="text-xs text-green-600">Fee: {network.fee}</div>
+                            {network.isUserAddress && (
+                              <div className="text-xs text-blue-600 mt-1">✓ Your Address</div>
+                            )}
+                            {network.address && (
+                              <div className="text-xs text-gray-500 mt-1 font-mono break-all">
+                                {network.address.substring(0, 8)}...{network.address.substring(network.address.length - 6)}
+                              </div>
+                            )}
                           </button>
                         ))}
                       </div>
@@ -584,13 +685,16 @@ const Deposit = () => {
                   <div className="mt-4 space-y-4 text-sm">
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                       <h4 className="font-medium text-yellow-800 mb-2">Important Notes:</h4>
-                                             <ul className="text-yellow-700 space-y-1 text-xs">
-                         <li>• Minimum USDT deposit: 30 USDT</li>
-                         <li>• Always double-check the wallet address</li>
-                         <li>• Use the correct network (BEP20, TRC20, etc.)</li>
-                         <li>• Automatic detection will verify your transaction</li>
-                         <li>• No need to provide transaction hash manually</li>
-                       </ul>
+                      <ul className="text-yellow-700 space-y-1 text-xs">
+                        <li>• Minimum USDT deposit: 30 USDT</li>
+                        <li>• Always double-check the wallet address</li>
+                        <li>• Use the correct network (BEP20, TRC20, etc.)</li>
+                        <li>• Automatic detection will verify your transaction</li>
+                        <li>• No need to provide transaction hash manually</li>
+                        {userAddresses?.data && Array.isArray(userAddresses.data) && userAddresses.data.length > 0 && (
+                          <li>• ✓ Using your personal wallet addresses</li>
+                        )}
+                      </ul>
                     </div>
                     
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">

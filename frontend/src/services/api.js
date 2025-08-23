@@ -64,6 +64,7 @@ export const depositAPI = {
   getMyDeposits: (params) => api.get('/deposit/my-deposits', { params }),
   getDepositDetails: (id) => api.get(`/deposit/${id}`),
   getUsdtAddresses: () => api.get('/deposit/usdt/addresses'),
+  getUserWalletAddresses: () => api.get('/wallet/addresses'),
   createUsdtDeposit: (data) => api.post('/deposit/usdt/create', data),
   getPendingCount: () => api.get('/deposit/pending-count'),
   updateTransactionHash: (depositId, transactionHash) => api.patch(`/deposit/${depositId}/transaction-hash`, { transactionHash }),
@@ -120,6 +121,14 @@ export const adminAPI = {
   getSettings: () => api.get('/admin/settings'),
   updateSettings: (settings) => api.patch('/admin/settings', settings),
   getReferralTree: () => api.get('/admin/referral-tree'),
+};
+
+// Company Wallet API
+export const companyWalletAPI = {
+  getOverview: () => api.get('/company-wallet/overview'),
+  getDetails: () => api.get('/company-wallet/details'),
+  getTransactions: (params) => api.get('/company-wallet/transactions', { params }),
+  initialize: () => api.post('/company-wallet/initialize'),
 };
 
 // Generic API helpers

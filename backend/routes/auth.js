@@ -9,6 +9,7 @@ const { authenticateToken } = require('../middleware/auth');
 const { sendEmail } = require('../services/emailService');
 const { sendSMS } = require('../services/smsService');
 const { generateOTP } = require('../utils/helpers');
+const WalletAddressService = require('../services/walletAddressService');
 // Auto-complete task functionality removed - only daily earning tasks available
 
 const router = express.Router();
@@ -104,7 +105,7 @@ router.post('/register', [
       if (!existing) isUnique = true;
     }
 
-    // Create user and wallet in transaction
+    // Create user, wallet, and wallet addresses in transaction
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
@@ -125,6 +126,9 @@ router.post('/register', [
           userId: user.id
         }
       });
+
+      // Generate unique wallet addresses for user
+      await WalletAddressService.generateUserWalletAddresses(user.id, tx);
 
       return user;
     });

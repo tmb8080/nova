@@ -329,8 +329,24 @@ const verifyPolygonTransaction = async (transactionHash, systemAddresses, expect
 // Get system wallet addresses for a network
 const getSystemWalletAddresses = async (network) => {
   try {
-    // In a real implementation, these would be stored in the database
-    // For now, we'll use environment variables
+    // First try to get addresses from user wallet addresses (which now contain company addresses)
+    const userAddresses = await prisma.userWalletAddress.findMany({
+      where: {
+        network: network === 'TRC20' ? 'TRON' : 
+                network === 'BEP20' ? 'BSC' : 
+                network === 'ERC20' ? 'ETHEREUM' : 
+                network === 'POLYGON' ? 'POLYGON' : network,
+        isActive: true
+      },
+      select: { address: true }
+    });
+
+    if (userAddresses && userAddresses.length > 0) {
+      // Extract addresses from user wallet addresses
+      return userAddresses.map(addr => addr.address);
+    }
+
+    // Fallback to environment variables if no user addresses found
     const addresses = {
       'TRC20': process.env.TRON_WALLET_ADDRESS ? [process.env.TRON_WALLET_ADDRESS] : [],
       'BEP20': process.env.BSC_WALLET_ADDRESS ? [process.env.BSC_WALLET_ADDRESS] : [],
@@ -341,7 +357,15 @@ const getSystemWalletAddresses = async (network) => {
     return addresses[network] || [];
   } catch (error) {
     console.error('Error getting system wallet addresses:', error);
-    return [];
+    // Fallback to environment variables on error
+    const addresses = {
+      'TRC20': process.env.TRON_WALLET_ADDRESS ? [process.env.TRON_WALLET_ADDRESS] : [],
+      'BEP20': process.env.BSC_WALLET_ADDRESS ? [process.env.BSC_WALLET_ADDRESS] : [],
+      'ERC20': process.env.ETH_WALLET_ADDRESS ? [process.env.ETH_WALLET_ADDRESS] : [],
+      'POLYGON': process.env.POLYGON_WALLET_ADDRESS ? [process.env.POLYGON_WALLET_ADDRESS] : []
+    };
+
+    return addresses[network] || [];
   }
 };
 

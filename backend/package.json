@@ -11,7 +11,10 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "node prisma/seed.js",
-    "db:seed-vip": "node prisma/seed-vip.js"
+    "db:seed-vip": "node prisma/seed-vip.js",
+    "deposit:test": "node scripts/test-deposit-system.js",
+    "deposit:update": "node scripts/update-user-addresses.js",
+    "api:test": "node scripts/test-wallet-api.js"
   },
   "dependencies": {
     "@prisma/client": "^5.2.0",
