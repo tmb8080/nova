@@ -65,12 +65,7 @@ const Deposit = () => {
     queryFn: depositAPI.getPendingCount,
   });
 
-  // Fetch automatic detection status
-  const { data: autoDetectionStatus } = useQuery({
-    queryKey: ['automatic-detection-status'],
-    queryFn: depositAPI.getAutomaticDetectionStatus,
-    refetchInterval: 30000, // Check every 30 seconds
-  });
+
 
   // Create USDT deposit mutation
   const createUsdtDepositMutation = useMutation({
@@ -302,6 +297,23 @@ const Deposit = () => {
           </p>
         </div>
 
+        {/* Manual Deposit Notice */}
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <svg className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div>
+              <h3 className="text-sm font-medium text-red-800">
+                Manual Deposit Required
+              </h3>
+              <p className="text-sm text-red-700 mt-1">
+                Automatic detection is disabled. After sending USDT to your wallet address, you must manually submit your transaction hash for verification.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Pending Deposit Alert */}
         {pendingDeposit && (
           <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -337,33 +349,19 @@ const Deposit = () => {
                   </div>
                 </div>
 
-                {/* Automatic Detection Status */}
+                {/* Manual Deposit Notice */}
                 <div className="mt-3">
-                  <div className={`border rounded-lg p-3 ${
-                    autoDetectionStatus?.data?.isRunning 
-                      ? 'bg-green-50 border-green-200' 
-                      : 'bg-yellow-50 border-yellow-200'
-                  }`}>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                     <div className="flex items-center">
-                      {autoDetectionStatus?.data?.isRunning ? (
-                        <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                      )}
+                      <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
                       <div>
-                        <p className={`text-sm font-medium ${
-                          autoDetectionStatus?.data?.isRunning ? 'text-green-800' : 'text-yellow-800'
-                        }`}>
-                          {autoDetectionStatus?.data?.isRunning ? 'Automatic Detection Active' : 'Automatic Detection Inactive'}
+                        <p className="text-sm font-medium text-red-800">
+                          Manual Deposit Required
                         </p>
-                        <p className={`text-xs mt-1 ${
-                          autoDetectionStatus?.data?.isRunning ? 'text-green-700' : 'text-yellow-700'
-                        }`}>
-                          {autoDetectionStatus?.data?.message || 'Checking status...'}
+                        <p className="text-xs text-red-700 mt-1">
+                          Automatic detection is disabled. You must manually submit your transaction hash after sending funds.
                         </p>
                       </div>
                     </div>
@@ -566,6 +564,24 @@ const Deposit = () => {
                       : `Deposit ${watchedAmount ? formatCurrency(parseFloat(watchedAmount), watchedCurrency) : ''}`
                     }
                   </Button>
+
+                  {/* Manual Deposit Button */}
+                  {depositMethod === 'direct' && (
+                    <div className="text-center mt-4">
+                      <p className="text-sm text-gray-600 mb-2">Already sent USDT?</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          // Navigate to manual deposit or show manual deposit form
+                          toast.info('Please use the USDT Deposit button from the main menu to access manual deposits');
+                        }}
+                      >
+                        Submit Transaction Hash
+                      </Button>
+                    </div>
+                  )}
                 </form>
 
                 {/* Security Notice */}
@@ -580,7 +596,7 @@ const Deposit = () => {
                       </h3>
                       <p className="text-xs text-blue-700 mt-1">
                         {depositMethod === 'direct' 
-                          ? 'Direct USDT transfers are verified on the blockchain. Your funds will be credited once the transaction is confirmed.'
+                          ? 'Direct USDT transfers require manual verification. Submit your transaction hash after sending funds to get credited.'
                           : 'All deposits are processed securely through Coinbase Commerce. Your funds will be credited to your wallet once the transaction is confirmed on the blockchain.'
                         }
                       </p>
@@ -626,8 +642,8 @@ const Deposit = () => {
                         <span className="text-xs font-medium text-blue-600">3</span>
                       </div>
                       <div>
-                        <p className="text-sm font-medium">Automatic Verification</p>
-                        <p className="text-xs text-gray-500">System automatically detects and verifies your transaction</p>
+                        <p className="text-sm font-medium">Manual Verification</p>
+                        <p className="text-xs text-gray-500">Submit your transaction hash to verify and credit your deposit</p>
                       </div>
                     </div>
                   </>
@@ -689,8 +705,8 @@ const Deposit = () => {
                         <li>• Minimum USDT deposit: 30 USDT</li>
                         <li>• Always double-check the wallet address</li>
                         <li>• Use the correct network (BEP20, TRC20, etc.)</li>
-                        <li>• Automatic detection will verify your transaction</li>
-                        <li>• No need to provide transaction hash manually</li>
+                        <li>• Manual verification required - submit transaction hash after sending</li>
+                        <li>• Automatic detection is disabled</li>
                         {userAddresses?.data && Array.isArray(userAddresses.data) && userAddresses.data.length > 0 && (
                           <li>• ✓ Using your personal wallet addresses</li>
                         )}

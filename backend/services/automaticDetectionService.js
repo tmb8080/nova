@@ -69,7 +69,7 @@ const initializeProviders = () => {
 
 // Start polling-based monitoring
 const startPollingMonitoring = async () => {
-  console.log('Starting polling-based monitoring...');
+  console.log('Starting polling-based monitoring for company wallets...');
   
   // Poll every 30 seconds
   setInterval(async () => {
@@ -80,7 +80,7 @@ const startPollingMonitoring = async () => {
     }
   }, 30000); // 30 seconds
   
-  console.log('Polling monitoring started (every 30 seconds)');
+  console.log('Company wallet polling monitoring started (every 30 seconds)');
 };
 
 // Poll all networks for transactions
@@ -99,37 +99,33 @@ const pollAllNetworks = async () => {
 // Poll specific network for transactions
 const pollNetworkTransactions = async (network) => {
   try {
-    // Get all user wallet addresses for this network
-    const userAddresses = await WalletAddressService.getAllActiveWalletAddresses();
-    const networkAddresses = userAddresses.filter(addr => addr.network === network);
+    // Get company wallet address for this network instead of user addresses
+    const companyWallet = await CompanyWalletService.getCompanyWalletByNetwork(network);
     
-    if (networkAddresses.length === 0) {
-      console.log(`No user wallet addresses configured for ${network}`);
+    if (!companyWallet) {
+      console.log(`No company wallet configured for ${network}`);
       return;
     }
 
-    console.log(`Polling ${network} for transactions across ${networkAddresses.length} user addresses...`);
+    console.log(`Polling ${network} for transactions on company wallet: ${companyWallet.address}`);
 
-    // Check transactions for each user address
-    for (const addressInfo of networkAddresses) {
-      try {
-        // Get recent transactions for this user's address
-        const transactions = await getRecentTransactions(network, addressInfo.address);
-        
-        for (const tx of transactions) {
-          // Process transaction for this specific user
-          await processIncomingTransferForUser(network, tx.token, {
-            from: tx.from,
-            to: tx.to,
-            amount: tx.amount,
-            transactionHash: tx.hash,
-            blockNumber: tx.blockNumber,
-            token: tx.token
-          }, addressInfo.user);
-        }
-      } catch (error) {
-        console.error(`Error checking transactions for user ${addressInfo.user.id} on ${network}:`, error);
+    try {
+      // Get recent transactions for the company wallet address
+      const transactions = await getRecentTransactions(network, companyWallet.address);
+      
+      for (const tx of transactions) {
+        // Process transaction for the company wallet (incoming deposits)
+        await processIncomingTransferForCompanyWallet(network, tx.token, {
+          from: tx.from,
+          to: tx.to,
+          amount: tx.amount,
+          transactionHash: tx.hash,
+          blockNumber: tx.blockNumber,
+          token: tx.token
+        });
       }
+    } catch (error) {
+      console.error(`Error checking transactions for company wallet on ${network}:`, error);
     }
     
   } catch (error) {
@@ -148,7 +144,7 @@ const getRecentTransactions = async (network, walletAddress) => {
         apiUrl = `https://api.bscscan.com/api?module=account&action=tokentx&address=${walletAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${process.env.BSCSCAN_API_KEY || 'YourApiKeyToken'}`;
         break;
       case 'POLYGON':
-        apiUrl = `https://api.polygonscan.com/api?module=account&action=tokentx&address=${walletAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${process.env.POLYGONSCAN_API_KEY || 'YourApiKeyToken'}`;
+        apiUrl = `https://api.polygonscan.com/api?modulecd=account&action=tokentx&address=${walletAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${process.env.POLYGONSCAN_API_KEY || 'YourApiKeyToken'}`;
         break;
       case 'ETHEREUM':
         apiUrl = `https://api.etherscan.io/api?module=account&action=tokentx&address=${walletAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${process.env.ETHERSCAN_API_KEY || 'YourApiKeyToken'}`;
@@ -160,7 +156,12 @@ const getRecentTransactions = async (network, walletAddress) => {
     const response = await axios.get(apiUrl);
     
     if (response.data.status === '1') {
-      return response.data.result.map(tx => ({
+      // Filter for incoming transactions (where company wallet is the recipient)
+      const incomingTransactions = response.data.result.filter(tx => 
+        tx.to.toLowerCase() === walletAddress.toLowerCase()
+      );
+      
+      return incomingTransactions.map(tx => ({
         from: tx.from,
         to: tx.to,
         amount: tx.value,
@@ -222,6 +223,36 @@ const processIncomingTransferForUser = async (network, token, transferData, user
     
   } catch (error) {
     console.error('Error processing incoming transfer for user:', error);
+  }
+};
+
+// Process incoming transfer for company wallet (NEW)
+const processIncomingTransferForCompanyWallet = async (network, token, transferData) => {
+  try {
+    console.log(`Processing ${token} transfer to company wallet on ${network}:`, transferData);
+
+    // Convert amount to decimal
+    const decimals = token === 'USDT' ? 18 : 6; // USDT on BSC has 18 decimals
+    const amount = ethers.formatUnits(transferData.amount, decimals);
+
+    // Find matching pending deposit based on amount and network
+    const matchingDeposit = await findMatchingDeposit(amount, network, transferData.from, token);
+    
+    if (matchingDeposit) {
+      console.log(`Found matching deposit: ${matchingDeposit.id} for user ${matchingDeposit.user.id}`);
+      
+      // Process the deposit automatically
+      await processAutomaticDeposit(matchingDeposit.id, transferData.transactionHash);
+      
+    } else {
+      console.log(`No matching deposit found for ${amount} ${token} from ${transferData.from} on ${network}`);
+      
+      // Create orphan transaction record
+      await createOrphanTransaction(transferData, network, token, amount);
+    }
+    
+  } catch (error) {
+    console.error('Error processing incoming transfer for company wallet:', error);
   }
 };
 
@@ -311,6 +342,7 @@ const findMatchingDeposit = async (amount, network, fromAddress, token) => {
     const depositType = getDepositTypeFromNetwork(network);
     
     // Find pending deposit with matching criteria
+    // Look for deposits within a wider time range since we're monitoring company wallet
     const deposit = await prisma.deposit.findFirst({
       where: {
         amount: parseFloat(amount),
@@ -319,7 +351,7 @@ const findMatchingDeposit = async (amount, network, fromAddress, token) => {
         status: 'PENDING',
         depositType: depositType,
         createdAt: {
-          gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days for better matching
         }
       },
       include: {
@@ -330,6 +362,9 @@ const findMatchingDeposit = async (amount, network, fromAddress, token) => {
             email: true
           }
         }
+      },
+      orderBy: {
+        createdAt: 'desc' // Get the most recent matching deposit
       }
     });
 
@@ -418,6 +453,26 @@ const getTokenFromContract = (contractAddress, network) => {
   return 'UNKNOWN';
 };
 
+// Log company wallet addresses being monitored
+const logCompanyWalletAddresses = async () => {
+  try {
+    console.log('📋 Company wallet addresses being monitored:');
+    
+    for (const network of Object.keys(NETWORKS)) {
+      const companyWallet = await CompanyWalletService.getCompanyWalletByNetwork(network);
+      if (companyWallet) {
+        console.log(`  ${network}: ${companyWallet.address}`);
+      } else {
+        console.log(`  ${network}: Not configured`);
+      }
+    }
+    
+    console.log(''); // Empty line for readability
+  } catch (error) {
+    console.error('Error logging company wallet addresses:', error);
+  }
+};
+
 // Start monitoring
 const startMonitoring = async () => {
   try {
@@ -427,10 +482,13 @@ const startMonitoring = async () => {
     global.automaticDetectionRunning = true;
     
     // Update status file
-    updateStatus(true, 'Automatic detection is active and monitoring transactions');
+    updateStatus(true, 'Automatic detection is active and monitoring company wallet transactions');
     
     // Initialize providers (for future use)
     initializeProviders();
+    
+    // Log company wallet addresses being monitored
+    await logCompanyWalletAddresses();
     
     // Start polling-based monitoring
     await startPollingMonitoring();
@@ -467,6 +525,7 @@ module.exports = {
   stopMonitoring,
   processIncomingTransfer,
   processIncomingTransferForUser,
+  processIncomingTransferForCompanyWallet,
   createAutomaticDepositForUser,
   findMatchingDeposit
 };

@@ -199,16 +199,52 @@ router.get('/usdt/addresses', authenticateToken, async (req, res) => {
   }
 });
 
+// Get company wallet addresses for manual deposits
+router.get('/company-addresses', authenticateToken, async (req, res) => {
+  try {
+    // Get company wallet addresses from environment variables
+    const addresses = {
+      TRC20: process.env.TRON_WALLET_ADDRESS || 'TUF38LTyPaqfdanHBpGMs5Xid6heLcxxpK',
+      BEP20: process.env.BSC_WALLET_ADDRESS || '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09',
+      ERC20: process.env.ETH_WALLET_ADDRESS || '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09',
+      POLYGON: process.env.POLYGON_WALLET_ADDRESS || '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09'
+    };
+
+    // Add network information and fees
+    const networkInfo = {
+      TRC20: { name: 'Tron TRC20', fee: '~$1', minAmount: 30, supportedTokens: ['USDT'] },
+      BEP20: { name: 'BSC BEP20', fee: '~$0.5', minAmount: 30, supportedTokens: ['USDT', 'USDC'] },
+      ERC20: { name: 'Ethereum ERC20', fee: '~$10-50', minAmount: 30, supportedTokens: ['USDT', 'USDC'] },
+      POLYGON: { name: 'Polygon MATIC', fee: '~$0.01', minAmount: 30, supportedTokens: ['USDT', 'USDC'] }
+    };
+
+    const result = {};
+    Object.keys(addresses).forEach(network => {
+      result[network] = {
+        address: addresses[network],
+        ...networkInfo[network]
+      };
+    });
+
+    res.json({
+      success: true,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Error fetching company wallet addresses:', error);
+    res.status(500).json({
+      error: 'Failed to fetch company wallet addresses',
+      message: error.message
+    });
+  }
+});
+
 // Create USDT deposit record
 router.post('/usdt/create', [
   body('amount').isFloat({ min: 1 }).withMessage('Amount must be at least 1 USDT'),
   body('network').isIn(['BEP20', 'TRC20', 'ERC20', 'POLYGON']).withMessage('Invalid network'),
-  body('transactionHash').optional().custom((value) => {
-    if (value !== null && value !== undefined && typeof value !== 'string') {
-      throw new Error('Transaction hash must be a string');
-    }
-    return true;
-  }).withMessage('Transaction hash must be a string')
+  body('transactionHash').notEmpty().withMessage('Transaction hash is required')
 ], authenticateToken, requireEmailVerification, async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -221,6 +257,13 @@ router.post('/usdt/create', [
 
     const { amount, network, transactionHash } = req.body;
     const userId = req.user.id;
+
+    console.log(`Creating USDT deposit:`, {
+      userId,
+      amount,
+      network,
+      transactionHash: transactionHash ? `${transactionHash.substring(0, 10)}...` : 'null'
+    });
 
     // Check admin settings
     const settings = await prisma.adminSettings.findFirst();
@@ -247,11 +290,37 @@ router.post('/usdt/create', [
         amount: parseFloat(amount),
         currency: 'USDT',
         network: network,
-        transactionHash: transactionHash || null,
+        transactionHash: transactionHash.trim(),
         status: 'PENDING',
         depositType: 'USDT_DIRECT'
       }
     });
+
+    console.log(`✅ USDT deposit created successfully:`, {
+      depositId: deposit.id,
+      userId: deposit.userId,
+      amount: deposit.amount,
+      network: deposit.network,
+      transactionHash: deposit.transactionHash ? `${deposit.transactionHash.substring(0, 10)}...` : 'null',
+      status: deposit.status,
+      depositType: deposit.depositType,
+      createdAt: deposit.createdAt
+    });
+
+    // Verify the deposit was actually saved by querying it back
+    const verifyDeposit = await prisma.deposit.findUnique({
+      where: { id: deposit.id }
+    });
+
+    if (verifyDeposit) {
+      console.log(`✅ Deposit verification query successful:`, {
+        id: verifyDeposit.id,
+        userId: verifyDeposit.userId,
+        status: verifyDeposit.status
+      });
+    } else {
+      console.log(`❌ Deposit verification query failed - deposit not found after creation!`);
+    }
 
     res.json({
       success: true,
@@ -453,6 +522,11 @@ router.post('/:depositId/verify', authenticateToken, requireEmailVerification, a
     const { depositId } = req.params;
     const userId = req.user.id;
 
+    console.log(`🔍 Verification request for deposit ${depositId} by user ${userId}`);
+    console.log(`   User email: ${req.user.email}`);
+    console.log(`   User phone: ${req.user.phone}`);
+    console.log(`   User isEmailVerified: ${req.user.isEmailVerified}`);
+
     // Check if deposit exists and belongs to user
     const deposit = await prisma.deposit.findFirst({
       where: {
@@ -462,11 +536,35 @@ router.post('/:depositId/verify', authenticateToken, requireEmailVerification, a
     });
 
     if (!deposit) {
+      console.log(`❌ Deposit ${depositId} not found for user ${userId}`);
+      
+      // Let's also check if the deposit exists at all (for debugging)
+      const anyDeposit = await prisma.deposit.findUnique({
+        where: { id: depositId }
+      });
+      
+      if (anyDeposit) {
+        console.log(`⚠️  Deposit ${depositId} exists but belongs to user ${anyDeposit.userId} (not ${userId})`);
+        console.log(`   This suggests a user context mismatch`);
+      } else {
+        console.log(`⚠️  Deposit ${depositId} doesn't exist in database at all`);
+      }
+      
       return res.status(404).json({
         error: 'Deposit not found',
-        message: 'The specified deposit does not exist or does not belong to you'
+        message: 'The specified deposit does not belong to you'
       });
     }
+
+    console.log(`✅ Found deposit:`, {
+      id: deposit.id,
+      userId: deposit.userId,
+      status: deposit.status,
+      transactionHash: deposit.transactionHash,
+      network: deposit.network,
+      amount: deposit.amount,
+      currency: deposit.currency
+    });
 
     if (deposit.status !== 'PENDING') {
       return res.status(400).json({
@@ -476,6 +574,10 @@ router.post('/:depositId/verify', authenticateToken, requireEmailVerification, a
     }
 
     if (!deposit.transactionHash || !deposit.network) {
+      console.log(`❌ Missing required fields for deposit ${depositId}:`, {
+        transactionHash: deposit.transactionHash,
+        network: deposit.network
+      });
       return res.status(400).json({
         error: 'Missing information',
         message: 'Transaction hash and network are required for verification'
@@ -502,7 +604,7 @@ router.post('/:depositId/verify', authenticateToken, requireEmailVerification, a
     });
 
   } catch (error) {
-    console.error('Error verifying deposit:', error);
+    console.error('❌ Error verifying deposit:', error);
     res.status(500).json({
       error: 'Failed to verify deposit',
       message: error.message

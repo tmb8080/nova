@@ -1,5 +1,5 @@
 {
-  "isRunning": true,
-  "message": "Automatic detection is active and monitoring transactions",
-  "lastUpdated": "2025-08-23T00:02:20.672Z"
+  "isRunning": false,
+  "message": "Automatic detection has been stopped",
+  "lastUpdated": "2025-08-23T22:07:24.052Z"
 }

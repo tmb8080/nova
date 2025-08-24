@@ -5,12 +5,14 @@ import { depositAPI, adminAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import DepositHistory from './DepositHistory';
+import ManualDeposit from './ManualDeposit';
 
 const UsdtDeposit = ({ onClose, vipLevel = null }) => {
 
   
   const [selectedNetwork, setSelectedNetwork] = useState('TRC20');
   const [showHistory, setShowHistory] = useState(false);
+  const [showManualDeposit, setShowManualDeposit] = useState(false);
   const queryClient = useQueryClient();
   const { user, token } = useAuth();
 
@@ -45,18 +47,7 @@ const UsdtDeposit = ({ onClose, vipLevel = null }) => {
     queryFn: () => adminAPI.getSettings(),
   });
 
-  // Fetch automatic detection status
-  const { data: detectionStatus, isLoading: statusLoading, refetch: refetchStatus } = useQuery({
-    queryKey: ['automaticDetectionStatus'],
-    queryFn: () => depositAPI.getAutomaticDetectionStatus(),
-    refetchInterval: 10000, // Refetch every 10 seconds
-    staleTime: 0, // Always consider data stale
-    refetchOnMount: true,
-    refetchOnWindowFocus: true
-  });
-
   const minUsdtAmount = adminSettings?.data?.minUsdtDepositAmount || 30;
-  const isDetectionRunning = detectionStatus?.data?.isRunning || false;
 
   // Extract wallet addresses from the API response
   const userAddresses = userWalletAddressesQuery.data;
@@ -171,12 +162,7 @@ const UsdtDeposit = ({ onClose, vipLevel = null }) => {
 
 
 
-  // Force refresh status when component mounts
-  useEffect(() => {
-    // Clear any cached data and refetch
-    queryClient.removeQueries(['automaticDetectionStatus']);
-    refetchStatus();
-  }, [queryClient, refetchStatus]);
+
 
   // Get the selected network's address
   const selectedNetworkData = networks.find(network => network.key === selectedNetwork);
@@ -249,6 +235,10 @@ const UsdtDeposit = ({ onClose, vipLevel = null }) => {
     return <DepositHistory onClose={() => setShowHistory(false)} />;
   }
 
+  if (showManualDeposit) {
+    return <ManualDeposit onClose={() => setShowManualDeposit(false)} />;
+  }
+
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="backdrop-blur-xl bg-white/10 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl">
@@ -271,6 +261,19 @@ const UsdtDeposit = ({ onClose, vipLevel = null }) => {
         </div>
 
         <div className="p-4">
+
+          {/* Automatic Detection Disabled Notice */}
+          <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3 mb-4">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <h4 className="text-red-400 font-semibold">Automatic Detection Disabled</h4>
+                <p className="text-red-300 text-sm">You must manually submit your transaction hash after sending USDT. Use the "Manual Deposit" button below.</p>
+              </div>
+            </div>
+          </div>
 
           {/* Loading Message */}
           {(userWalletAddressesQuery.isLoading || settingsLoading) && (
@@ -394,15 +397,23 @@ const UsdtDeposit = ({ onClose, vipLevel = null }) => {
             <ol className="text-blue-300 text-sm space-y-1">
               <li>1. Scan the QR code to deposit.</li>
               <li>2. Copy the wallet address on the page to deposit.</li>
-              <li>3. After the transfer is completed, please wait 1-3 minutes for the funds to be automatically credited to your account.</li>
+              <li>3. After the transfer is completed, use the "Manual Deposit" button to submit your transaction hash.</li>
+              <li>4. Your deposit will be verified and credited to your account.</li>
             </ol>
             <p className="text-blue-300 text-sm mt-2">
-              If the funds have not been credited within 5 minutes, please contact customer service.
+              <strong>Note:</strong> Automatic detection is disabled. You must manually submit your transaction hash after sending funds.
             </p>
           </div>
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-3">
+            <button
+              onClick={() => setShowManualDeposit(true)}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+            >
+              Manual Deposit
+            </button>
+            
             <button
               onClick={() => setShowHistory(true)}
               className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors"

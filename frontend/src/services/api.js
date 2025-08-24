@@ -64,6 +64,7 @@ export const depositAPI = {
   getMyDeposits: (params) => api.get('/deposit/my-deposits', { params }),
   getDepositDetails: (id) => api.get(`/deposit/${id}`),
   getUsdtAddresses: () => api.get('/deposit/usdt/addresses'),
+  getCompanyAddresses: () => api.get('/deposit/company-addresses'),
   getUserWalletAddresses: () => api.get('/wallet/addresses'),
   createUsdtDeposit: (data) => api.post('/deposit/usdt/create', data),
   getPendingCount: () => api.get('/deposit/pending-count'),

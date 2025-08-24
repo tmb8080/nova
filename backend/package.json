@@ -9,12 +9,16 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
+    "db:reset": "prisma migrate reset --force",
+    "db:deploy": "prisma migrate deploy",
+    "db:status": "prisma migrate status",
     "db:studio": "prisma studio",
     "db:seed": "node prisma/seed.js",
     "db:seed-vip": "node prisma/seed-vip.js",
     "deposit:test": "node scripts/test-deposit-system.js",
     "deposit:update": "node scripts/update-user-addresses.js",
-    "api:test": "node scripts/test-wallet-api.js"
+    "api:test": "node scripts/test-wallet-api.js",
+    "test:transaction": "node scripts/test-transaction.js"
   },
   "dependencies": {
     "@prisma/client": "^5.2.0",
