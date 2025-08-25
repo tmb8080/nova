@@ -127,8 +127,8 @@ router.post('/register', [
         }
       });
 
-      // Generate unique wallet addresses for user
-      await WalletAddressService.generateUserWalletAddresses(user.id, tx);
+      // Remove user wallet address generation - users should use company addresses
+      // await WalletAddressService.generateUserWalletAddresses(user.id, tx);
 
       return user;
     });

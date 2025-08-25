@@ -18,7 +18,8 @@
     "deposit:test": "node scripts/test-deposit-system.js",
     "deposit:update": "node scripts/update-user-addresses.js",
     "api:test": "node scripts/test-wallet-api.js",
-    "test:transaction": "node scripts/test-transaction.js"
+    "test:transaction": "node scripts/test-transaction.js",
+    "test:verification": "node scripts/test-transaction-verification.js"
   },
   "dependencies": {
     "@prisma/client": "^5.2.0",

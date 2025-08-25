@@ -185,24 +185,81 @@ router.post('/withdraw-earnings', authenticateToken, async (req, res) => {
   }
 });
 
-/**
- * Get wallet addresses for authenticated user
- */
-router.get('/addresses', authenticateToken, async (req, res) => {
+// Get company wallet addresses for deposits
+router.get('/company-addresses', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id;
-    
-    const addresses = await WalletAddressService.getUserWalletAddresses(userId);
-    
+    const companyAddresses = {
+      BSC: process.env.BSC_WALLET_ADDRESS || "0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09",
+      TRON: process.env.TRON_WALLET_ADDRESS || "TUF38LTyPaqfdanHBpGMs5Xid6heLcxxpK",
+      POLYGON: process.env.POLYGON_WALLET_ADDRESS || "0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09",
+      ETHEREUM: process.env.ETH_WALLET_ADDRESS || "0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09"
+    };
+
+    // Validate that all addresses are configured
+    const missing = [];
+    for (const [network, address] of Object.entries(companyAddresses)) {
+      if (!address) {
+        missing.push(network);
+      }
+    }
+
+    if (missing.length > 0) {
+      return res.status(500).json({
+        error: 'Company wallet addresses not configured',
+        message: `Missing addresses for networks: ${missing.join(', ')}`
+      });
+    }
+
     res.json({
       success: true,
-      data: addresses
+      data: companyAddresses
     });
+
   } catch (error) {
-    console.error('Error getting wallet addresses:', error);
+    console.error('Error fetching company wallet addresses:', error);
     res.status(500).json({
-      error: 'Failed to get wallet addresses',
-      message: error.message
+      error: 'Failed to fetch company wallet addresses',
+      message: 'An error occurred while fetching wallet addresses'
+    });
+  }
+});
+
+// Get user wallet addresses (deprecated - use company addresses instead)
+router.get('/addresses', authenticateToken, async (req, res) => {
+  try {
+    // Return company addresses instead of user addresses
+    const companyAddresses = {
+      BSC: process.env.BSC_WALLET_ADDRESS || "0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09",
+      TRON: process.env.TRON_WALLET_ADDRESS || "TUF38LTyPaqfdanHBpGMs5Xid6heLcxxpK",
+      POLYGON: process.env.POLYGON_WALLET_ADDRESS || "0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09",
+      ETHEREUM: process.env.ETH_WALLET_ADDRESS || "0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09"
+    };
+
+    // Validate that all addresses are configured
+    const missing = [];
+    for (const [network, address] of Object.entries(companyAddresses)) {
+      if (!address) {
+        missing.push(network);
+      }
+    }
+
+    if (missing.length > 0) {
+      return res.status(500).json({
+        error: 'Company wallet addresses not configured',
+        message: `Missing addresses for networks: ${missing.join(', ')}`
+      });
+    }
+
+    res.json({
+      success: true,
+      data: companyAddresses
+    });
+
+  } catch (error) {
+    console.error('Error fetching wallet addresses:', error);
+    res.status(500).json({
+      error: 'Failed to fetch wallet addresses',
+      message: 'An error occurred while fetching wallet addresses'
     });
   }
 });

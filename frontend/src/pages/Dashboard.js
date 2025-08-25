@@ -90,6 +90,101 @@ const Dashboard = () => {
     }
   }, [walletStats?.data?.data?.balance, previousBalance]);
 
+  // Video protection and autoplay
+  useEffect(() => {
+    // Prevent right-click context menu globally for video protection
+    const handleContextMenu = (e) => {
+      if (e.target.tagName === 'VIDEO' || e.target.closest('.video-container')) {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    // Prevent keyboard shortcuts for saving
+    const handleKeyDown = (e) => {
+      // Prevent Ctrl+S, Ctrl+Shift+S, F12, Ctrl+Shift+I, Ctrl+U
+      if (
+        (e.ctrlKey && e.key === 's') ||
+        (e.ctrlKey && e.shiftKey && e.key === 'S') ||
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+        (e.ctrlKey && e.key === 'u')
+      ) {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    // Prevent drag and drop
+    const handleDragStart = (e) => {
+      if (e.target.tagName === 'VIDEO') {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    // Handle visibility change to resume playback when tab becomes visible
+    const handleVisibilityChange = async () => {
+      const videoElement = document.querySelector('video');
+      if (videoElement && !document.hidden && videoElement.paused) {
+        try {
+          await videoElement.play();
+        } catch (error) {
+          console.log('Resume playback failed:', error);
+        }
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('dragstart', handleDragStart);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Auto-play video when component mounts
+    const videoElement = document.querySelector('video');
+    if (videoElement) {
+      const playVideo = async () => {
+        try {
+          await videoElement.play();
+        } catch (error) {
+          console.log('Autoplay prevented by browser, user interaction required');
+        }
+      };
+
+      // Try to play immediately
+      playVideo();
+
+      // Also try to play when user interacts with the page
+      const handleUserInteraction = async () => {
+        try {
+          if (videoElement.paused) {
+            await videoElement.play();
+          }
+        } catch (error) {
+          console.log('Playback failed:', error);
+        }
+        // Remove listeners after first successful interaction
+        document.removeEventListener('click', handleUserInteraction);
+        document.removeEventListener('touchstart', handleUserInteraction);
+        document.removeEventListener('keydown', handleUserInteraction);
+      };
+
+      // Add listeners for user interaction
+      document.addEventListener('click', handleUserInteraction, { once: true });
+      document.addEventListener('touchstart', handleUserInteraction, { once: true });
+      document.addEventListener('keydown', handleUserInteraction, { once: true });
+    }
+
+    // Cleanup event listeners
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('dragstart', handleDragStart);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -249,28 +344,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-20 md:pb-0">
-      {/* Modern Header */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <h1 className="text-xl font-bold text-white">Trinity Metro</h1>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-sm text-gray-300">Live</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-20 md:pb-0 md:pt-16">
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Modern Dashboard Header */}
@@ -323,15 +397,37 @@ const Dashboard = () => {
                   Platform Introduction
                 </h3>
               </div>
-              <div className="aspect-video bg-gradient-to-br from-slate-800/50 to-purple-900/50 flex items-center justify-center relative">
-                <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg border border-white/30">
-                  <svg className="w-10 h-10 text-white ml-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                  </svg>
-                </div>
-                <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-mono border border-white/20">
-                  01:25
-                </div>
+              <div className="aspect-video bg-gradient-to-br from-slate-800/50 to-purple-900/50 relative overflow-hidden select-none video-container" onContextMenu={(e) => e.preventDefault()}>
+                <video
+                  className="w-full h-full object-cover"
+                  controls
+                  poster="/video-poster.jpg"
+                  preload="auto"
+                  loop
+                  muted
+                  autoPlay
+                  playsInline
+                  onContextMenu={(e) => e.preventDefault()}
+                  onLoadStart={(e) => {
+                    e.target.play().catch(error => {
+                      console.log('Initial autoplay failed:', error);
+                    });
+                  }}
+                  onPlay={(e) => {
+                    console.log('Video started playing');
+                  }}
+                  onPause={(e) => {
+                    console.log('Video paused');
+                  }}
+                  onError={(e) => {
+                    console.log('Video error:', e.target.error);
+                  }}
+                  style={{ WebkitUserSelect: 'none', userSelect: 'none', pointerEvents: 'none' }}
+                >
+                  <source src="/introduction.mp4" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
               </div>
             </div>
           </div>

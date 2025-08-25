@@ -14,6 +14,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import VerifyEmail from './pages/VerifyEmail';
 import Deposit from './pages/Deposit';
+
 import VipSelection from './pages/VipSelection';
 import Profile from './pages/Profile';
 import Tasks from './pages/Tasks';
@@ -127,6 +128,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
               <Route
                 path="/vip-selection"
                 element={

@@ -4,10 +4,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { adminAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
-import MobileBottomNav from '../components/MobileBottomNav';
 import WithdrawalHistory from '../components/WithdrawalHistory';
 import AdminWithdrawalHistory from '../components/AdminWithdrawalHistory';
+import MobileBottomNav from '../components/MobileBottomNav';
+import DesktopNav from '../components/layout/DesktopNav';
 import toast from 'react-hot-toast';
+import Card from '../components/ui/Card';
 
 const AdminPanel = () => {
   const { user, logout } = useAuth();
@@ -21,6 +23,12 @@ const AdminPanel = () => {
   const [selectedDeposit, setSelectedDeposit] = useState(null);
   const [depositAdminNotes, setDepositAdminNotes] = useState('');
   const [depositTransactionHash, setDepositTransactionHash] = useState('');
+  const [showTransactionChecker, setShowTransactionChecker] = useState(false);
+  const [transactionHashChecker, setTransactionHashChecker] = useState('');
+  const [showTransactionResults, setShowTransactionResults] = useState(false);
+  const [transactionResults, setTransactionResults] = useState(null);
+  const [isCheckingNetworks, setIsCheckingNetworks] = useState(false);
+  const [companyAddresses, setCompanyAddresses] = useState(null);
 
   // Handle URL parameters for tab switching
   useEffect(() => {
@@ -89,6 +97,20 @@ const AdminPanel = () => {
     enabled: !!user?.isAdmin, // Only run if user is admin
   });
 
+  // Fetch company wallet addresses
+  const { data: addressesData, isLoading: addressesLoading } = useQuery({
+    queryKey: ['companyAddresses'],
+    queryFn: async () => {
+      const response = await adminAPI.getCompanyWalletAddresses();
+      console.log('Company addresses response:', response);
+      return response.data.data || response.data;
+    },
+    enabled: !!user?.isAdmin,
+    onSuccess: (data) => {
+      setCompanyAddresses(data);
+    },
+  });
+
   // Fetch deposits data
   const { data: deposits, isLoading: depositsLoading } = useQuery({
     queryKey: ['adminDeposits'],
@@ -152,12 +174,11 @@ const AdminPanel = () => {
     },
   });
 
+  // Process deposit mutation
   const processDepositMutation = useMutation({
-    mutationFn: ({ id, action, adminNotes, transactionHash }) => 
-      adminAPI.processDeposit(id, { action, adminNotes, transactionHash }),
-    onSuccess: () => {
-      toast.success('Deposit processed successfully!');
-      queryClient.invalidateQueries(['pendingDeposits']);
+    mutationFn: ({ depositId, action, data }) => adminAPI.processDeposit(depositId, action, data),
+    onSuccess: (response) => {
+      toast.success(`Deposit ${response.data.action} successfully!`);
       queryClient.invalidateQueries(['adminDeposits']);
       setSelectedDeposit(null);
       setDepositAdminNotes('');
@@ -165,6 +186,69 @@ const AdminPanel = () => {
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || 'Failed to process deposit');
+    },
+  });
+
+  // Verify transaction mutation
+  const verifyTransactionMutation = useMutation({
+    mutationFn: (data) => adminAPI.verifyTransaction(data),
+    onSuccess: (response) => {
+      const result = response.data.data;
+      if (result.isValid) {
+        toast.success('✅ Transaction verified successfully!');
+      } else {
+        toast.error(`❌ Transaction verification failed: ${result.error}`);
+      }
+      console.log('Verification result:', result);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to verify transaction');
+    },
+  });
+
+  // Check transaction on blockchain mutation
+  const checkBlockchainMutation = useMutation({
+    mutationFn: (data) => adminAPI.checkTransactionBlockchain(data),
+    onSuccess: (response) => {
+      const result = response.data.data;
+      if (result.exists) {
+        toast.success('✅ Transaction found on blockchain!');
+        console.log('Blockchain transaction info:', result.details);
+      } else {
+        toast.error(`❌ Transaction not found on blockchain: ${result.error}`);
+      }
+      console.log('Blockchain check result:', result);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to check transaction on blockchain');
+    },
+  });
+
+  // Check transaction across all networks mutation
+  const checkAllNetworksMutation = useMutation({
+    mutationFn: (data) => adminAPI.checkTransactionAllNetworks(data),
+    onSuccess: (response) => {
+      const result = response.data.data;
+      setTransactionResults(result);
+      setShowTransactionResults(true);
+      setIsCheckingNetworks(false);
+      
+      if (result.found) {
+        toast.success(`✅ Transaction found on ${result.foundOnNetwork}!`);
+        console.log('Cross-network check result:', result);
+        
+        // Check if we can auto-confirm this transaction
+        if (result.depositId && canAutoConfirm(result, result.deposit)) {
+          toast.success('🎯 Auto-confirmation available! Recipient and amount match.');
+        }
+      } else {
+        toast.error('❌ Transaction not found on any network');
+        console.log('Cross-network check result:', result);
+      }
+    },
+    onError: (error) => {
+      setIsCheckingNetworks(false);
+      toast.error(error.response?.data?.message || 'Failed to check transaction across networks');
     },
   });
 
@@ -198,15 +282,60 @@ const AdminPanel = () => {
   const handleProcessDeposit = (action) => {
     if (!selectedDeposit) return;
 
-    const adminNotes = prompt('Enter admin notes (optional):');
-    const transactionHash = action === 'approve' ? prompt('Enter transaction hash (optional):') : null;
+    const data = {
+      adminNotes: depositAdminNotes,
+      transactionHash: depositTransactionHash
+    };
 
     processDepositMutation.mutate({
-      id: selectedDeposit.id,
-      action: action.toUpperCase(),
-      adminNotes: adminNotes || null,
-      transactionHash: transactionHash || null
+      depositId: selectedDeposit.id,
+      action,
+      data
     });
+  };
+
+  const handleVerifyTransaction = (deposit) => {
+    // Get the expected wallet address for the network
+    const getWalletAddressForNetwork = (network) => {
+      const addresses = {
+        'BEP20': '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09',
+        'TRC20': 'TUF38LTyPaqfdanHBpGMs5Xid6heLcxxpK',
+        'POLYGON': '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09',
+        'ERC20': '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09'
+      };
+      return addresses[network] || addresses['BEP20'];
+    };
+
+    const verificationData = {
+      transactionHash: deposit.transactionHash,
+      network: deposit.network, // Use the network directly from deposit
+      amount: deposit.amount,
+      walletAddress: getWalletAddressForNetwork(deposit.network)
+    };
+
+    console.log('🔍 Verifying transaction:', verificationData);
+    verifyTransactionMutation.mutate(verificationData);
+  };
+
+  const handleCheckBlockchain = (deposit) => {
+    const blockchainData = {
+      transactionHash: deposit.transactionHash,
+      network: deposit.network
+    };
+
+    console.log('🔍 Checking transaction on blockchain:', blockchainData);
+    checkBlockchainMutation.mutate(blockchainData);
+  };
+
+  const handleCheckAllNetworks = (deposit) => {
+    const allNetworksData = {
+      transactionHash: deposit.transactionHash,
+      depositId: deposit.id,
+      deposit: deposit // Pass full deposit object for auto-confirmation
+    };
+    console.log('🔍 Checking transaction across all networks:', allNetworksData);
+    setIsCheckingNetworks(true);
+    checkAllNetworksMutation.mutate(allNetworksData);
   };
 
   const formatCurrency = (amount) => {
@@ -226,6 +355,96 @@ const AdminPanel = () => {
     });
   };
 
+  // Helper functions for transaction verification UI
+  const getNetworkIcon = (network) => {
+    const icons = {
+      'BSC': '🟡',
+      'Ethereum': '🔵',
+      'Polygon': '🟣',
+      'TRON': '🔴',
+      'BEP20': '🟡',
+      'ERC20': '🔵',
+      'POLYGON': '🟣',
+      'TRC20': '🔴'
+    };
+    return icons[network] || '🌐';
+  };
+
+  const getNetworkColor = (network) => {
+    const colors = {
+      'BSC': 'text-yellow-400',
+      'Ethereum': 'text-blue-400',
+      'Polygon': 'text-purple-400',
+      'TRON': 'text-red-400',
+      'BEP20': 'text-yellow-400',
+      'ERC20': 'text-blue-400',
+      'POLYGON': 'text-purple-400',
+      'TRC20': 'text-red-400'
+    };
+    return colors[network] || 'text-gray-400';
+  };
+
+  const formatAmount = (amount, isTokenTransfer = false) => {
+    if (!amount) return '0.000000';
+    if (isTokenTransfer) {
+      return parseFloat(amount).toFixed(6);
+    }
+    return parseFloat(amount).toFixed(6);
+  };
+
+  const formatBlockNumber = (blockNumber) => {
+    if (!blockNumber) return 'N/A';
+    if (typeof blockNumber === 'string' && blockNumber.startsWith('0x')) {
+      return parseInt(blockNumber, 16).toLocaleString();
+    }
+    return blockNumber.toLocaleString();
+  };
+
+  // Helper functions for automatic confirmation
+  const isRecipientMatching = (recipientAddress, network) => {
+    if (!companyAddresses || !recipientAddress) return false;
+    
+    const networkMap = {
+      'BSC': 'BSC',
+      'BEP20': 'BSC',
+      'Ethereum': 'ETHEREUM',
+      'ERC20': 'ETHEREUM',
+      'Polygon': 'POLYGON',
+      'POLYGON': 'POLYGON',
+      'TRON': 'TRON',
+      'TRC20': 'TRON'
+    };
+    
+    const mappedNetwork = networkMap[network];
+    if (!mappedNetwork) return false;
+    
+    const expectedAddress = companyAddresses[mappedNetwork];
+    return expectedAddress && recipientAddress.toLowerCase() === expectedAddress.toLowerCase();
+  };
+
+  const isAmountMatching = (transactionAmount, expectedAmount) => {
+    if (!transactionAmount || !expectedAmount) return false;
+    
+    const txAmount = parseFloat(transactionAmount);
+    const expAmount = parseFloat(expectedAmount);
+    
+    // Allow for small differences due to decimals
+    const difference = Math.abs(txAmount - expAmount);
+    return difference < 0.01; // Allow 0.01 difference
+  };
+
+  const canAutoConfirm = (transactionResult, deposit) => {
+    if (!transactionResult || !transactionResult.found || !deposit) return false;
+    
+    const foundResult = transactionResult.results.find(r => r.found);
+    if (!foundResult || !foundResult.details) return false;
+    
+    const recipientMatches = isRecipientMatching(foundResult.details.recipientAddress, foundResult.network);
+    const amountMatches = isAmountMatching(foundResult.details.amount, deposit.amount);
+    
+    return recipientMatches && amountMatches;
+  };
+
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'withdrawals', label: 'Pending Withdrawals', icon: '💰' },
@@ -235,33 +454,25 @@ const AdminPanel = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-20 md:pb-0">
-      {/* Header */}
-      <div className="bg-white/10 backdrop-blur-sm border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-pink-600 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <h1 className="text-xl font-bold text-white">Admin Panel</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-300">Welcome, {user?.fullName}</span>
-              <Button onClick={logout} className="bg-red-500 hover:bg-red-600 text-white">
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-20 md:pb-0 md:pt-16">
+      {/* Desktop Navigation */}
+      <DesktopNav />
+      
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Admin Panel</h1>
+          <p className="text-gray-300">Manage users, deposits, withdrawals, and system settings</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button
+              onClick={() => setShowTransactionChecker(true)}
+              className="bg-indigo-500 hover:bg-indigo-600 text-white"
+            >
+              🔍 Check Transaction
+            </Button>
+          </div>
+        </div>
         {/* Tab Navigation */}
         <div className="mb-8">
           <div className="flex flex-wrap gap-2">
@@ -543,6 +754,17 @@ const AdminPanel = () => {
                         >
                           Process
                         </Button>
+                        {deposit.transactionHash && (
+                          <>
+                            <Button
+                              onClick={() => handleCheckAllNetworks(deposit)}
+                              disabled={checkAllNetworksMutation.isLoading}
+                              className="bg-purple-500 hover:bg-purple-600 text-white"
+                            >
+                              {checkAllNetworksMutation.isLoading ? 'Checking...' : '🔍 Verify'}
+                            </Button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -835,6 +1057,251 @@ const AdminPanel = () => {
                   Cancel
                 </Button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transaction Checker Modal */}
+      {showTransactionChecker && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="backdrop-blur-xl bg-white/10 rounded-2xl w-full max-w-md border border-white/20 shadow-2xl">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Check Transaction Across Networks</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Transaction Hash
+                  </label>
+                  <input
+                    type="text"
+                    value={transactionHashChecker}
+                    onChange={(e) => setTransactionHashChecker(e.target.value)}
+                    placeholder="Enter transaction hash to check"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="flex space-x-3 mt-6">
+                <Button
+                  onClick={() => {
+                    setShowTransactionChecker(false);
+                    setTransactionHashChecker('');
+                  }}
+                  className="flex-1 bg-gray-500 hover:bg-gray-600 text-white"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    const data = { transactionHash: transactionHashChecker };
+                    setIsCheckingNetworks(true);
+                    checkAllNetworksMutation.mutate(data);
+                    setShowTransactionChecker(false);
+                    setTransactionHashChecker('');
+                  }}
+                  disabled={checkAllNetworksMutation.isLoading}
+                  className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white"
+                >
+                  {checkAllNetworksMutation.isLoading ? 'Checking...' : 'Check Networks'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transaction Results Modal */}
+      {showTransactionResults && transactionResults && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="backdrop-blur-xl bg-white/10 rounded-2xl w-full max-w-4xl border border-white/20 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-white">Transaction Verification Results</h3>
+                <button
+                  onClick={() => {
+                    setShowTransactionResults(false);
+                    setTransactionResults(null);
+                  }}
+                  className="text-gray-400 hover:text-white text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Transaction Summary */}
+              <div className="bg-white/5 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">
+                      {transactionResults.found ? '✅' : '❌'}
+                    </span>
+                    <div>
+                      <h4 className="text-lg font-semibold text-white">
+                        {transactionResults.found ? 'Transaction Found' : 'Transaction Not Found'}
+                      </h4>
+                      <p className="text-gray-400 text-sm">
+                        {transactionResults.found 
+                          ? `Found on ${transactionResults.foundOnNetwork} network`
+                          : `Checked ${transactionResults.totalNetworksChecked} networks`
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-gray-400 text-sm">Transaction Hash</p>
+                    <p className="text-white font-mono text-sm break-all">
+                      {transactionResults.transactionHash}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Network Results */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-semibold text-white mb-4">Network Results</h4>
+                {transactionResults.results.map((result, index) => (
+                  <div key={index} className="bg-white/5 rounded-lg p-4 border border-white/10">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-xl">{getNetworkIcon(result.network)}</span>
+                        <span className={`font-semibold ${getNetworkColor(result.network)}`}>
+                          {result.network}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {result.found ? (
+                          <span className="text-green-400 text-sm font-medium">✅ Found</span>
+                        ) : (
+                          <span className="text-red-400 text-sm font-medium">❌ Not Found</span>
+                        )}
+                      </div>
+                    </div>
+
+                                         {result.found && result.details ? (
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                         <div>
+                           <div className="flex items-center space-x-2">
+                             <p className="text-gray-400">Recipient Address</p>
+                             {isRecipientMatching(result.details.recipientAddress, result.network) && (
+                               <span className="text-blue-400 text-lg">✓</span>
+                             )}
+                           </div>
+                           <p className="text-white font-mono break-all">{result.details.recipientAddress}</p>
+                         </div>
+                        <div>
+                          <p className="text-gray-400">Sender Address</p>
+                          <p className="text-white font-mono break-all">{result.details.senderAddress}</p>
+                        </div>
+                                                 <div>
+                           <div className="flex items-center space-x-2">
+                             <p className="text-gray-400">Amount</p>
+                             {transactionResults.deposit && isAmountMatching(result.details.amount, transactionResults.deposit.amount) && (
+                               <span className="text-blue-400 text-lg">✓</span>
+                             )}
+                           </div>
+                           <p className="text-white font-semibold">
+                             {formatAmount(result.details.amount, result.details.isTokenTransfer)}
+                             {result.details.isTokenTransfer && (
+                               <span className="text-gray-400 ml-1">(Token Transfer)</span>
+                             )}
+                           </p>
+                         </div>
+                        <div>
+                          <p className="text-gray-400">Block Number</p>
+                          <p className="text-white">{formatBlockNumber(result.details.blockNumber)}</p>
+                        </div>
+                        {result.details.isTokenTransfer && (
+                          <div className="md:col-span-2">
+                            <p className="text-gray-400">Token Contract</p>
+                            <p className="text-white font-mono break-all">{result.details.tokenContract}</p>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-gray-400">Status</p>
+                          <p className={`font-medium ${result.details.isConfirmed ? 'text-green-400' : 'text-yellow-400'}`}>
+                            {result.details.isConfirmed ? 'Confirmed' : 'Pending'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-400">Gas Used</p>
+                          <p className="text-white">{result.details.gasUsed ? parseInt(result.details.gasUsed, 16).toLocaleString() : 'N/A'}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-red-400 text-sm">
+                        {result.error || 'Transaction not found on this network'}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+                             <div className="flex justify-between items-center mt-6">
+                 <div>
+                   {transactionResults.deposit && canAutoConfirm(transactionResults, transactionResults.deposit) && (
+                     <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-3">
+                       <div className="flex items-center space-x-2">
+                         <span className="text-green-400 text-lg">🎯</span>
+                         <div>
+                           <p className="text-green-400 font-medium">Auto-Confirmation Available</p>
+                           <p className="text-green-300 text-sm">Recipient address and amount match our records</p>
+                         </div>
+                       </div>
+                     </div>
+                   )}
+                 </div>
+                 <div className="flex space-x-3">
+                   {transactionResults.deposit && canAutoConfirm(transactionResults, transactionResults.deposit) && (
+                     <Button
+                       onClick={() => {
+                         // Auto-confirm the deposit
+                         const data = {
+                           adminNotes: 'Auto-confirmed: Transaction verified on blockchain',
+                           transactionHash: transactionResults.transactionHash
+                         };
+                         processDepositMutation.mutate({
+                           depositId: transactionResults.deposit.id,
+                           action: 'approve',
+                           data
+                         });
+                         setShowTransactionResults(false);
+                         setTransactionResults(null);
+                       }}
+                       disabled={processDepositMutation.isLoading}
+                       className="bg-green-500 hover:bg-green-600 text-white"
+                     >
+                       {processDepositMutation.isLoading ? 'Confirming...' : '✅ Auto-Confirm'}
+                     </Button>
+                   )}
+                   <Button
+                     onClick={() => {
+                       setShowTransactionResults(false);
+                       setTransactionResults(null);
+                     }}
+                     className="bg-gray-500 hover:bg-gray-600 text-white"
+                   >
+                     Close
+                   </Button>
+                 </div>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Overlay for Network Checking */}
+      {isCheckingNetworks && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="backdrop-blur-xl bg-white/10 rounded-2xl p-8 border border-white/20 shadow-2xl text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+            <h3 className="text-xl font-semibold text-white mb-2">Checking Networks</h3>
+            <p className="text-gray-300">Searching for transaction across all supported networks...</p>
+            <div className="mt-4 flex justify-center space-x-2">
+              <div className="animate-pulse">🟡</div>
+              <div className="animate-pulse" style={{ animationDelay: '0.2s' }}>🔵</div>
+              <div className="animate-pulse" style={{ animationDelay: '0.4s' }}>🟣</div>
+              <div className="animate-pulse" style={{ animationDelay: '0.6s' }}>🔴</div>
             </div>
           </div>
         </div>

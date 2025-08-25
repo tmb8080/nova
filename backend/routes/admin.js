@@ -16,6 +16,7 @@ const {
   getAllVipLevels,
   getVipLevelById
 } = require('../services/vipService');
+const TransactionVerificationService = require('../services/transactionVerificationService');
 
 const router = express.Router();
 
@@ -1062,6 +1063,178 @@ router.get('/verification-logs', [
     console.error('Error fetching verification logs:', error);
     res.status(500).json({
       error: 'Failed to fetch verification logs',
+      message: error.message
+    });
+  }
+});
+
+// Admin: Transaction Verification
+router.post('/verify-transaction', async (req, res) => {
+  try {
+    console.log('🔍 Admin verification request:', {
+      body: req.body,
+      network: req.body.network,
+      networkType: typeof req.body.network,
+      networkLength: req.body.network?.length,
+      allowedNetworks: ['TRC20', 'BEP20', 'ERC20', 'POLYGON']
+    });
+
+    const { transactionHash, network, amount, walletAddress } = req.body;
+
+    // Manual validation
+    if (!transactionHash || transactionHash.length < 10 || transactionHash.length > 100) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: [{ type: 'field', value: transactionHash, msg: 'Transaction hash must be between 10 and 100 characters', path: 'transactionHash' }]
+      });
+    }
+
+    if (!['TRC20', 'BEP20', 'ERC20', 'POLYGON'].includes(network)) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: [{ type: 'field', value: network, msg: 'Invalid network', path: 'network' }]
+      });
+    }
+
+    if (!amount || parseFloat(amount) < 0) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: [{ type: 'field', value: amount, msg: 'Amount must be positive', path: 'amount' }]
+      });
+    }
+
+    if (!walletAddress || walletAddress.length < 30 || walletAddress.length > 50) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: [{ type: 'field', value: walletAddress, msg: 'Wallet address must be between 30 and 50 characters', path: 'walletAddress' }]
+      });
+    }
+
+    console.log(`🔍 Admin verifying transaction: ${transactionHash} for ${network} network`);
+
+    // Map deposit network names to verification service network names
+    const networkMapping = {
+      'TRC20': 'TRON',
+      'BEP20': 'BSC',
+      'ERC20': 'ETHEREUM',
+      'POLYGON': 'POLYGON'
+    };
+
+    const verificationNetwork = networkMapping[network] || network;
+
+    const verificationResult = await TransactionVerificationService.verifyTransaction(
+      transactionHash,
+      walletAddress,
+      amount,
+      verificationNetwork
+    );
+
+    res.json({
+      success: true,
+      data: verificationResult
+    });
+  } catch (error) {
+    console.error('Error verifying transaction:', error);
+    res.status(500).json({
+      error: 'Failed to verify transaction',
+      message: error.message
+    });
+  }
+});
+
+// Admin: Check Transaction on Blockchain (without wallet validation)
+router.post('/check-transaction-blockchain', async (req, res) => {
+  try {
+    console.log('🔍 Admin blockchain check request:', {
+      body: req.body,
+      network: req.body.network
+    });
+
+    const { transactionHash, network } = req.body;
+
+    // Manual validation
+    if (!transactionHash || transactionHash.length < 10 || transactionHash.length > 100) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: [{ type: 'field', value: transactionHash, msg: 'Transaction hash must be between 10 and 100 characters', path: 'transactionHash' }]
+      });
+    }
+
+    if (!['TRC20', 'BEP20', 'ERC20', 'POLYGON'].includes(network)) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: [{ type: 'field', value: network, msg: 'Invalid network', path: 'network' }]
+      });
+    }
+
+    console.log(`🔍 Admin checking transaction on blockchain: ${transactionHash} for ${network} network`);
+
+    // Map deposit network names to verification service network names
+    const networkMapping = {
+      'TRC20': 'TRON',
+      'BEP20': 'BSC',
+      'ERC20': 'ETHEREUM',
+      'POLYGON': 'POLYGON'
+    };
+
+    const verificationNetwork = networkMapping[network] || network;
+
+    const blockchainResult = await TransactionVerificationService.checkTransactionOnBlockchain(
+      transactionHash,
+      verificationNetwork
+    );
+
+    res.json({
+      success: true,
+      data: blockchainResult
+    });
+  } catch (error) {
+    console.error('Error checking transaction on blockchain:', error);
+    res.status(500).json({
+      error: 'Failed to check transaction on blockchain',
+      message: error.message
+    });
+  }
+});
+
+// Admin: Check Transaction Across All Networks (hash only)
+router.post('/check-transaction-all-networks', async (req, res) => {
+  try {
+    console.log('🔍 Admin cross-network check request:', {
+      body: req.body
+    });
+
+    const { transactionHash, depositId, deposit } = req.body;
+
+    // Manual validation
+    if (!transactionHash || transactionHash.length < 10 || transactionHash.length > 100) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: [{ type: 'field', value: transactionHash, msg: 'Transaction hash must be between 10 and 100 characters', path: 'transactionHash' }]
+      });
+    }
+
+    console.log(`🔍 Admin checking transaction across all networks: ${transactionHash}`);
+
+    const crossNetworkResult = await TransactionVerificationService.checkTransactionAcrossAllNetworks(
+      transactionHash
+    );
+
+    // Add deposit information to the result for auto-confirmation
+    const resultWithDeposit = {
+      ...crossNetworkResult,
+      depositId,
+      deposit
+    };
+
+    res.json({
+      success: true,
+      data: resultWithDeposit
+    });
+  } catch (error) {
+    console.error('Error checking transaction across networks:', error);
+    res.status(500).json({
+      error: 'Failed to check transaction across networks',
       message: error.message
     });
   }

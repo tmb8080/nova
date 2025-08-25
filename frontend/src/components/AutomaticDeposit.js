@@ -1,183 +1,356 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { depositAPI } from '../services/api';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
 import toast from 'react-hot-toast';
 
-const AutomaticDeposit = () => {
-  const [selectedNetwork, setSelectedNetwork] = useState('TRC20');
+const AutomaticDeposit = ({ onTransactionVerified, onTransactionError }) => {
+  const [transactionHash, setTransactionHash] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState(null);
+  const [autoFillData, setAutoFillData] = useState(null);
 
-  // Fetch USDT addresses from API
-  const { data: addressesData, isLoading: addressesLoading } = useQuery({
-    queryKey: ['usdtAddresses'],
-    queryFn: () => depositAPI.getUsdtAddresses(),
+  // Auto-fill transaction details mutation
+  const autoFillTransactionMutation = useMutation({
+    mutationFn: (data) => {
+      console.log('🚀 Auto-fill mutation called with data:', data);
+      return depositAPI.autoFillTransaction(data);
+    },
+    onSuccess: (data) => {
+      console.log('✅ Auto-fill mutation success:', data);
+      const transactionData = data.data;
+      console.log('Auto-fill transaction data:', transactionData);
+      
+      setAutoFillData(transactionData);
+      setIsSearching(false);
+      
+      if (transactionData.found) {
+        // Auto-fill the form with transaction details
+        if (transactionData.suggestedAmount && !isNaN(transactionData.suggestedAmount)) {
+          // Trigger callback with auto-filled data
+          onTransactionVerified({
+            amount: transactionData.suggestedAmount,
+            network: transactionData.suggestedNetwork,
+            transactionHash: transactionHash,
+            recipientAddress: transactionData.recipientAddress,
+            senderAddress: transactionData.senderAddress,
+            blockNumber: transactionData.blockNumber,
+            isRecipientMatching: transactionData.isRecipientMatching,
+            foundOnNetwork: transactionData.foundOnNetwork
+          });
+        }
+        
+        // Set auto-fill status
+        if (transactionData.isRecipientMatching) {
+          toast.success(`✅ Transaction verified! Auto-filled: ${transactionData.suggestedAmount} USDT on ${transactionData.suggestedNetwork}`);
+        } else {
+          toast.warning(`⚠️ Transaction found on ${transactionData.foundOnNetwork}, but recipient doesn't match our address`);
+        }
+      } else {
+        setAutoFillData(null);
+        onTransactionError('Transaction not found on any network');
+        toast.error('❌ Transaction not found on any network');
+      }
+    },
+    onError: (error) => {
+      console.log('❌ Auto-fill mutation error:', error);
+      setAutoFillData(null);
+      setIsSearching(false);
+      const errorMessage = error.response?.data?.message || 'Failed to get transaction details';
+      onTransactionError(errorMessage);
+      toast.error(`❌ ${errorMessage}`);
+    },
   });
 
-  // Fetch admin settings for minimum amounts
-  const { data: adminSettings } = useQuery({
-    queryKey: ['adminSettings'],
-    queryFn: () => depositAPI.getAdminSettings(),
+  // Check transaction across all networks mutation
+  const checkAllNetworksMutation = useMutation({
+    mutationFn: (data) => depositAPI.checkTransactionAllNetworks(data),
+    onSuccess: (response) => {
+      const result = response.data.data;
+      setSearchResults(result);
+      setIsSearching(false);
+      
+      if (result.found) {
+        toast.success(`✅ Transaction found on ${result.foundOnNetwork}!`);
+        console.log('Cross-network check result:', result);
+      } else {
+        toast.error('❌ Transaction not found on any network');
+        console.log('Cross-network check result:', result);
+      }
+    },
+    onError: (error) => {
+      setIsSearching(false);
+      toast.error(error.response?.data?.message || 'Failed to check transaction across networks');
+    },
   });
 
-  const minUsdtAmount = adminSettings?.data?.minUsdtDepositAmount || 30;
-
-  // Network configuration with addresses
-  const networks = [
-    { 
-      key: 'TRC20', 
-      name: 'TRC20-USDT', 
-      currencies: 'USDT',
-      minAmount: minUsdtAmount,
-      color: 'bg-blue-500',
-      address: addressesData?.data?.TRC20 || 'TUF38LTyPaqfdanHBpGMs5Xid6heLcxxpK'
-    },
-    { 
-      key: 'BEP20', 
-      name: 'BEP20-USDT', 
-      currencies: 'USDT',
-      minAmount: minUsdtAmount,
-      color: 'bg-yellow-500',
-      address: addressesData?.data?.BEP20 || '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09'
-    },
-    { 
-      key: 'ERC20', 
-      name: 'ERC20-USDT', 
-      currencies: 'USDT',
-      minAmount: minUsdtAmount,
-      color: 'bg-purple-500',
-      address: addressesData?.data?.ERC20 || '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09'
-    },
-    { 
-      key: 'POL', 
-      name: 'POL-USDT', 
-      currencies: 'USDT',
-      minAmount: minUsdtAmount,
-      color: 'bg-purple-600',
-      address: addressesData?.data?.POLYGON || '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09'
-    }
-  ];
-
-  // Get the selected network's address
-  const selectedNetworkData = networks.find(network => network.key === selectedNetwork);
-  const walletAddress = selectedNetworkData?.address || '';
-  const qrCodeUrl = walletAddress ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${walletAddress}` : '';
-
-  const handleCopyAddress = async () => {
-    try {
-      await navigator.clipboard.writeText(walletAddress);
-      toast.success('Wallet address copied to clipboard!');
-    } catch (err) {
-      toast.error('Failed to copy address');
+  // Function to trigger auto-fill
+  const triggerAutoFill = (hash) => {
+    console.log('🔍 triggerAutoFill called with hash:', hash);
+    if (hash && /^0x[a-fA-F0-9]{64}$|^[a-fA-F0-9]{64}$/.test(hash)) {
+      console.log('✅ Hash is valid, triggering auto-fill mutation');
+      setIsSearching(true);
+      autoFillTransactionMutation.mutate({ transactionHash: hash });
+    } else {
+      console.log('❌ Hash is invalid or empty:', hash);
     }
   };
 
-  const handleNetworkChange = (network) => {
-    setSelectedNetwork(network);
+  // Function to check transaction across all networks
+  const checkAllNetworks = (hash) => {
+    if (hash && /^0x[a-fA-F0-9]{64}$|^[a-fA-F0-9]{64}$/.test(hash)) {
+      setIsSearching(true);
+      checkAllNetworksMutation.mutate({ transactionHash: hash });
+    } else {
+      toast.error('Please enter a valid transaction hash');
+    }
+  };
+
+  // Handle input change with auto-detection
+  const handleTransactionHashChange = (e) => {
+    const hash = e.target.value.trim();
+    setTransactionHash(hash);
+    
+    // Auto-trigger when a valid hash is entered
+    if (hash && /^0x[a-fA-F0-9]{64}$|^[a-fA-F0-9]{64}$/.test(hash)) {
+      console.log('✅ Valid hash detected, calling triggerAutoFill');
+      triggerAutoFill(hash);
+    } else {
+      // Clear results if hash becomes invalid
+      setAutoFillData(null);
+      setSearchResults(null);
+    }
+  };
+
+  // Helper functions for display
+  const getNetworkIcon = (network) => {
+    const icons = {
+      'BSC': '🟡',
+      'Ethereum': '🔵',
+      'Polygon': '🟣',
+      'TRON': '🔴',
+      'BEP20': '🟡',
+      'ERC20': '🔵',
+      'POLYGON': '🟣',
+      'TRC20': '🔴'
+    };
+    return icons[network] || '🌐';
+  };
+
+  const getNetworkColor = (network) => {
+    const colors = {
+      'BSC': 'text-yellow-400',
+      'Ethereum': 'text-blue-400',
+      'Polygon': 'text-purple-400',
+      'TRON': 'text-red-400',
+      'BEP20': 'text-yellow-400',
+      'ERC20': 'text-blue-400',
+      'POLYGON': 'text-purple-400',
+      'TRC20': 'text-red-400'
+    };
+    return colors[network] || 'text-gray-400';
+  };
+
+  const formatAmount = (amount, isTokenTransfer = false) => {
+    if (!amount) return '0.000000';
+    if (isTokenTransfer) {
+      return parseFloat(amount).toFixed(6);
+    }
+    return parseFloat(amount).toFixed(6);
+  };
+
+  const formatBlockNumber = (blockNumber) => {
+    if (!blockNumber) return 'N/A';
+    if (typeof blockNumber === 'string' && blockNumber.startsWith('0x')) {
+      return parseInt(blockNumber, 16).toLocaleString();
+    }
+    return blockNumber.toLocaleString();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="backdrop-blur-xl bg-white/10 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/20">
-          <button
-            onClick={() => window.history.back()}
-            className="p-2 hover:bg-white/20 rounded-full text-white transition-colors"
+    <div className="space-y-6">
+      {/* Transaction Hash Input */}
+      <div className="space-y-3">
+        <label className="text-sm font-medium text-gray-700">
+          Transaction Hash *
+        </label>
+        <div className="flex gap-2">
+          <Input
+            type="text"
+            placeholder="Paste transaction hash to auto-detect details"
+            value={transactionHash}
+            onChange={handleTransactionHashChange}
+            className="flex-1"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => checkAllNetworks(transactionHash)}
+            loading={checkAllNetworksMutation.isPending}
+            disabled={!transactionHash}
+            className="whitespace-nowrap"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <h2 className="text-lg font-semibold text-white">USDT</h2>
-          <div className="w-10"></div> {/* Spacer for centering */}
+            {checkAllNetworksMutation.isPending ? 'Checking...' : '🔍 Check All'}
+          </Button>
         </div>
+        <p className="text-xs text-gray-500">
+          🔍 Paste transaction hash to automatically detect network, amount, and verify recipient
+        </p>
+      </div>
 
-        <div className="p-4">
-          {/* Network Selection */}
-          <div className="grid grid-cols-2 gap-2 mb-6">
-            {networks.map((network) => (
-              <button
-                key={network.key}
-                onClick={() => handleNetworkChange(network.key)}
-                className={`p-3 rounded-lg text-left transition-all duration-200 ${
-                  selectedNetwork === network.key
-                    ? `${network.color} text-white shadow-lg transform scale-105`
-                    : 'bg-white/10 backdrop-blur-sm text-gray-300 hover:text-white hover:bg-white/20 border border-white/20'
-                }`}
-              >
-                <div className="text-sm font-medium">{network.name}</div>
-                <div className="text-xs opacity-75">【{network.currencies}】</div>
-              </button>
-            ))}
-          </div>
-
-          {/* QR Code and Wallet Address */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Recharge QR code</h3>
-            
-            {/* QR Code */}
-            <div className="flex justify-center mb-4">
-              {qrCodeUrl ? (
-                <img 
-                  src={qrCodeUrl} 
-                  alt="QR Code" 
-                  className="w-48 h-48 bg-white rounded-lg p-2"
-                />
-              ) : (
-                <div className="w-48 h-48 bg-white rounded-lg flex items-center justify-center">
-                  <span className="text-gray-500">Loading QR Code...</span>
-                </div>
-              )}
+      {/* Loading State */}
+      {isSearching && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-center space-x-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <div>
+              <p className="text-sm font-medium text-blue-800">Searching Transaction</p>
+              <p className="text-xs text-blue-600">Checking across all supported networks...</p>
             </div>
+          </div>
+          <div className="mt-3 flex justify-center space-x-2">
+            <div className="animate-pulse">🟡</div>
+            <div className="animate-pulse" style={{ animationDelay: '0.2s' }}>🔵</div>
+            <div className="animate-pulse" style={{ animationDelay: '0.4s' }}>🟣</div>
+            <div className="animate-pulse" style={{ animationDelay: '0.6s' }}>🔴</div>
+          </div>
+        </div>
+      )}
 
-            {/* Wallet Address */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 mb-3">
-              <div className="flex items-center justify-between">
-                <span className="text-white text-sm break-all font-mono">
-                  {walletAddress || 'Loading address...'}
-                </span>
-                <button
-                  onClick={handleCopyAddress}
-                  className="ml-2 px-3 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600 transition-colors"
-                >
-                  copy
-                </button>
+      {/* Auto-fill Results */}
+      {autoFillData && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center space-x-2 mb-3">
+            <span className="text-green-600 text-lg">✅</span>
+            <h4 className="text-sm font-medium text-green-800">Transaction Auto-Detected</h4>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div>
+              <span className="text-green-700">Network:</span>
+              <span className="ml-2 font-medium text-green-900">{autoFillData.foundOnNetwork}</span>
+            </div>
+            <div>
+              <span className="text-green-700">Amount:</span>
+              <span className="ml-2 font-medium text-green-900">{autoFillData.suggestedAmount} USDT</span>
+            </div>
+            <div className="sm:col-span-2">
+              <span className="text-green-700">Recipient:</span>
+              <div className="mt-1 font-mono text-xs break-all bg-white p-2 rounded border">
+                {autoFillData.recipientAddress}
               </div>
             </div>
-          </div>
-
-          {/* Notes and Instructions */}
-          <div className="space-y-4">
-            <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3">
-              <h4 className="text-yellow-400 font-semibold mb-2">Notes</h4>
-              <ul className="text-yellow-300 text-sm space-y-1">
-                <li>• The minimum deposit amount is {minUsdtAmount} USDT.</li>
-                <li>• Please select the correct deposit method (TRC20, POL, ERC20, BEP20) (USDT/USDC).</li>
-              </ul>
+            <div className="sm:col-span-2">
+              <span className="text-green-700">Sender:</span>
+              <div className="mt-1 font-mono text-xs break-all bg-white p-2 rounded border">
+                {autoFillData.senderAddress}
+              </div>
             </div>
-
-            <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3">
-              <h4 className="text-blue-400 font-semibold mb-2">Instructions</h4>
-              <ol className="text-blue-300 text-sm space-y-1">
-                <li>1: Scan the QR code to deposit.</li>
-                <li>2: Copy the wallet address on the page to deposit.</li>
-                <li>3: After the transfer is completed, please wait 1-3 minutes for the funds to be automatically credited to your account.</li>
-              </ol>
-              <p className="text-blue-300 text-sm mt-2">
-                If the funds have not been credited within 5 minutes, please contact customer service.
-              </p>
+            <div>
+              <span className="text-green-700">Block:</span>
+              <span className="ml-2 font-medium text-green-900">{autoFillData.blockNumber}</span>
             </div>
-          </div>
-
-          {/* Customer Service Button */}
-          <div className="fixed bottom-4 right-4">
-            <button className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg hover:bg-yellow-600 transition-colors">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-            </button>
+            <div>
+              <span className="text-green-700">Status:</span>
+              <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                autoFillData.isRecipientMatching 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {autoFillData.isRecipientMatching ? '✓ Valid' : '✗ Invalid'}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Detailed Network Results */}
+      {searchResults && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center space-x-2 mb-4">
+            <span className="text-gray-600 text-lg">🔍</span>
+            <h4 className="text-sm font-medium text-gray-800">Detailed Network Results</h4>
+          </div>
+          
+          <div className="space-y-3">
+            {searchResults.results.map((result, index) => (
+              <div key={index} className="bg-white rounded-lg p-3 border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">{getNetworkIcon(result.network)}</span>
+                    <span className={`font-medium ${getNetworkColor(result.network)}`}>
+                      {result.network}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {result.found ? (
+                      <span className="text-green-600 text-sm font-medium">✅ Found</span>
+                    ) : (
+                      <span className="text-red-600 text-sm font-medium">❌ Not Found</span>
+                    )}
+                  </div>
+                </div>
+
+                {result.found && result.details ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-gray-500">Recipient:</span>
+                      <p className="text-gray-900 font-mono break-all">{result.details.recipientAddress}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Sender:</span>
+                      <p className="text-gray-900 font-mono break-all">{result.details.senderAddress}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Amount:</span>
+                      <p className="text-gray-900 font-semibold">
+                        {formatAmount(result.details.amount, result.details.isTokenTransfer)}
+                        {result.details.isTokenTransfer && (
+                          <span className="text-gray-500 ml-1">(Token)</span>
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Block:</span>
+                      <p className="text-gray-900">{formatBlockNumber(result.details.blockNumber)}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Status:</span>
+                      <p className={`font-medium ${result.details.isConfirmed ? 'text-green-600' : 'text-yellow-600'}`}>
+                        {result.details.isConfirmed ? 'Confirmed' : 'Pending'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Gas Used:</span>
+                      <p className="text-gray-900">{result.details.gasUsed ? parseInt(result.details.gasUsed, 16).toLocaleString() : 'N/A'}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-red-500 text-xs">
+                    {result.error || 'Transaction not found on this network'}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Debug Info - Only show in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mt-4 p-3 bg-gray-100 rounded-lg text-xs">
+          <h4 className="font-medium mb-2">🔧 Debug Info:</h4>
+          <div className="space-y-1">
+            <div>Transaction Hash: {transactionHash || 'None'}</div>
+            <div>Hash Length: {transactionHash?.length || 0}</div>
+            <div>Is Valid Hash: {transactionHash && /^0x[a-fA-F0-9]{64}$|^[a-fA-F0-9]{64}$/.test(transactionHash) ? 'Yes' : 'No'}</div>
+            <div>Auto-fill Data: {autoFillData ? 'Loaded' : 'None'}</div>
+            <div>Search Results: {searchResults ? 'Loaded' : 'None'}</div>
+            <div>Is Searching: {isSearching ? 'Yes' : 'No'}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { depositAPI } from '../services/api';
+import { depositAPI, walletAPI } from '../services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import Layout from '../components/layout/Layout';
+import TransactionDetailsModal from '../components/TransactionDetailsModal';
+import AutomaticDeposit from '../components/AutomaticDeposit';
 import toast from 'react-hot-toast';
 
 const Deposit = () => {
@@ -16,7 +18,10 @@ const Deposit = () => {
   const [depositMethod, setDepositMethod] = useState('direct'); // 'direct' or 'coinbase'
   const [showInstructions, setShowInstructions] = useState(false);
   const [pendingDeposit, setPendingDeposit] = useState(null);
-
+  const [autoFillStatus, setAutoFillStatus] = useState(null); // 'success', 'warning', 'error', null
+  const [transactionDetails, setTransactionDetails] = useState(null);
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [showAutomaticDeposit, setShowAutomaticDeposit] = useState(false);
 
 
   const {
@@ -45,10 +50,10 @@ const Deposit = () => {
     queryFn: () => depositAPI.getMyDeposits({ limit: 10, page: 1 }),
   });
 
-  // Fetch user's wallet addresses
-  const { data: userAddresses, isLoading: addressesLoading } = useQuery({
-    queryKey: ['userWalletAddresses'],
-    queryFn: () => depositAPI.getUserWalletAddresses(),
+  // Fetch company wallet addresses instead of user addresses
+  const { data: companyAddresses, isLoading: addressesLoading } = useQuery({
+    queryKey: ['companyWalletAddresses'],
+    queryFn: () => walletAPI.getCompanyWalletAddresses(),
     enabled: depositMethod === 'direct'
   });
 
@@ -56,7 +61,7 @@ const Deposit = () => {
   const { data: usdtAddresses, isLoading: fallbackLoading } = useQuery({
     queryKey: ['usdt-addresses'],
     queryFn: depositAPI.getUsdtAddresses,
-    enabled: depositMethod === 'direct' && (!userAddresses?.data || userAddresses.data.length === 0)
+    enabled: depositMethod === 'direct' && (!companyAddresses?.data || Object.keys(companyAddresses.data).length === 0)
   });
 
   // Fetch pending deposits count
@@ -80,6 +85,185 @@ const Deposit = () => {
       toast.error(error.response?.data?.message || 'Failed to create deposit');
     },
   });
+
+  // Pre-verify transaction mutation
+  const preVerifyTransactionMutation = useMutation({
+    mutationFn: depositAPI.preVerifyTransaction,
+    onSuccess: (data) => {
+      const verificationData = data.data;
+      
+      if (verificationData.networkWarning) {
+        // Show warning but allow deposit to proceed
+        toast.success(`✅ Transaction verified! ${verificationData.networkWarning}`, {
+          duration: 5000
+        });
+        console.log('Pre-verification successful with network warning:', verificationData);
+      } else {
+        toast.success('✅ Transaction verified! Recipient and amount match our records.');
+        console.log('Pre-verification successful:', verificationData);
+      }
+    },
+    onError: (error) => {
+      const errorMessage = error.response?.data?.message || 'Transaction verification failed';
+      const errorDetails = error.response?.data?.details;
+      
+      if (errorDetails) {
+        console.error('Pre-verification failed with details:', errorDetails);
+        
+        // Show more specific error messages
+        if (errorDetails.foundOnNetwork && errorDetails.requestedNetwork) {
+          toast.error(`❌ ${errorMessage} (Found on ${errorDetails.foundOnNetwork}, you selected ${errorDetails.requestedNetwork})`);
+        } else if (errorDetails.expected && errorDetails.received) {
+          toast.error(`❌ ${errorMessage} (Expected: ${errorDetails.expected}, Received: ${errorDetails.received})`);
+        } else {
+          toast.error(`❌ ${errorMessage}`);
+        }
+      } else {
+        toast.error(`❌ ${errorMessage}`);
+      }
+    },
+  });
+
+  // Get transaction details mutation
+  const getTransactionDetailsMutation = useMutation({
+    mutationFn: depositAPI.getTransactionDetails,
+    onSuccess: (data) => {
+      const details = data.data;
+      console.log('Transaction details:', details);
+      
+      if (details.found) {
+        toast.success(`✅ Transaction found on ${details.foundOnNetwork}! Check console for details.`);
+      } else {
+        toast.error('❌ Transaction not found on any network');
+      }
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to get transaction details');
+    },
+  });
+
+  // Auto-fill transaction details mutation
+  const autoFillTransactionMutation = useMutation({
+    mutationFn: (data) => {
+      console.log('🚀 Auto-fill mutation called with data:', data);
+      return depositAPI.autoFillTransaction(data);
+    },
+    onSuccess: (data) => {
+      console.log('✅ Auto-fill mutation success:', data);
+      const transactionData = data.data;
+      console.log('Auto-fill transaction data:', transactionData);
+      
+      // Store transaction details for display
+      setTransactionDetails(transactionData);
+      
+      if (transactionData.found) {
+        // Auto-fill the form with transaction details
+        if (transactionData.suggestedAmount && !isNaN(transactionData.suggestedAmount)) {
+          setValue('amount', transactionData.suggestedAmount.toString());
+          setSelectedAmount(transactionData.suggestedAmount);
+        }
+        
+        if (transactionData.suggestedNetwork) {
+          setValue('network', transactionData.suggestedNetwork);
+          setSelectedNetwork(transactionData.suggestedNetwork);
+        }
+        
+        // Set auto-fill status
+        if (transactionData.isRecipientMatching) {
+          setAutoFillStatus('success');
+          toast.success(`✅ Transaction verified! Auto-filled: ${transactionData.suggestedAmount} USDT on ${transactionData.suggestedNetwork}`);
+        } else {
+          setAutoFillStatus('warning');
+          toast.warning(`⚠️ Transaction found on ${transactionData.foundOnNetwork}, but recipient doesn't match our address`);
+        }
+        
+        // Show transaction details modal
+        setShowTransactionModal(true);
+      } else {
+        setAutoFillStatus('error');
+        setTransactionDetails(null);
+        toast.error('❌ Transaction not found on any network');
+      }
+    },
+    onError: (error) => {
+      console.log('❌ Auto-fill mutation error:', error);
+      setAutoFillStatus('error');
+      setTransactionDetails(null);
+      const errorMessage = error.response?.data?.message || 'Failed to get transaction details';
+      toast.error(`❌ ${errorMessage}`);
+    },
+  });
+
+  // Function to trigger auto-fill
+  const triggerAutoFill = (hash) => {
+    console.log('🔍 triggerAutoFill called with hash:', hash);
+    if (hash && /^0x[a-fA-F0-9]{64}$|^[a-fA-F0-9]{64}$/.test(hash)) {
+      console.log('✅ Hash is valid, triggering auto-fill mutation');
+      autoFillTransactionMutation.mutate({ transactionHash: hash });
+    } else {
+      console.log('❌ Hash is invalid or empty:', hash);
+    }
+  };
+
+  // Handle modal confirmation
+  const handleModalConfirm = (transactionData) => {
+    // Create deposit with the transaction data
+    createUsdtDepositMutation.mutate({
+      amount: parseFloat(transactionData.suggestedAmount),
+      network: transactionData.suggestedNetwork,
+      transactionHash: watchedTransactionHash
+    });
+    setShowTransactionModal(false);
+  };
+
+  // Handle modal close
+  const handleModalClose = () => {
+    setShowTransactionModal(false);
+    setTransactionDetails(null);
+    setAutoFillStatus(null);
+  };
+
+  // Handle automatic deposit transaction verification
+  const handleTransactionVerified = (transactionData) => {
+    console.log('✅ Transaction verified in automatic deposit:', transactionData);
+    
+    // Auto-fill the form with transaction details
+    if (transactionData.amount) {
+      setValue('amount', transactionData.amount.toString());
+      setSelectedAmount(transactionData.amount);
+    }
+    
+    if (transactionData.network) {
+      setValue('network', transactionData.network);
+      setSelectedNetwork(transactionData.network);
+    }
+    
+    if (transactionData.transactionHash) {
+      setValue('transactionHash', transactionData.transactionHash);
+    }
+    
+    // Set auto-fill status
+    if (transactionData.isRecipientMatching) {
+      setAutoFillStatus('success');
+      toast.success(`✅ Transaction detected! Auto-filled: ${transactionData.amount} USDT on ${transactionData.network}`);
+    } else {
+      setAutoFillStatus('warning');
+      toast.warning(`⚠️ Transaction found but recipient doesn't match our address`);
+    }
+    
+    // Store transaction details for display
+    setTransactionDetails(transactionData);
+    
+    // Close automatic deposit modal
+    setShowAutomaticDeposit(false);
+  };
+
+  // Handle automatic deposit transaction error
+  const handleTransactionError = (errorMessage) => {
+    console.log('❌ Transaction error in automatic deposit:', errorMessage);
+    setAutoFillStatus('error');
+    setTransactionDetails(null);
+  };
 
   // Update transaction hash mutation
   const updateTransactionHashMutation = useMutation({
@@ -133,9 +317,9 @@ const Deposit = () => {
 
   // Dynamic networks based on user addresses
   const networks = React.useMemo(() => {
-    if (userAddresses?.data && Array.isArray(userAddresses.data) && userAddresses.data.length > 0) {
-      // Use user's wallet addresses
-      return userAddresses.data.map(addr => {
+    if (companyAddresses?.data && Object.keys(companyAddresses.data).length > 0) {
+      // Use company wallet addresses
+      return Object.entries(companyAddresses.data).map(([network, addr]) => {
         const networkConfig = {
           'BSC': { name: 'BSC (BEP20)', description: 'Binance Smart Chain', fee: '~$0.5' },
           'POLYGON': { name: 'Polygon', description: 'Polygon Network', fee: '~$0.01' },
@@ -143,19 +327,19 @@ const Deposit = () => {
           'TRON': { name: 'TRON (TRC20)', description: 'TRON Network', fee: '~$1' }
         };
         
-        const config = networkConfig[addr.network] || { 
-          name: addr.network, 
-          description: `${addr.network} Network`, 
+        const config = networkConfig[network] || { 
+          name: network, 
+          description: `${network} Network`, 
           fee: '~$1' 
         };
         
         return {
-          code: addr.network,
+          code: network,
           name: config.name,
           description: config.description,
           fee: config.fee,
-          address: addr.address,
-          isUserAddress: true
+          address: addr,
+          isUserAddress: false
         };
       });
     } else {
@@ -167,7 +351,7 @@ const Deposit = () => {
         { code: 'POLYGON', name: 'Polygon', description: 'Polygon Network', fee: '~$0.01' },
       ];
     }
-  }, [userAddresses]);
+  }, [companyAddresses]);
 
   const currencies = [
     { code: 'USDT', name: 'Tether USD', icon: '₮', method: 'direct' },
@@ -182,11 +366,42 @@ const Deposit = () => {
     }
 
     if (depositMethod === 'direct') {
-      // USDT Direct Deposit
-      createUsdtDepositMutation.mutate({
-        amount: parseFloat(data.amount),
-        network: data.network,
-      });
+      // USDT Direct Deposit - Check if transaction hash is provided
+      if (!data.transactionHash || data.transactionHash.trim() === '') {
+        toast.error('Please provide the transaction hash for USDT deposits');
+        return;
+      }
+
+      // Pre-verify the transaction before creating deposit
+      try {
+        const verificationResult = await preVerifyTransactionMutation.mutateAsync({
+          transactionHash: data.transactionHash.trim(),
+          network: data.network,
+          amount: parseFloat(data.amount)
+        });
+
+        // If pre-verification passes, create the deposit
+        // Use the network where the transaction was actually found
+        const actualNetwork = verificationResult.data.foundOnNetwork;
+        const networkMapping = {
+          'TRON': 'TRC20',
+          'BSC': 'BEP20',
+          'ETHEREUM': 'ERC20',
+          'POLYGON': 'POLYGON'
+        };
+        
+        const depositNetwork = networkMapping[actualNetwork] || data.network;
+        
+        createUsdtDepositMutation.mutate({
+          amount: parseFloat(data.amount),
+          network: depositNetwork,
+          transactionHash: data.transactionHash.trim()
+        });
+      } catch (error) {
+        // Pre-verification failed, don't create deposit
+        console.error('Pre-verification failed:', error);
+        return;
+      }
     } else {
       // Coinbase Commerce Deposit
       createCoinbaseDepositMutation.mutate({
@@ -271,10 +486,10 @@ const Deposit = () => {
 
   const getWalletAddress = (network) => {
     // First try to get from user addresses
-    if (userAddresses?.data && Array.isArray(userAddresses.data)) {
-      const userAddress = userAddresses.data.find(addr => addr.network === network);
+    if (companyAddresses?.data && Object.keys(companyAddresses.data).length > 0) {
+      const userAddress = companyAddresses.data[network];
       if (userAddress) {
-        return userAddress.address;
+        return userAddress;
       }
     }
     
@@ -440,7 +655,7 @@ const Deposit = () => {
                       )}
                       
                       {/* User Addresses Status */}
-                      {!addressesLoading && userAddresses?.data && Array.isArray(userAddresses.data) && userAddresses.data.length > 0 && (
+                      {!addressesLoading && companyAddresses?.data && Object.keys(companyAddresses.data).length > 0 && (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
                           <div className="flex items-center">
                             <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -455,7 +670,7 @@ const Deposit = () => {
                       )}
                       
                       {/* Fallback Addresses Status */}
-                      {!addressesLoading && (!userAddresses?.data || !Array.isArray(userAddresses.data) || userAddresses.data.length === 0) && (
+                      {!addressesLoading && (!companyAddresses?.data || Object.keys(companyAddresses.data).length === 0) && (
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
                           <div className="flex items-center">
                             <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -552,15 +767,199 @@ const Deposit = () => {
                     </div>
                   </div>
 
+                  {/* Transaction Hash Input for USDT Deposits */}
+                  {depositMethod === 'direct' && (
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-gray-700">
+                        Transaction Hash
+                      </label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="text"
+                          placeholder="Paste transaction hash to auto-fill details"
+                          error={errors.transactionHash?.message}
+                          {...register('transactionHash', {
+                            required: 'Transaction hash is required for USDT deposits',
+                            pattern: {
+                              value: /^0x[a-fA-F0-9]{64}$|^[a-fA-F0-9]{64}$/,
+                              message: 'Please enter a valid transaction hash'
+                            }
+                          })}
+                          onChange={(e) => {
+                            const hash = e.target.value.trim();
+                            console.log('🔄 onChange triggered with value:', hash);
+                            // Auto-trigger when a valid hash is entered
+                            if (hash && /^0x[a-fA-F0-9]{64}$|^[a-fA-F0-9]{64}$/.test(hash)) {
+                              console.log('✅ Valid hash detected, calling triggerAutoFill');
+                              // Trigger immediately
+                              triggerAutoFill(hash);
+                            } else {
+                              console.log('❌ Invalid hash or empty value');
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            if (watchedTransactionHash) {
+                              autoFillTransactionMutation.mutate({
+                                transactionHash: watchedTransactionHash
+                              });
+                            } else {
+                              toast.error('Please enter a transaction hash first');
+                            }
+                          }}
+                          loading={autoFillTransactionMutation.isPending}
+                          disabled={!watchedTransactionHash}
+                          className="whitespace-nowrap"
+                        >
+                          {autoFillTransactionMutation.isPending ? 'Auto-filling...' : 'Auto-fill'}
+                        </Button>
+                        
+                        {/* Enhanced Automatic Detection Button */}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowAutomaticDeposit(true)}
+                          className="whitespace-nowrap bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 border-0 shadow-lg"
+                        >
+                          🔍 Enhanced Detection
+                        </Button>
+                        
+                        {/* Debug Test Button */}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            console.log('🧪 Debug: Testing with sample hash');
+                            triggerAutoFill('0x8822b1236f31c75f501fb6ee34b4278de6163fd4e734604883e49784bcb9802b');
+                          }}
+                          className="whitespace-nowrap bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                        >
+                          🧪 Test
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        🔍 Paste transaction hash to automatically fill network and amount
+                      </p>
+                      
+                      {/* Auto-fill Status Indicator */}
+                      {autoFillStatus && (
+                        <div className={`mt-2 p-2 rounded-lg text-xs ${
+                          autoFillStatus === 'success' 
+                            ? 'bg-green-50 border border-green-200 text-green-800'
+                            : autoFillStatus === 'warning'
+                            ? 'bg-yellow-50 border border-yellow-200 text-yellow-800'
+                            : 'bg-red-50 border border-red-200 text-red-800'
+                        }`}>
+                          {autoFillStatus === 'success' && (
+                            <div className="flex items-center">
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Transaction verified and form auto-filled
+                            </div>
+                          )}
+                          {autoFillStatus === 'warning' && (
+                            <div className="flex items-center">
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                              </svg>
+                              Transaction found but recipient doesn't match our address
+                            </div>
+                          )}
+                          {autoFillStatus === 'error' && (
+                            <div className="flex items-center">
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Transaction not found or error occurred
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Loading Indicator */}
+                      {autoFillTransactionMutation.isPending && (
+                        <div className="mt-2 p-2 rounded-lg text-xs bg-blue-50 border border-blue-200 text-blue-800">
+                          <div className="flex items-center">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                            🔍 Searching transaction across all networks...
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Transaction Details Display */}
+                      {transactionDetails && (
+                        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <h4 className="text-sm font-medium text-blue-900 mb-3">📊 Transaction Details</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <span className="text-blue-700">Network:</span>
+                              <span className="ml-2 font-medium text-blue-900">{transactionDetails.foundOnNetwork}</span>
+                            </div>
+                            <div>
+                              <span className="text-blue-700">Amount:</span>
+                              <span className="ml-2 font-medium text-blue-900">{transactionDetails.suggestedAmount} USDT</span>
+                            </div>
+                            <div className="sm:col-span-2">
+                              <span className="text-blue-700">Recipient:</span>
+                              <div className="mt-1 font-mono text-xs break-all bg-white p-2 rounded border">
+                                {transactionDetails.recipientAddress}
+                              </div>
+                            </div>
+                            <div className="sm:col-span-2">
+                              <span className="text-blue-700">Sender:</span>
+                              <div className="mt-1 font-mono text-xs break-all bg-white p-2 rounded border">
+                                {transactionDetails.senderAddress}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="text-blue-700">Block:</span>
+                              <span className="ml-2 font-medium text-blue-900">{transactionDetails.blockNumber}</span>
+                            </div>
+                            <div>
+                              <span className="text-blue-700">Status:</span>
+                              <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                                transactionDetails.isRecipientMatching 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {transactionDetails.isRecipientMatching ? '✓ Valid' : '✗ Invalid'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {/* Debug Section - Remove in production */}
+                      <div className="mt-4 p-3 bg-gray-100 rounded-lg text-xs">
+                        <h4 className="font-medium mb-2">🔧 Debug Info:</h4>
+                        <div className="space-y-1">
+                          <div>Transaction Hash: {watchedTransactionHash || 'None'}</div>
+                          <div>Hash Length: {watchedTransactionHash?.length || 0}</div>
+                          <div>Is Valid Hash: {watchedTransactionHash && /^0x[a-fA-F0-9]{64}$|^[a-fA-F0-9]{64}$/.test(watchedTransactionHash) ? 'Yes' : 'No'}</div>
+                          <div>Auto-fill Status: {autoFillStatus || 'None'}</div>
+                          <div>Mutation Loading: {autoFillTransactionMutation.isPending ? 'Yes' : 'No'}</div>
+                          <div>Transaction Data: {transactionDetails ? 'Loaded' : 'None'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Deposit Button */}
                   <Button
                     type="submit"
                     className="w-full"
-                    loading={createUsdtDepositMutation.isPending || createCoinbaseDepositMutation.isPending}
-                    disabled={createUsdtDepositMutation.isPending || createCoinbaseDepositMutation.isPending || !watchedAmount}
+                    loading={createUsdtDepositMutation.isPending || createCoinbaseDepositMutation.isPending || preVerifyTransactionMutation.isPending}
+                    disabled={createUsdtDepositMutation.isPending || createCoinbaseDepositMutation.isPending || preVerifyTransactionMutation.isPending || !watchedAmount}
                   >
-                    {createUsdtDepositMutation.isPending || createCoinbaseDepositMutation.isPending
+                    {preVerifyTransactionMutation.isPending
+                      ? '🔍 Verifying Transaction...'
+                      : createUsdtDepositMutation.isPending || createCoinbaseDepositMutation.isPending
                       ? 'Creating Deposit...' 
+                      : depositMethod === 'direct'
+                      ? `Create Deposit ${watchedAmount ? formatCurrency(parseFloat(watchedAmount), watchedCurrency) : ''}`
                       : `Deposit ${watchedAmount ? formatCurrency(parseFloat(watchedAmount), watchedCurrency) : ''}`
                     }
                   </Button>
@@ -707,7 +1106,7 @@ const Deposit = () => {
                         <li>• Use the correct network (BEP20, TRC20, etc.)</li>
                         <li>• Manual verification required - submit transaction hash after sending</li>
                         <li>• Automatic detection is disabled</li>
-                        {userAddresses?.data && Array.isArray(userAddresses.data) && userAddresses.data.length > 0 && (
+                        {companyAddresses?.data && Object.keys(companyAddresses.data).length > 0 && (
                           <li>• ✓ Using your personal wallet addresses</li>
                         )}
                       </ul>
@@ -802,6 +1201,79 @@ const Deposit = () => {
           </div>
         </div>
       </div>
+
+      {/* Transaction Details Modal */}
+      <TransactionDetailsModal
+        isOpen={showTransactionModal}
+        onClose={handleModalClose}
+        transactionData={transactionDetails}
+        onConfirm={handleModalConfirm}
+      />
+
+      {/* Automatic Deposit Modal */}
+      {showAutomaticDeposit && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowAutomaticDeposit(false);
+            }
+          }}
+        >
+          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 animate-in slide-in-from-bottom-4 duration-200">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">Enhanced Transaction Detection</h3>
+                    <p className="text-sm text-gray-600">Paste any transaction hash to automatically detect details</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAutomaticDeposit(false)}
+                  className="text-gray-400 hover:text-gray-600 text-2xl transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <AutomaticDeposit
+                onTransactionVerified={handleTransactionVerified}
+                onTransactionError={handleTransactionError}
+              />
+              
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="flex justify-end space-x-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowAutomaticDeposit(false)}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      // Auto-fill the form if we have transaction details
+                      if (transactionDetails) {
+                        handleTransactionVerified(transactionDetails);
+                      }
+                      setShowAutomaticDeposit(false);
+                    }}
+                    disabled={!transactionDetails || autoFillTransactionMutation.isPending}
+                    loading={autoFillTransactionMutation.isPending}
+                  >
+                    {autoFillTransactionMutation.isPending ? 'Processing...' : 'Use Detected Transaction'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

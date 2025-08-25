@@ -12,9 +12,167 @@ const {
   getPendingDepositsForVerification,
   batchVerifyDeposits 
 } = require('../services/depositVerificationService');
+const TransactionVerificationService = require('../services/transactionVerificationService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+// Helper function to get company wallet addresses
+const getCompanyAddresses = () => {
+  const addresses = {
+    BSC: process.env.BSC_WALLET_ADDRESS || "0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09",
+    TRON: process.env.TRON_WALLET_ADDRESS || "TUF38LTyPaqfdanHBpGMs5Xid6heLcxxpK",
+    POLYGON: process.env.POLYGON_WALLET_ADDRESS || "0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09",
+    ETHEREUM: process.env.ETH_WALLET_ADDRESS || "0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09"
+  };
+  
+  console.log('🔧 Company addresses loaded:', {
+    BSC: addresses.BSC ? `${addresses.BSC.substring(0, 10)}...` : 'NOT_SET',
+    TRON: addresses.TRON ? `${addresses.TRON.substring(0, 10)}...` : 'NOT_SET',
+    POLYGON: addresses.POLYGON ? `${addresses.POLYGON.substring(0, 10)}...` : 'NOT_SET',
+    ETHEREUM: addresses.ETHEREUM ? `${addresses.ETHEREUM.substring(0, 10)}...` : 'NOT_SET'
+  });
+  
+  return addresses;
+};
+
+// Helper function to verify transaction before creating deposit
+const verifyTransactionBeforeDeposit = async (transactionHash, network, expectedAmount) => {
+  try {
+    console.log(`🔍 Pre-verifying transaction: ${transactionHash} for ${network} network`);
+    
+    // First, check transaction across all networks to find where it exists
+    const crossNetworkResult = await TransactionVerificationService.checkTransactionAcrossAllNetworks(
+      transactionHash
+    );
+    
+    if (!crossNetworkResult.found) {
+      return {
+        isValid: false,
+        error: 'Transaction not found on any supported blockchain',
+        details: null
+      };
+    }
+    
+    console.log(`✅ Transaction found on ${crossNetworkResult.foundOnNetwork} network`);
+    
+    // Get the transaction details from the network where it was found
+    const foundNetwork = crossNetworkResult.foundOnNetwork;
+    const transactionDetails = crossNetworkResult.results.find(
+      result => result.network === foundNetwork && result.found
+    );
+    
+    if (!transactionDetails || !transactionDetails.details) {
+      return {
+        isValid: false,
+        error: 'Transaction found but details are incomplete',
+        details: null
+      };
+    }
+    
+    // Get company addresses
+    const companyAddresses = getCompanyAddresses();
+    const expectedAddress = companyAddresses[foundNetwork];
+    
+    console.log(`🔍 Address verification for ${foundNetwork}:`, {
+      foundNetwork: foundNetwork,
+      expectedAddress: expectedAddress,
+      recipientAddress: transactionDetails.details.recipientAddress,
+      addressesAvailable: Object.keys(companyAddresses),
+      allAddresses: companyAddresses,
+      directLookup: companyAddresses[foundNetwork],
+      caseInsensitiveLookup: companyAddresses[foundNetwork.toUpperCase()] || companyAddresses[foundNetwork.toLowerCase()]
+    });
+    
+    // Try different case variations if direct lookup fails
+    let finalExpectedAddress = expectedAddress;
+    if (!finalExpectedAddress) {
+      finalExpectedAddress = companyAddresses[foundNetwork.toUpperCase()] || 
+                            companyAddresses[foundNetwork.toLowerCase()] ||
+                            companyAddresses[foundNetwork.charAt(0).toUpperCase() + foundNetwork.slice(1).toLowerCase()];
+    }
+    
+    if (!finalExpectedAddress) {
+      console.log(`❌ Company address not found for network: ${foundNetwork}`);
+      console.log(`Available networks:`, Object.keys(companyAddresses));
+      console.log(`All addresses:`, companyAddresses);
+      return {
+        isValid: false,
+        error: `Company wallet address not configured for ${foundNetwork} network`,
+        details: {
+          foundNetwork: foundNetwork,
+          availableNetworks: Object.keys(companyAddresses),
+          allAddresses: companyAddresses
+        }
+      };
+    }
+    
+    // Verify recipient address
+    const recipientAddress = transactionDetails.details.recipientAddress;
+    if (!recipientAddress || recipientAddress.toLowerCase() !== finalExpectedAddress.toLowerCase()) {
+      return {
+        isValid: false,
+        error: `Transaction recipient does not match our ${foundNetwork} wallet address`,
+        details: {
+          expected: finalExpectedAddress,
+          received: recipientAddress,
+          foundOnNetwork: foundNetwork,
+          requestedNetwork: network
+        }
+      };
+    }
+    
+    // Verify amount (allow small difference for decimals)
+    const transactionAmount = parseFloat(transactionDetails.details.amount);
+    const depositAmount = parseFloat(expectedAmount);
+    const difference = Math.abs(transactionAmount - depositAmount);
+    
+    if (difference > 0.01) {
+      return {
+        isValid: false,
+        error: `Transaction amount does not match deposit amount`,
+        details: {
+          expected: depositAmount,
+          received: transactionAmount,
+          difference: difference,
+          foundOnNetwork: foundNetwork,
+          requestedNetwork: network
+        }
+      };
+    }
+    
+    // Check if the found network matches the requested network
+    const networkMapping = {
+      'TRC20': 'TRON',
+      'BEP20': 'BSC',
+      'ERC20': 'ETHEREUM',
+      'POLYGON': 'POLYGON'
+    };
+    
+    const requestedNetworkMapped = networkMapping[network];
+    const networkMatches = foundNetwork === requestedNetworkMapped;
+    
+    return {
+      isValid: true,
+      error: null,
+      details: {
+        ...transactionDetails.details,
+        foundOnNetwork: foundNetwork,
+        requestedNetwork: network,
+        networkMatches: networkMatches,
+        networkWarning: networkMatches ? null : `Transaction found on ${foundNetwork} but you selected ${network}`
+      }
+    };
+    
+  } catch (error) {
+    console.error('Error pre-verifying transaction:', error);
+    return {
+      isValid: false,
+      error: `Verification failed: ${error.message}`,
+      details: null
+    };
+  }
+};
 
 // Create deposit request
 router.post('/create', [
@@ -212,10 +370,10 @@ router.get('/company-addresses', authenticateToken, async (req, res) => {
 
     // Add network information and fees
     const networkInfo = {
-      TRC20: { name: 'Tron TRC20', fee: '~$1', minAmount: 30, supportedTokens: ['USDT'] },
-      BEP20: { name: 'BSC BEP20', fee: '~$0.5', minAmount: 30, supportedTokens: ['USDT', 'USDC'] },
-      ERC20: { name: 'Ethereum ERC20', fee: '~$10-50', minAmount: 30, supportedTokens: ['USDT', 'USDC'] },
-      POLYGON: { name: 'Polygon MATIC', fee: '~$0.01', minAmount: 30, supportedTokens: ['USDT', 'USDC'] }
+      TRC20: { name: 'Tron TRC20', fee: '~$1', minAmount: 0.000001, supportedTokens: ['USDT'] },
+      BEP20: { name: 'BSC BEP20', fee: '~$0.5', minAmount: 0.000001, supportedTokens: ['USDT', 'USDC'] },
+      ERC20: { name: 'Ethereum ERC20', fee: '~$10-50', minAmount: 0.000001, supportedTokens: ['USDT', 'USDC'] },
+      POLYGON: { name: 'Polygon MATIC', fee: '~$0.01', minAmount: 0.000001, supportedTokens: ['USDT', 'USDC'] }
     };
 
     const result = {};
@@ -240,10 +398,8 @@ router.get('/company-addresses', authenticateToken, async (req, res) => {
   }
 });
 
-// Create USDT deposit record
-router.post('/usdt/create', [
-  body('amount').isFloat({ min: 1 }).withMessage('Amount must be at least 1 USDT'),
-  body('network').isIn(['BEP20', 'TRC20', 'ERC20', 'POLYGON']).withMessage('Invalid network'),
+// Auto-fill transaction details when hash is pasted
+router.post('/auto-fill-transaction', [
   body('transactionHash').notEmpty().withMessage('Transaction hash is required')
 ], authenticateToken, requireEmailVerification, async (req, res) => {
   try {
@@ -255,14 +411,180 @@ router.post('/usdt/create', [
       });
     }
 
-    const { amount, network, transactionHash } = req.body;
+    const { transactionHash } = req.body;
     const userId = req.user.id;
 
-    console.log(`Creating USDT deposit:`, {
-      userId,
-      amount,
+    console.log(`🔍 Auto-filling transaction details for user ${userId}:`, {
+      transactionHash: transactionHash.substring(0, 10) + '...'
+    });
+
+    // Check transaction across all networks
+    const crossNetworkResult = await TransactionVerificationService.checkTransactionAcrossAllNetworks(
+      transactionHash
+    );
+
+    if (!crossNetworkResult.found) {
+      return res.status(404).json({
+        error: 'Transaction not found',
+        message: 'Transaction not found on any supported blockchain',
+        data: {
+          found: false,
+          transactionHash: transactionHash
+        }
+      });
+    }
+
+    // Get the transaction details from the network where it was found
+    const foundNetwork = crossNetworkResult.foundOnNetwork;
+    const transactionDetails = crossNetworkResult.results.find(
+      result => result.network === foundNetwork && result.found
+    );
+
+    if (!transactionDetails || !transactionDetails.details) {
+      return res.status(400).json({
+        error: 'Transaction details incomplete',
+        message: 'Transaction found but details are incomplete',
+        data: {
+          found: true,
+          foundOnNetwork: foundNetwork,
+          details: null
+        }
+      });
+    }
+
+    // Get company addresses
+    const companyAddresses = getCompanyAddresses();
+    const expectedAddress = companyAddresses[foundNetwork];
+
+    // Map verification network names back to deposit network names
+    const reverseNetworkMapping = {
+      'TRON': 'TRC20',
+      'BSC': 'BEP20',
+      'ETHEREUM': 'ERC20',
+      'POLYGON': 'POLYGON'
+    };
+
+    const suggestedNetwork = reverseNetworkMapping[foundNetwork] || foundNetwork;
+
+    // Check if recipient matches our address
+    const recipientAddress = transactionDetails.details.recipientAddress;
+    const isRecipientMatching = recipientAddress && expectedAddress && 
+      recipientAddress.toLowerCase() === expectedAddress.toLowerCase();
+
+    // Get transaction amount
+    const transactionAmount = parseFloat(transactionDetails.details.amount);
+
+    res.json({
+      success: true,
+      message: 'Transaction details retrieved successfully',
+      data: {
+        found: true,
+        transactionHash: transactionHash,
+        foundOnNetwork: foundNetwork,
+        suggestedNetwork: suggestedNetwork,
+        suggestedAmount: transactionAmount,
+        recipientAddress: recipientAddress,
+        senderAddress: transactionDetails.details.senderAddress,
+        blockNumber: transactionDetails.details.blockNumber,
+        isConfirmed: transactionDetails.details.isConfirmed,
+        isTokenTransfer: transactionDetails.details.isTokenTransfer,
+        isRecipientMatching: isRecipientMatching,
+        expectedCompanyAddress: expectedAddress,
+        companyAddresses: companyAddresses,
+        verificationStatus: {
+          networkFound: true,
+          recipientMatches: isRecipientMatching,
+          amountAvailable: !isNaN(transactionAmount),
+          canAutoFill: isRecipientMatching && !isNaN(transactionAmount)
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error auto-filling transaction details:', error);
+    res.status(500).json({
+      error: 'Failed to get transaction details',
+      message: error.message
+    });
+  }
+});
+
+// Get transaction details without verification (for debugging)
+router.post('/transaction-details', [
+  body('transactionHash').notEmpty().withMessage('Transaction hash is required')
+], authenticateToken, requireEmailVerification, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { transactionHash } = req.body;
+    const userId = req.user.id;
+
+    console.log(`🔍 Getting transaction details for user ${userId}:`, {
+      transactionHash: transactionHash.substring(0, 10) + '...'
+    });
+
+    // Check transaction across all networks
+    const crossNetworkResult = await TransactionVerificationService.checkTransactionAcrossAllNetworks(
+      transactionHash
+    );
+
+    // Get company addresses for reference
+    const companyAddresses = getCompanyAddresses();
+
+    res.json({
+      success: true,
+      message: 'Transaction details retrieved',
+      data: {
+        transactionHash: transactionHash,
+        found: crossNetworkResult.found,
+        foundOnNetwork: crossNetworkResult.foundOnNetwork,
+        totalNetworksChecked: crossNetworkResult.totalNetworksChecked,
+        results: crossNetworkResult.results,
+        companyAddresses: companyAddresses,
+        debug: {
+          foundNetwork: crossNetworkResult.foundOnNetwork,
+          companyAddressForNetwork: companyAddresses[crossNetworkResult.foundOnNetwork] || 'NOT_CONFIGURED'
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting transaction details:', error);
+    res.status(500).json({
+      error: 'Failed to get transaction details',
+      message: error.message
+    });
+  }
+});
+
+// Pre-verify transaction before creating deposit (for frontend validation)
+router.post('/pre-verify', [
+  body('transactionHash').notEmpty().withMessage('Transaction hash is required'),
+  body('network').isIn(['BEP20', 'TRC20', 'ERC20', 'POLYGON']).withMessage('Invalid network'),
+  body('amount').isFloat({ min: 1 }).withMessage('Amount must be at least 1 USDT')
+], authenticateToken, requireEmailVerification, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { transactionHash, network, amount } = req.body;
+    const userId = req.user.id;
+
+    console.log(`🔍 Pre-verification request from user ${userId}:`, {
+      transactionHash: transactionHash.substring(0, 10) + '...',
       network,
-      transactionHash: transactionHash ? `${transactionHash.substring(0, 10)}...` : 'null'
+      amount
     });
 
     // Check admin settings
@@ -274,15 +596,207 @@ router.post('/usdt/create', [
       });
     }
 
-    // For USDT deposits, use the admin setting for minimum amount
-    const minUsdtAmount = parseFloat(settings.minUsdtDepositAmount || 30);
-    if (parseFloat(amount) < minUsdtAmount) {
+    // Check minimum amount (any amount greater than 0 is accepted for verified transactions)
+    if (parseFloat(amount) <= 0) {
       return res.status(400).json({
-        error: 'Amount too low',
-        message: `Minimum USDT deposit amount is ${minUsdtAmount} USDT`
+        error: 'Invalid amount',
+        message: 'Amount must be greater than 0'
       });
     }
 
+    // Pre-verify the transaction
+    const preVerificationResult = await verifyTransactionBeforeDeposit(transactionHash, network, amount);
+
+    if (!preVerificationResult.isValid) {
+      console.log(`❌ Pre-verification failed:`, {
+        transactionHash: transactionHash.substring(0, 10) + '...',
+        network,
+        amount,
+        error: preVerificationResult.error
+      });
+      return res.status(400).json({
+        error: 'Transaction verification failed',
+        message: preVerificationResult.error,
+        details: preVerificationResult.details
+      });
+    }
+
+    console.log(`✅ Pre-verification successful:`, {
+      transactionHash: transactionHash.substring(0, 10) + '...',
+      network,
+      amount,
+      recipientAddress: preVerificationResult.details.recipientAddress,
+      transactionAmount: preVerificationResult.details.amount
+    });
+
+    res.json({
+      success: true,
+      message: 'Transaction verified successfully',
+      data: {
+        isValid: true,
+        network,
+        amount: preVerificationResult.details.amount,
+        recipientAddress: preVerificationResult.details.recipientAddress,
+        senderAddress: preVerificationResult.details.senderAddress,
+        blockNumber: preVerificationResult.details.blockNumber,
+        isConfirmed: preVerificationResult.details.isConfirmed,
+        isTokenTransfer: preVerificationResult.details.isTokenTransfer,
+        foundOnNetwork: preVerificationResult.details.foundOnNetwork,
+        requestedNetwork: preVerificationResult.details.requestedNetwork,
+        networkMatches: preVerificationResult.details.networkMatches,
+        networkWarning: preVerificationResult.details.networkWarning
+      }
+    });
+
+  } catch (error) {
+    console.error('Error pre-verifying transaction:', error);
+    res.status(500).json({
+      error: 'Failed to verify transaction',
+      message: error.message
+    });
+  }
+});
+
+// Create USDT deposit record
+router.post('/usdt/create', [
+  body('amount').isFloat({ min: 0.000001 }).withMessage('Amount must be greater than 0'),
+  body('network').isIn(['BEP20', 'TRC20', 'ERC20', 'POLYGON']).withMessage('Invalid network'),
+  body('transactionHash').notEmpty().withMessage('Transaction hash is required'),
+  body('status').optional().isIn(['PENDING', 'CONFIRMED']).withMessage('Invalid status'),
+  body('autoConfirmed').optional().isBoolean().withMessage('autoConfirmed must be boolean')
+], authenticateToken, requireEmailVerification, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { amount, network, transactionHash, status, autoConfirmed } = req.body;
+    const userId = req.user.id;
+
+    console.log(`📦 Full request body:`, req.body);
+    console.log(`Creating USDT deposit:`, {
+      userId,
+      amount,
+      network,
+      transactionHash: transactionHash ? `${transactionHash.substring(0, 10)}...` : 'null',
+      status,
+      autoConfirmed,
+      statusType: typeof status,
+      autoConfirmedType: typeof autoConfirmed
+    });
+
+    // Check admin settings
+    const settings = await prisma.adminSettings.findFirst();
+    if (!settings || !settings.isDepositEnabled) {
+      return res.status(400).json({
+        error: 'Deposits are currently disabled',
+        message: 'Please try again later'
+      });
+    }
+
+    // For USDT deposits, accept any amount greater than 0 (verified transactions)
+    if (parseFloat(amount) <= 0) {
+      return res.status(400).json({
+        error: 'Invalid amount',
+        message: 'Amount must be greater than 0'
+      });
+    }
+
+    // Pre-verify the transaction before creating deposit
+    console.log(`🔍 Starting pre-verification for USDT deposit:`, {
+      transactionHash: transactionHash.substring(0, 10) + '...',
+      network,
+      amount
+    });
+
+    const preVerificationResult = await verifyTransactionBeforeDeposit(transactionHash, network, amount);
+
+    if (!preVerificationResult.isValid) {
+      console.log(`❌ Pre-verification failed for USDT deposit:`, {
+        transactionHash: transactionHash.substring(0, 10) + '...',
+        network,
+        amount,
+        error: preVerificationResult.error,
+        details: preVerificationResult.details
+      });
+      return res.status(400).json({
+        error: 'Transaction verification failed',
+        message: preVerificationResult.error,
+        details: preVerificationResult.details
+      });
+    }
+
+    console.log(`✅ Pre-verification successful for USDT deposit:`, {
+      transactionHash: transactionHash.substring(0, 10) + '...',
+      network,
+      amount,
+      recipientAddress: preVerificationResult.details.recipientAddress,
+      transactionAmount: preVerificationResult.details.amount
+    });
+
+    // Check if transaction hash already exists in database
+    console.log(`🔍 Checking for duplicate transaction hash:`, {
+      transactionHash: transactionHash.substring(0, 10) + '...'
+    });
+
+    const existingDeposit = await prisma.deposit.findFirst({
+      where: {
+        transactionHash: transactionHash.trim(),
+        currency: 'USDT'
+      },
+      select: {
+        id: true,
+        status: true,
+        amount: true,
+        network: true,
+        createdAt: true,
+        userId: true
+      }
+    });
+
+    if (existingDeposit) {
+      console.log(`❌ Duplicate transaction hash found:`, {
+        transactionHash: transactionHash.substring(0, 10) + '...',
+        existingDepositId: existingDeposit.id,
+        existingStatus: existingDeposit.status,
+        existingAmount: existingDeposit.amount,
+        existingNetwork: existingDeposit.network,
+        existingUserId: existingDeposit.userId,
+        currentUserId: userId,
+        isSameUser: existingDeposit.userId === userId
+      });
+
+      return res.status(400).json({
+        error: 'Transaction already processed',
+        message: existingDeposit.userId === userId 
+          ? 'This transaction has already been deposited to your account'
+          : 'This transaction has already been processed by another user',
+        details: {
+          depositId: existingDeposit.id,
+          status: existingDeposit.status,
+          amount: existingDeposit.amount,
+          network: existingDeposit.network,
+          createdAt: existingDeposit.createdAt
+        }
+      });
+    }
+
+    console.log(`✅ No duplicate transaction hash found, proceeding with deposit creation`);
+
+    // Determine deposit status based on auto-confirmation
+    console.log('🔍 Auto-confirmation check:', {
+      autoConfirmed,
+      status,
+      willBeConfirmed: (autoConfirmed && status === 'CONFIRMED')
+    });
+    
+    const depositStatus = (autoConfirmed && status === 'CONFIRMED') ? 'CONFIRMED' : 'PENDING';
+    console.log('📊 Final deposit status:', depositStatus);
+    
     // Create USDT deposit record
     const deposit = await prisma.deposit.create({
       data: {
@@ -291,7 +805,7 @@ router.post('/usdt/create', [
         currency: 'USDT',
         network: network,
         transactionHash: transactionHash.trim(),
-        status: 'PENDING',
+        status: depositStatus,
         depositType: 'USDT_DIRECT'
       }
     });
@@ -322,16 +836,82 @@ router.post('/usdt/create', [
       console.log(`❌ Deposit verification query failed - deposit not found after creation!`);
     }
 
+    // If deposit is confirmed, automatically credit user's wallet
+    if (depositStatus === 'CONFIRMED') {
+      try {
+        console.log(`💰 Starting wallet credit process:`, {
+          userId,
+          amount: parseFloat(amount),
+          depositStatus
+        });
+
+        // First, get current wallet balance for logging
+        const currentWallet = await prisma.wallet.findUnique({
+          where: { userId: userId },
+          select: { balance: true, totalDeposits: true }
+        });
+
+        console.log(`📊 Current wallet balance before credit:`, {
+          userId,
+          currentBalance: currentWallet?.balance || 0,
+          currentTotalDeposits: currentWallet?.totalDeposits || 0
+        });
+
+        // Update user's wallet balance using upsert to create wallet if it doesn't exist
+        const updatedWallet = await prisma.wallet.upsert({
+          where: { userId: userId },
+          update: {
+            balance: {
+              increment: parseFloat(amount)
+            },
+            totalDeposits: {
+              increment: parseFloat(amount)
+            }
+          },
+          create: {
+            userId: userId,
+            balance: parseFloat(amount),
+            totalDeposits: parseFloat(amount)
+          }
+        });
+
+        console.log(`✅ User wallet credited successfully:`, {
+          userId: updatedWallet.userId,
+          oldBalance: currentWallet?.balance || 0,
+          newBalance: updatedWallet.balance,
+          amountAdded: parseFloat(amount),
+          expectedNewBalance: (currentWallet?.balance || 0) + parseFloat(amount),
+          oldTotalDeposits: currentWallet?.totalDeposits || 0,
+          newTotalDeposits: updatedWallet.totalDeposits
+        });
+
+        // Verify the update worked
+        if (updatedWallet.balance !== (currentWallet?.balance || 0) + parseFloat(amount)) {
+          console.error(`❌ Wallet balance mismatch! Expected: ${(currentWallet?.balance || 0) + parseFloat(amount)}, Got: ${updatedWallet.balance}`);
+        }
+      } catch (walletError) {
+        console.error('❌ Error crediting user wallet:', walletError);
+        console.error('❌ Wallet error details:', {
+          error: walletError.message,
+          stack: walletError.stack
+        });
+        // Don't fail the deposit creation if wallet update fails
+      }
+    } else {
+      console.log(`⏳ Deposit not confirmed, skipping wallet credit. Status: ${depositStatus}`);
+    }
+
     res.json({
       success: true,
-      message: 'USDT deposit record created successfully',
+      message: depositStatus === 'CONFIRMED' ? 'USDT deposit automatically confirmed!' : 'USDT deposit record created successfully',
       data: {
         depositId: deposit.id,
         amount: deposit.amount,
         currency: deposit.currency,
         network: deposit.network,
         status: deposit.status,
-        createdAt: deposit.createdAt
+        createdAt: deposit.createdAt,
+        autoConfirmed: autoConfirmed || false
       }
     });
 

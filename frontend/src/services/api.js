@@ -52,9 +52,8 @@ export const authAPI = {
 // Wallet API
 export const walletAPI = {
   getStats: () => api.get('/wallet/stats'),
-  getTransactions: (params) => api.get('/wallet/transactions', { params }),
   getProjectedEarnings: (params) => api.get('/wallet/projected-earnings', { params }),
-  withdrawEarnings: (amount) => api.post('/wallet/withdraw-earnings', { amount }),
+  getCompanyWalletAddresses: () => api.get('/wallet/company-addresses'),
 };
 
 // Deposit API
@@ -64,9 +63,12 @@ export const depositAPI = {
   getMyDeposits: (params) => api.get('/deposit/my-deposits', { params }),
   getDepositDetails: (id) => api.get(`/deposit/${id}`),
   getUsdtAddresses: () => api.get('/deposit/usdt/addresses'),
-  getCompanyAddresses: () => api.get('/deposit/company-addresses'),
-  getUserWalletAddresses: () => api.get('/wallet/addresses'),
   createUsdtDeposit: (data) => api.post('/deposit/usdt/create', data),
+  preVerifyTransaction: (data) => api.post('/deposit/pre-verify', data),
+  getTransactionDetails: (data) => api.post('/deposit/transaction-details', data),
+  autoFillTransaction: (data) => api.post('/deposit/auto-fill-transaction', data),
+  getTransactionDetails: (data) => api.post('/deposit/transaction-details', data),
+  checkTransactionAllNetworks: (data) => api.post('/admin/check-transaction-all-networks', data),
   getPendingCount: () => api.get('/deposit/pending-count'),
   updateTransactionHash: (depositId, transactionHash) => api.patch(`/deposit/${depositId}/transaction-hash`, { transactionHash }),
   verifyDeposit: (depositId) => api.post(`/deposit/${depositId}/verify`),
@@ -112,16 +114,16 @@ export const taskAPI = {
 export const adminAPI = {
   getStats: () => api.get('/admin/stats'),
   getUsers: (params) => api.get('/admin/users', { params }),
-  toggleUserStatus: (userId) => api.patch(`/admin/users/${userId}/toggle-status`),
-  getWithdrawals: (params) => api.get('/admin/withdrawals', { params }),
-  getPendingWithdrawals: () => api.get('/admin/withdrawals/pending'),
-  processWithdrawal: (id, data) => api.patch(`/admin/withdrawals/${id}/process`, data),
   getDeposits: (params) => api.get('/admin/deposits', { params }),
-  getPendingDeposits: () => api.get('/admin/deposits/pending'),
-  processDeposit: (id, data) => api.patch(`/admin/deposits/${id}/process`, data),
+  getPendingWithdrawals: () => api.get('/admin/withdrawals/pending'),
+  getWithdrawalHistory: (params) => api.get('/admin/withdrawals/history', { params }),
   getSettings: () => api.get('/admin/settings'),
-  updateSettings: (settings) => api.patch('/admin/settings', settings),
-  getReferralTree: () => api.get('/admin/referral-tree'),
+  updateSettings: (data) => api.put('/admin/settings', data),
+  processWithdrawal: (withdrawalId, action, data) => api.post(`/admin/withdrawals/${withdrawalId}/${action}`, data),
+  processDeposit: (depositId, action, data) => api.post(`/admin/deposits/${depositId}/${action}`, data),
+  verifyTransaction: (data) => api.post('/admin/verify-transaction', data),
+  checkTransactionBlockchain: (data) => api.post('/admin/check-transaction-blockchain', data),
+  checkTransactionAllNetworks: (data) => api.post('/admin/check-transaction-all-networks', data),
 };
 
 // Company Wallet API
@@ -184,6 +186,28 @@ export const apiHelpers = {
       },
     });
   },
+};
+
+// Get wallet addresses for deposits
+export const getWalletAddresses = async () => {
+  try {
+    const response = await api.get('/wallet/addresses');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching wallet addresses:', error);
+    throw error;
+  }
+};
+
+// Get company wallet addresses for deposits (updated)
+export const getCompanyWalletAddresses = async () => {
+  try {
+    const response = await api.get('/wallet/company-addresses');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching company wallet addresses:', error);
+    throw error;
+  }
 };
 
 export default api;

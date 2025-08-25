@@ -101,8 +101,8 @@ const updateAdminSettings = async (updates) => {
         data: {
           dailyGrowthRate: parseFloat(process.env.DEFAULT_DAILY_GROWTH_RATE) || 0.01,
           referralBonusRate: parseFloat(process.env.DEFAULT_REFERRAL_BONUS_RATE) || 0.05,
-          minDepositAmount: parseFloat(process.env.MIN_DEPOSIT_AMOUNT) || 30,
-          minUsdtDepositAmount: parseFloat(process.env.MIN_USDT_DEPOSIT_AMOUNT) || 30,
+          minDepositAmount: parseFloat(process.env.MIN_DEPOSIT_AMOUNT) || 0.000001,
+          minUsdtDepositAmount: parseFloat(process.env.MIN_USDT_DEPOSIT_AMOUNT) || 0.000001,
           minWithdrawalAmount: parseFloat(process.env.MIN_WITHDRAWAL_AMOUNT) || 10,
           minUsdcWithdrawalAmount: parseFloat(process.env.MIN_USDC_WITHDRAWAL_AMOUNT) || 20,
           isDepositEnabled: true, // Enable deposits by default
