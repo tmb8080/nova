@@ -12,6 +12,8 @@ const Tasks = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showCongratulations, setShowCongratulations] = useState(false);
+  const [lastEarnings, setLastEarnings] = useState(null);
 
   // Update current time every second for real-time updates
   useEffect(() => {
@@ -27,6 +29,14 @@ const Tasks = () => {
     queryFn: taskAPI.getEarningStatus,
     refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
   });
+
+  // Check for completed task and show congratulations
+  useEffect(() => {
+    if (earningStatus?.data?.data?.lastEarnings && !showCongratulations) {
+      setLastEarnings(earningStatus.data.data.lastEarnings);
+      setShowCongratulations(true);
+    }
+  }, [earningStatus?.data?.data?.lastEarnings, showCongratulations]);
 
   // Fetch available tasks
   const { data: tasksData, isLoading: tasksLoading, refetch: refetchTasks } = useQuery({
@@ -125,7 +135,7 @@ const Tasks = () => {
             Daily Earning Task
           </h1>
           <p className="text-gray-300 text-sm sm:text-base max-w-2xl mx-auto px-4">
-            Start your daily 24-hour earning session to earn based on your VIP level. Complete the task to receive your earnings!
+            Start your daily 1-hour earning session to earn based on your VIP level. Complete the task to receive your earnings!
           </p>
         </div>
 
@@ -152,7 +162,7 @@ const Tasks = () => {
                         Daily Earning Session
                       </CardTitle>
                       <CardDescription className="text-gray-300 text-sm sm:text-base">
-                        Start your 24-hour earning cycle to accumulate profits automatically
+                        Start your 1-hour earning cycle to accumulate profits automatically
                       </CardDescription>
                     </div>
                   </div>
@@ -189,7 +199,7 @@ const Tasks = () => {
                         </div>
                         <div className="text-center sm:text-right">
                           <div className="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1 sm:mb-2">
-                            {earningStatus.data.data.remainingTime.hours}h {earningStatus.data.data.remainingTime.minutes}m
+                            {earningStatus.data.data.remainingTime.minutes}m {earningStatus.data.data.remainingTime.seconds}s
                           </div>
                           <div className="text-emerald-200 text-sm sm:text-base">Time Remaining</div>
                         </div>
@@ -229,7 +239,7 @@ const Tasks = () => {
                     
                     <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-4 sm:mb-6">Ready to Start Daily Task</h3>
                     <p className="text-gray-300 mb-8 sm:mb-12 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto leading-relaxed px-4">
-                      {earningStatus?.data?.data?.message || 'Click the button below to start your 24-hour earning cycle and begin accumulating profits automatically'}
+                      {earningStatus?.data?.data?.message || 'Click the button below to start your 1-hour earning cycle and begin accumulating profits automatically'}
                     </p>
                     
                     <Button
@@ -364,6 +374,39 @@ const Tasks = () => {
           )}
         </div>
       </div>
+
+      {/* Congratulations Modal */}
+      {showCongratulations && lastEarnings && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-emerald-900 to-green-900 border border-emerald-500/30 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+            <div className="mb-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-2xl">
+                <span className="text-4xl">🎉</span>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Congratulations!</h2>
+              <p className="text-emerald-200 mb-6">Your daily task has been completed successfully!</p>
+            </div>
+            
+            <div className="bg-emerald-800/50 border border-emerald-500/30 rounded-2xl p-6 mb-6">
+              <div className="text-3xl font-bold text-emerald-400 mb-2">
+                +{formatCurrency(lastEarnings)}
+              </div>
+              <div className="text-emerald-200 text-sm">Added to your wallet</div>
+            </div>
+            
+            <div className="text-emerald-200 text-sm mb-6">
+              Your next daily task will be available in 24 hours
+            </div>
+            
+            <Button
+              onClick={() => setShowCongratulations(false)}
+              className="bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 px-8 py-3 rounded-xl font-bold text-white shadow-2xl transform hover:scale-105 transition-all duration-200"
+            >
+              Awesome! 🚀
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

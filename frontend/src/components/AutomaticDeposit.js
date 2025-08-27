@@ -225,12 +225,12 @@ const AutomaticDeposit = ({ onTransactionVerified, onTransactionError }) => {
             <span className="text-green-600 text-lg">✅</span>
             <h4 className="text-sm font-medium text-green-800">Transaction Auto-Detected</h4>
           </div>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div>
               <span className="text-green-700">Network:</span>
               <span className="ml-2 font-medium text-green-900">{autoFillData.foundOnNetwork}</span>
-            </div>
+                </div>
             <div>
               <span className="text-green-700">Amount:</span>
               <span className="ml-2 font-medium text-green-900">{autoFillData.suggestedAmount} USDT</span>
@@ -245,8 +245,8 @@ const AutomaticDeposit = ({ onTransactionVerified, onTransactionError }) => {
               <span className="text-green-700">Sender:</span>
               <div className="mt-1 font-mono text-xs break-all bg-white p-2 rounded border">
                 {autoFillData.senderAddress}
-              </div>
             </div>
+          </div>
             <div>
               <span className="text-green-700">Block:</span>
               <span className="ml-2 font-medium text-green-900">{autoFillData.blockNumber}</span>
@@ -348,8 +348,8 @@ const AutomaticDeposit = ({ onTransactionVerified, onTransactionError }) => {
             <div>Auto-fill Data: {autoFillData ? 'Loaded' : 'None'}</div>
             <div>Search Results: {searchResults ? 'Loaded' : 'None'}</div>
             <div>Is Searching: {isSearching ? 'Yes' : 'No'}</div>
-          </div>
         </div>
+      </div>
       )}
     </div>
   );

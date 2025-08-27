@@ -52,11 +52,26 @@ const VipSelection = () => {
     refetchOnWindowFocus: true,
   });
 
+  // Fetch current VIP status
+  const { data: vipStatus, isLoading: vipStatusLoading } = useQuery({
+    queryKey: ['vipStatus'],
+    queryFn: () => vipAPI.getStatus(),
+    onSuccess: (data) => {
+      console.log('VIP status loaded:', data);
+    },
+    onError: (error) => {
+      console.error('Error loading VIP status:', error);
+    },
+  });
+
   // Join VIP mutation
   const joinVipMutation = useMutation({
     mutationFn: (vipLevelId) => vipAPI.joinVip(vipLevelId),
-    onSuccess: () => {
-      toast.success('Successfully joined VIP level!');
+    onSuccess: (data) => {
+      const message = data?.data?.isUpgrade 
+        ? `Successfully upgraded to ${data.data.vipLevel?.name || 'VIP level'}!`
+        : 'Successfully joined VIP level!';
+      toast.success(message);
       queryClient.invalidateQueries(['walletStats']);
       queryClient.invalidateQueries(['vipStatus']);
       navigate('/dashboard');
@@ -71,22 +86,51 @@ const VipSelection = () => {
   });
 
   const handleJoinVip = (vipLevel) => {
-    // Check if user has sufficient balance
     const userBalance = parseFloat(walletStats?.data?.data?.balance) || 0;
     const levelAmount = parseFloat(vipLevel?.amount) || 0;
+    const currentVip = vipStatus?.data?.data?.userVip;
     
-    console.log('VIP join attempt:', {
+    // Calculate if this is an upgrade
+    let isUpgrade = false;
+    let paymentAmount = levelAmount;
+    let currentVipAmount = 0;
+    
+    if (currentVip) {
+      isUpgrade = true;
+      currentVipAmount = parseFloat(currentVip.totalPaid);
+      paymentAmount = levelAmount - currentVipAmount;
+      
+      console.log('Upgrade calculation:', {
+        currentVipLevel: currentVip.vipLevel.name,
+        currentVipAmount,
+        newVipAmount: levelAmount,
+        paymentAmount,
+        isUpgrade
+      });
+      
+      if (paymentAmount <= 0) {
+        toast.error(`Cannot downgrade from ${currentVip.vipLevel.name} to ${vipLevel.name}`);
+        return;
+      }
+    }
+    
+    console.log('VIP join/upgrade attempt:', {
       userBalance,
       levelAmount,
+      paymentAmount,
+      isUpgrade,
+      currentVipAmount,
       walletStats: walletStats?.data?.data,
       vipLevel
     });
     
-    if (userBalance < levelAmount) {
+    if (userBalance < paymentAmount) {
       // Show deposit prompt for insufficient balance
-      const shouldDeposit = window.confirm(
-        `You need ${formatCurrency(levelAmount - userBalance)} more to join ${vipLevel.name}.\n\nWould you like to deposit funds to your wallet?`
-      );
+      const message = isUpgrade 
+        ? `You need ${formatCurrency(paymentAmount - userBalance)} more to upgrade from ${currentVip.vipLevel.name} to ${vipLevel.name}.\n\nWould you like to deposit funds to your wallet?`
+        : `You need ${formatCurrency(levelAmount - userBalance)} more to join ${vipLevel.name}.\n\nWould you like to deposit funds to your wallet?`;
+      
+      const shouldDeposit = window.confirm(message);
       
       if (shouldDeposit) {
         setVipToJoin(vipLevel);
@@ -95,7 +139,7 @@ const VipSelection = () => {
       return;
     }
     
-    setSelectedVip(vipLevel);
+    setSelectedVip({ ...vipLevel, isUpgrade, paymentAmount, currentVipAmount });
   };
 
   const confirmJoinVip = () => {
@@ -221,16 +265,53 @@ const VipSelection = () => {
         {/* VIP Levels Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
           {vipLevels?.data?.data && Array.isArray(vipLevels.data.data) && vipLevels.data.data.length > 0 ? vipLevels.data.data.map((vip) => {
-            const canAfford = walletStats?.data?.data?.balance >= vip.amount;
+            const currentVip = vipStatus?.data?.data?.userVip;
+            const userBalance = parseFloat(walletStats?.data?.data?.balance) || 0;
+            const levelAmount = parseFloat(vip.amount);
+            
+            // Calculate upgrade cost
+            let isUpgrade = false;
+            let paymentAmount = levelAmount;
+            let canAfford = userBalance >= levelAmount;
+            let isLowerLevel = false;
+            
+            if (currentVip) {
+              isUpgrade = true;
+              const currentVipAmount = parseFloat(currentVip.totalPaid);
+              paymentAmount = levelAmount - currentVipAmount;
+              isLowerLevel = paymentAmount <= 0;
+              canAfford = userBalance >= paymentAmount && paymentAmount > 0;
+            }
+            
             const dailyReturn = ((vip.dailyEarning / vip.amount) * 100).toFixed(2);
             
             return (
               <div 
                 key={vip.id} 
-                className={`relative overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl backdrop-blur-xl bg-white/10 rounded-2xl border border-white/20`}
+                className={`relative overflow-hidden transition-all duration-300 backdrop-blur-xl bg-white/10 rounded-2xl border ${
+                  currentVip && currentVip.vipLevel.id === vip.id 
+                    ? 'border-green-500/50 shadow-lg shadow-green-500/20 hover:scale-105 hover:shadow-2xl' 
+                    : isLowerLevel 
+                      ? 'border-gray-500/30 opacity-60 cursor-not-allowed' 
+                      : 'border-white/20 hover:scale-105 hover:shadow-2xl'
+                }`}
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${getVipColor(vip.amount)} opacity-20`}></div>
                 <div className="relative p-4 md:p-6">
+                  {/* Current VIP Level Badge */}
+                  {currentVip && currentVip.vipLevel.id === vip.id && (
+                    <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-semibold z-10">
+                      Current VIP
+                    </div>
+                  )}
+                  
+                  {/* Lower Level Badge */}
+                  {isLowerLevel && (
+                    <div className="absolute top-2 right-2 bg-gray-500 text-white text-xs px-2 py-1 rounded-full font-semibold z-10">
+                      Lower Level
+                    </div>
+                  )}
+                  
                   <div className="text-lg md:text-xl font-bold text-center text-white mb-4">
                     {vip.name}
                   </div>
@@ -274,33 +355,87 @@ const VipSelection = () => {
                     <div className="pt-3 md:pt-4">
                       <Button 
                         className={`w-full text-sm md:text-base ${
-                          canAfford 
-                            ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-md hover:shadow-lg transform hover:scale-105' 
-                            : 'bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-md hover:shadow-lg transform hover:scale-105'
+                          isLowerLevel
+                            ? 'bg-gray-500 cursor-not-allowed opacity-50'
+                            : canAfford 
+                              ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-md hover:shadow-lg transform hover:scale-105' 
+                              : 'bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-md hover:shadow-lg transform hover:scale-105'
                         }`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleJoinVip(vip);
+                          if (!isLowerLevel) {
+                            handleJoinVip(vip);
+                          }
                         }}
+                        disabled={isLowerLevel}
                       >
-                        {canAfford ? 'Join VIP' : 'Deposit & Join'}
+                        {isLowerLevel 
+                          ? 'Lower Level'
+                          : isUpgrade 
+                            ? (canAfford ? 'Upgrade VIP' : 'Deposit & Upgrade')
+                            : (canAfford ? 'Join VIP' : 'Deposit & Join')
+                        }
                       </Button>
                     </div>
                     
+                    {/* Upgrade Info */}
+                    {isUpgrade && !isLowerLevel && (
+                      <div className="mt-3 pt-3 border-t border-white/20 bg-green-500/20 backdrop-blur-sm rounded-lg p-2 md:p-3">
+                        <div className="text-center mb-2">
+                          <div className="text-xs text-green-300 font-semibold">VIP Upgrade</div>
+                          <div className="text-xs text-green-200">
+                            From {currentVip.vipLevel.name} to {vip.name}
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <div>
+                            <div className="text-gray-300">Current VIP</div>
+                            <div className="font-bold text-green-400">
+                              {formatCurrency(currentVip.totalPaid)}
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-gray-300">Upgrade Cost</div>
+                            <div className="font-bold text-white">
+                              {formatCurrency(paymentAmount)}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-gray-300">New Total</div>
+                            <div className="font-bold text-green-400">
+                              {formatCurrency(levelAmount)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Lower Level Message */}
+                    {isLowerLevel && (
+                      <div className="mt-3 pt-3 border-t border-white/20 bg-gray-500/20 backdrop-blur-sm rounded-lg p-2 md:p-3">
+                        <div className="text-center">
+                          <div className="text-xs text-gray-300 font-semibold mb-1">Cannot Downgrade</div>
+                          <div className="text-xs text-gray-400">
+                            You cannot downgrade from {currentVip.vipLevel.name} to {vip.name}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     {/* Balance Info for Unaffordable Levels */}
-                    {!canAfford && (
+                    {!canAfford && !isLowerLevel && (
                       <div className="mt-3 pt-3 border-t border-white/20 bg-blue-500/20 backdrop-blur-sm rounded-lg p-2 md:p-3">
                         <div className="flex justify-between items-center text-xs">
                           <div>
                             <div className="text-gray-300">Your Balance</div>
                             <div className="font-bold text-red-400">
-                              {formatCurrency(walletStats?.data?.data?.balance || 0)}
+                              {formatCurrency(userBalance)}
                             </div>
                           </div>
                           <div className="text-right">
                             <div className="text-gray-300">Need</div>
                             <div className="font-bold text-white">
-                              {formatCurrency(vip.amount - (walletStats?.data?.data?.balance || 0))}
+                              {formatCurrency(paymentAmount - userBalance)}
                             </div>
                           </div>
                         </div>
@@ -374,9 +509,32 @@ const VipSelection = () => {
                 <span>VIP Level:</span>
                 <span className="font-semibold">{selectedVip.name}</span>
               </div>
+              
+              {selectedVip.isUpgrade && (
+                <>
+                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <div className="text-sm font-semibold text-green-800 mb-2">VIP Upgrade</div>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Current VIP:</span>
+                        <span className="font-semibold text-green-700">{formatCurrency(selectedVip.currentVipAmount)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Upgrade Cost:</span>
+                        <span className="font-semibold text-green-700">{formatCurrency(selectedVip.paymentAmount)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">New Total:</span>
+                        <span className="font-semibold text-green-700">{formatCurrency(selectedVip.amount)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+              
               <div className="flex justify-between text-sm md:text-base">
-                <span>Cost:</span>
-                <span className="font-semibold">{formatCurrency(selectedVip.amount)}</span>
+                <span>{selectedVip.isUpgrade ? 'Upgrade Cost:' : 'Cost:'}</span>
+                <span className="font-semibold">{formatCurrency(selectedVip.isUpgrade ? selectedVip.paymentAmount : selectedVip.amount)}</span>
               </div>
               <div className="flex justify-between text-sm md:text-base">
                 <span>Daily Earning:</span>
@@ -412,7 +570,7 @@ const VipSelection = () => {
               <div className="flex justify-between text-sm md:text-base">
                 <span>Your Balance After:</span>
                 <span className="font-semibold">
-                  {formatCurrency((walletStats?.data?.balance || 0) - selectedVip.amount)}
+                  {formatCurrency((walletStats?.data?.data?.balance || 0) - (selectedVip.isUpgrade ? selectedVip.paymentAmount : selectedVip.amount))}
                 </span>
               </div>
             </div>
@@ -429,7 +587,7 @@ const VipSelection = () => {
                 disabled={joinVipMutation.isLoading}
                 className="flex-1 text-sm md:text-base"
               >
-                {joinVipMutation.isLoading ? 'Processing...' : 'Confirm Purchase'}
+                {joinVipMutation.isLoading ? 'Processing...' : (selectedVip.isUpgrade ? 'Confirm Upgrade' : 'Confirm Purchase')}
               </Button>
             </div>
           </div>

@@ -16,6 +16,18 @@ const VipDashboard = () => {
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
+  // Fetch VIP levels for upgrade options
+  const { data: vipLevels, isLoading: vipLevelsLoading } = useQuery({
+    queryKey: ['vipLevels'],
+    queryFn: () => vipAPI.getLevels(),
+  });
+
+  // Fetch wallet stats to check balance
+  const { data: walletStats, isLoading: walletLoading } = useQuery({
+    queryKey: ['walletStats'],
+    queryFn: () => walletAPI.getStats(),
+  });
+
   // Start earning mutation
   const startEarningMutation = useMutation({
     mutationFn: () => vipAPI.startEarning(),
@@ -71,6 +83,29 @@ const VipDashboard = () => {
       return;
     }
     withdrawEarningsMutation.mutate(amount);
+  };
+
+  // Calculate upgrade options
+  const getUpgradeOptions = () => {
+    if (!vipLevels?.data?.data || !userVip) return [];
+    
+    const currentVipAmount = parseFloat(userVip.totalPaid);
+    const userBalance = parseFloat(walletStats?.data?.data?.balance) || 0;
+    
+    return vipLevels.data.data
+      .filter(level => parseFloat(level.amount) > currentVipAmount)
+      .map(level => {
+        const upgradeCost = parseFloat(level.amount) - currentVipAmount;
+        const canAfford = userBalance >= upgradeCost;
+        
+        return {
+          ...level,
+          upgradeCost,
+          canAfford,
+          missingAmount: Math.max(0, upgradeCost - userBalance)
+        };
+      })
+      .sort((a, b) => a.upgradeCost - b.upgradeCost);
   };
 
   if (vipLoading) {
@@ -151,6 +186,28 @@ const VipDashboard = () => {
               </p>
             </div>
           </div>
+          
+          {/* Next Upgrade Preview */}
+          {getUpgradeOptions().length > 0 && (
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-800">Next Upgrade</p>
+                  <p className="text-xs text-blue-600">
+                    {getUpgradeOptions()[0].name} - {formatCurrency(getUpgradeOptions()[0].dailyEarning)}/day
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-blue-800">
+                    {formatCurrency(getUpgradeOptions()[0].upgradeCost)}
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    {getUpgradeOptions()[0].canAfford ? 'Can afford' : `Need ${formatCurrency(getUpgradeOptions()[0].missingAmount)} more`}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Bicycle Information */}
           {userVip.vipLevel.bicycleModel && (
@@ -304,6 +361,114 @@ const VipDashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* VIP Upgrade Options */}
+      {userVip && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>VIP Upgrade Options</span>
+              <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                {getUpgradeOptions().length} Available
+              </span>
+            </CardTitle>
+            <CardDescription>
+              Upgrade to higher VIP levels for increased daily earnings
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {vipLevelsLoading ? (
+              <div className="animate-pulse space-y-4">
+                <div className="h-16 bg-gray-200 rounded"></div>
+                <div className="h-16 bg-gray-200 rounded"></div>
+              </div>
+            ) : getUpgradeOptions().length > 0 ? (
+              <div className="space-y-3">
+                {getUpgradeOptions().slice(0, 3).map((upgrade) => (
+                  <div 
+                    key={upgrade.id}
+                    className={`p-4 rounded-lg border ${
+                      upgrade.canAfford 
+                        ? 'bg-green-50 border-green-200' 
+                        : 'bg-orange-50 border-orange-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-3">
+                        <div className="text-2xl">💎</div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{upgrade.name}</h4>
+                          <p className="text-sm text-gray-600">
+                            Daily: {formatCurrency(upgrade.dailyEarning)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-green-600">
+                          {formatCurrency(upgrade.upgradeCost)}
+                        </div>
+                        <div className="text-xs text-gray-500">Upgrade Cost</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Current VIP:</span> {formatCurrency(userVip.totalPaid)}
+                        <span className="mx-2">→</span>
+                        <span className="font-medium">New Total:</span> {formatCurrency(upgrade.amount)}
+                      </div>
+                      <div className="flex space-x-2">
+                        {upgrade.canAfford ? (
+                          <Button
+                            size="sm"
+                            onClick={() => window.location.href = '/vip-selection'}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            Upgrade Now
+                          </Button>
+                        ) : (
+                          <div className="text-right">
+                            <div className="text-sm text-orange-600 font-medium">
+                              Need {formatCurrency(upgrade.missingAmount)} more
+                            </div>
+                            <Button
+                              size="sm"
+                              onClick={() => window.location.href = '/deposit'}
+                              className="bg-orange-600 hover:bg-orange-700 text-white"
+                            >
+                              Deposit
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {getUpgradeOptions().length > 3 && (
+                  <div className="text-center pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => window.location.href = '/vip-selection'}
+                      className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                    >
+                      View All {getUpgradeOptions().length} Upgrade Options
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <div className="text-4xl mb-3">🏆</div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Maximum VIP Level Reached!</h3>
+                <p className="text-gray-600">
+                  You're already at the highest available VIP level. Congratulations!
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

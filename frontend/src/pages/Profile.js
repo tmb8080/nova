@@ -293,7 +293,7 @@ const Profile = () => {
                       formatCurrency(walletStats?.data?.data?.totalReferralBonus || 0)
                     )}
                   </div>
-                  <div className="text-xs text-gray-400 mt-1">5% commission</div>
+                  <div className="text-xs text-gray-400 mt-1">VIP commissions only</div>
                 </div>
               </div>
               <div className="mt-4">

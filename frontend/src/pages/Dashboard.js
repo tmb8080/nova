@@ -404,7 +404,6 @@ const Dashboard = () => {
                   poster="/video-poster.jpg"
                   preload="auto"
                   loop
-                  muted
                   autoPlay
                   playsInline
                   onContextMenu={(e) => e.preventDefault()}

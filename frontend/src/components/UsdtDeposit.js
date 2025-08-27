@@ -588,7 +588,7 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
           onClose();
         }, 2000);
       } else {
-        toast.success('Deposit created successfully!');
+      toast.success('Deposit created successfully!');
       }
       
       queryClient.invalidateQueries(['deposits']);
@@ -697,7 +697,7 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
       status: depositData.status,
       autoConfirmed: depositData.autoConfirmed
     });
-    
+
     createDepositMutation.mutate(depositData);
   };
 
@@ -879,9 +879,9 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
               </label>
               <div className="flex gap-2">
                 <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    value={transactionHash}
+              <input
+                type="text"
+                value={transactionHash}
                     onChange={handleTransactionHashChange}
                     placeholder="Paste or type transaction hash from your wallet"
                     className={`w-full px-4 py-3 bg-white/10 backdrop-blur-sm border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
@@ -1319,8 +1319,8 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                                     <div key={network} className={`flex justify-between ${matches ? 'text-green-600' : 'text-gray-500'}`}>
                                       <span>{network}:</span>
                                       <span className="font-mono">{matches ? '✓ MATCH' : '✗ NO MATCH'}</span>
-                                    </div>
-                                  );
+    </div>
+  );
                                 })}
                               </div>
                             )}

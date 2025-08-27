@@ -49,9 +49,9 @@ const ReferralStats = ({ stats, isLoading }) => {
           </div>
           
           <div className="bg-gray-50 p-3 rounded-lg text-center">
-            <p className="text-sm text-gray-600">Total Earnings</p>
+            <p className="text-sm text-gray-600">VIP Commissions</p>
             <p className="text-2xl font-bold text-green-600">
-              ${parseFloat(referralData.totalEarnings || 0).toFixed(2)}
+              ${parseFloat(referralData.totalBonuses || 0).toFixed(2)}
             </p>
           </div>
         </div>
