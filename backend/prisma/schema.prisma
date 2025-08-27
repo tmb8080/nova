@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,53 +8,49 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  fullName      String?
-  email         String?  @unique
-  phone         String?  @unique
-  password      String
-  isEmailVerified Boolean @default(false)
-  isPhoneVerified Boolean @default(false)
-  isActive      Boolean  @default(true)
-  isAdmin       Boolean  @default(false)
-  referralCode  String   @unique
-  referredBy    String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  wallet        Wallet?
-  referrals     User[]   @relation("UserReferrals")
-  referrer      User?    @relation("UserReferrals", fields: [referredBy], references: [id])
-  deposits      Deposit[]
-  withdrawals   Withdrawal[]
-  transactions  Transaction[]
-  otpCodes      OtpCode[]
-  userVip       UserVip?
-  earningsSessions EarningsSession[]
-  referralBonusesGiven ReferralBonus[] @relation("ReferralBonusReferrer")
-  referralBonusesReceived ReferralBonus[] @relation("ReferralBonusReferred")
-  userTasks     UserTask[]
-  walletAddresses UserWalletAddress[]
+  id                      String              @id @default(uuid())
+  fullName                String?
+  email                   String?             @unique
+  phone                   String?             @unique
+  password                String
+  isEmailVerified         Boolean             @default(false)
+  isPhoneVerified         Boolean             @default(false)
+  isActive                Boolean             @default(true)
+  isAdmin                 Boolean             @default(false)
+  referralCode            String              @unique
+  referredBy              String?
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  deposits                Deposit[]
+  earningsSessions        EarningsSession[]
+  otpCodes                OtpCode[]
+  referralBonusesReceived ReferralBonus[]     @relation("ReferralBonusReferred")
+  referralBonusesGiven    ReferralBonus[]     @relation("ReferralBonusReferrer")
+  transactions            Transaction[]
+  userTasks               UserTask[]
+  userVip                 UserVip?
+  walletAddresses         UserWalletAddress[]
+  referrer                User?               @relation("UserReferrals", fields: [referredBy], references: [id])
+  referrals               User[]              @relation("UserReferrals")
+  wallet                  Wallet?
+  withdrawals             Withdrawal[]
 
   @@map("users")
 }
 
 model Wallet {
-  id            String   @id @default(uuid())
-  userId        String   @unique
-  balance       Decimal  @default(0) @db.Decimal(18, 8)
-  totalDeposits Decimal  @default(0) @db.Decimal(18, 8)
-  totalEarnings Decimal  @default(0) @db.Decimal(18, 8)
-  totalReferralBonus Decimal @default(0) @db.Decimal(18, 8)
-  dailyEarnings Decimal  @default(0) @db.Decimal(18, 8)
-  lastWithdrawal DateTime?
-  lastGrowthUpdate DateTime @default(now())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String    @id @default(uuid())
+  userId             String    @unique
+  balance            Decimal   @default(0) @db.Decimal(18, 8)
+  totalDeposits      Decimal   @default(0) @db.Decimal(18, 8)
+  totalEarnings      Decimal   @default(0) @db.Decimal(18, 8)
+  totalReferralBonus Decimal   @default(0) @db.Decimal(18, 8)
+  dailyEarnings      Decimal   @default(0) @db.Decimal(18, 8)
+  lastWithdrawal     DateTime?
+  lastGrowthUpdate   DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("wallets")
 }
@@ -65,12 +58,10 @@ model Wallet {
 model UserWalletAddress {
   id        String   @id @default(uuid())
   userId    String
-  network   String   // BSC, POLYGON, ETHEREUM, TRON
+  network   String
   address   String
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
-
-  // Relations
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, network])
@@ -78,81 +69,74 @@ model UserWalletAddress {
 }
 
 model CompanyWallet {
-  id            String   @id @default(uuid())
-  network       String   @unique
-  address       String
-  balance       Decimal  @default(0) @db.Decimal(18, 8)
-  totalDeposits Decimal  @default(0) @db.Decimal(18, 8)
-  totalWithdrawals Decimal @default(0) @db.Decimal(18, 8)
-  isActive      Boolean  @default(true)
-  lastUpdated   DateTime @default(now())
-  createdAt     DateTime @default(now())
-
-  // Relations
-  transactions CompanyWalletTransaction[]
+  id               String                     @id @default(uuid())
+  network          String                     @unique
+  address          String
+  balance          Decimal                    @default(0) @db.Decimal(18, 8)
+  totalDeposits    Decimal                    @default(0) @db.Decimal(18, 8)
+  totalWithdrawals Decimal                    @default(0) @db.Decimal(18, 8)
+  isActive         Boolean                    @default(true)
+  lastUpdated      DateTime                   @default(now())
+  createdAt        DateTime                   @default(now())
+  transactions     CompanyWalletTransaction[]
 
   @@map("company_wallets")
 }
 
 model CompanyWalletTransaction {
-  id              String   @id @default(uuid())
+  id              String        @id @default(uuid())
   companyWalletId String
-  type            String   // DEPOSIT, WITHDRAWAL
-  amount          Decimal  @db.Decimal(18, 8)
+  type            String
+  amount          Decimal       @db.Decimal(18, 8)
   currency        String
   fromAddress     String?
   toAddress       String?
   transactionHash String?
   network         String
-  status          String   @default("COMPLETED")
+  status          String        @default("COMPLETED")
   metadata        Json?
-  createdAt       DateTime @default(now())
-
-  // Relations
+  createdAt       DateTime      @default(now())
   companyWallet   CompanyWallet @relation(fields: [companyWalletId], references: [id])
 
   @@map("company_wallet_transactions")
 }
 
 model Deposit {
-  id                String      @id @default(uuid())
-  userId            String
-  amount            Decimal     @db.Decimal(18, 8)
-  currency          String      // BTC, ETH, USDT
-  coinbaseChargeId  String?     @unique
-  coinbaseCode      String?
-  network           String?     // BEP20, TRC20, etc. for USDT deposits
-  depositType       String?     // COINBASE, USDT_DIRECT, etc.
-  status            DepositStatus @default(PENDING)
-  transactionHash   String?
-  adminNotes        String?     // Admin notes for deposit processing
-  webhookData       Json?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  id               String        @id @default(uuid())
+  userId           String
+  amount           Decimal       @db.Decimal(18, 8)
+  currency         String
+  coinbaseChargeId String?       @unique
+  coinbaseCode     String?
+  network          String?       // BEP20, TRC20, etc. for USDT deposits
+  depositType      String?       // COINBASE, USDT_DIRECT, etc.
+  status           DepositStatus @default(PENDING)
+  transactionHash  String?
+  webhookData      Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  adminNotes       String?
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Relations
-  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  @@unique([transactionHash, currency])
   @@map("deposits")
 }
 
 model Withdrawal {
-  id              String          @id @default(uuid())
+  id              String           @id @default(uuid())
   userId          String
-  amount          Decimal         @db.Decimal(18, 8)
-  currency        String          // BTC, ETH, USDT, USDC, USDT_USDC
-  network         String?         // TRC20, BEP20, ERC20, POLYGON, ARBITRUM, OPTIMISM
+  amount          Decimal          @db.Decimal(18, 8)
+  currency        String
   walletAddress   String
   status          WithdrawalStatus @default(PENDING)
   adminNotes      String?
   processedBy     String?
   processedAt     DateTime?
   transactionHash String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-
-  // Relations
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  network         String?
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("withdrawals")
 }
@@ -163,83 +147,177 @@ model Transaction {
   type        TransactionType
   amount      Decimal         @db.Decimal(18, 8)
   description String
-  referenceId String?         // Reference to deposit, withdrawal, or referral
-  metadata    Json?           // Additional metadata for transactions
+  referenceId String?
   createdAt   DateTime        @default(now())
-
-  // Relations
+  metadata    Json?
   user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("transactions")
 }
 
 model OtpCode {
-  id        String    @id @default(uuid())
+  id        String   @id @default(uuid())
   userId    String
   code      String
-  type      OtpType   // EMAIL, PHONE
-  purpose   String    // REGISTRATION, LOGIN, WITHDRAWAL
+  type      OtpType
+  purpose   String
   expiresAt DateTime
-  isUsed    Boolean   @default(false)
-  createdAt DateTime  @default(now())
-
-  // Relations
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("otp_codes")
 }
 
 model AdminSettings {
-  id                    String   @id @default(uuid())
-  dailyGrowthRate       Decimal  @default(0.01) @db.Decimal(5, 4) // 1% = 0.01
-  referralBonusRate     Decimal  @default(0.05) @db.Decimal(5, 4) // 5% = 0.05
-  minDepositAmount      Decimal  @default(10) @db.Decimal(18, 8)
-  minUsdtDepositAmount  Decimal  @default(30) @db.Decimal(18, 8)
-  minWithdrawalAmount   Decimal  @default(10) @db.Decimal(18, 8)
-  minUsdcWithdrawalAmount Decimal @default(20) @db.Decimal(18, 8)
-  isDepositEnabled      Boolean  @default(true)
-  isWithdrawalEnabled   Boolean  @default(true)
-  isRegistrationEnabled Boolean  @default(true)
-  maintenanceMode       Boolean  @default(false)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                      String   @id @default(uuid())
+  dailyGrowthRate         Decimal  @default(0.01) @db.Decimal(5, 4)
+  minDepositAmount        Decimal  @default(10) @db.Decimal(18, 8)
+  minWithdrawalAmount     Decimal  @default(10) @db.Decimal(18, 8)
+  isDepositEnabled        Boolean  @default(true)
+  isWithdrawalEnabled     Boolean  @default(true)
+  isRegistrationEnabled   Boolean  @default(true)
+  maintenanceMode         Boolean  @default(false)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  minUsdtDepositAmount    Decimal  @default(30) @db.Decimal(18, 8)
+  minUsdcWithdrawalAmount Decimal  @default(20) @db.Decimal(18, 8)
 
   @@map("admin_settings")
 }
 
 model NetworkFees {
-  id          String   @id @default(uuid())
-  network     String   // TRC20, BEP20, ERC20, POLYGON, ARBITRUM, OPTIMISM
-  currency    String   // USDT, USDC, USDT_USDC
-  feeAmount   Decimal  @db.Decimal(18, 8)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  network   String
+  currency  String
+  feeAmount Decimal  @db.Decimal(18, 8)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([network, currency])
-
   @@map("network_fees")
 }
 
 model ReferralBonus {
-  id          String   @id @default(uuid())
-  referrerId  String
-  referredId  String
-  depositId   String?
+  id           String   @id @default(uuid())
+  referrerId   String
+  referredId   String
+  depositId    String?
+  bonusAmount  Decimal  @db.Decimal(18, 8)
+  bonusRate    Decimal  @db.Decimal(5, 4)
+  createdAt    DateTime @default(now())
+  level        Int      @default(1)
   vipPaymentId String?
-  bonusAmount Decimal  @db.Decimal(18, 8)
-  bonusRate   Decimal  @db.Decimal(5, 4)
-  level       Int      @default(1) // 1 for direct, 2 for indirect
-  createdAt   DateTime @default(now())
-
-  // Relations
-  referrer    User     @relation("ReferralBonusReferrer", fields: [referrerId], references: [id])
-  referred    User     @relation("ReferralBonusReferred", fields: [referredId], references: [id])
+  referred     User     @relation("ReferralBonusReferred", fields: [referredId], references: [id])
+  referrer     User     @relation("ReferralBonusReferrer", fields: [referrerId], references: [id])
 
   @@map("referral_bonuses")
 }
 
-// Enums
+model VipLevel {
+  id               String            @id @default(uuid())
+  name             String            @unique
+  amount           Decimal           @db.Decimal(18, 8)
+  dailyEarning     Decimal           @db.Decimal(18, 8)
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  bicycleColor     String?
+  bicycleFeatures  String?
+  bicycleModel     String?
+  earningsSessions EarningsSession[]
+  userVips         UserVip[]
+
+  @@map("vip_levels")
+}
+
+model UserVip {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  vipLevelId String
+  joinedAt   DateTime @default(now())
+  isActive   Boolean  @default(true)
+  totalPaid  Decimal  @db.Decimal(18, 8)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vipLevel   VipLevel @relation(fields: [vipLevelId], references: [id])
+
+  @@map("user_vips")
+}
+
+model EarningsSession {
+  id               String               @id @default(uuid())
+  userId           String
+  vipLevelId       String
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  actualEndTime    DateTime?
+  dailyEarningRate Decimal              @db.Decimal(18, 8)
+  expectedEndTime  DateTime
+  startTime        DateTime             @default(now())
+  status           EarningSessionStatus @default(ACTIVE)
+  totalEarnings    Decimal?             @db.Decimal(18, 8)
+  user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vipLevel         VipLevel             @relation(fields: [vipLevelId], references: [id])
+
+  @@map("earnings_sessions")
+}
+
+model Task {
+  id            String     @id @default(uuid())
+  title         String
+  description   String
+  type          TaskType
+  reward        Decimal    @db.Decimal(18, 8)
+  requirements  Json?
+  isActive      Boolean    @default(true)
+  isRepeatable  Boolean    @default(false)
+  cooldownHours Int?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  userTasks     UserTask[]
+
+  @@map("tasks")
+}
+
+model UserTask {
+  id           String     @id @default(uuid())
+  userId       String
+  taskId       String
+  status       TaskStatus @default(PENDING)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  rewardEarned Decimal?   @db.Decimal(18, 8)
+  metadata     Json?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  task         Task       @relation(fields: [taskId], references: [id])
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, taskId])
+  @@map("user_tasks")
+}
+
+model OrphanTransaction {
+  id               String    @id @default(uuid())
+  transactionHash  String    @unique
+  fromAddress      String
+  toAddress        String
+  amount           Decimal   @db.Decimal(18, 8)
+  currency         String
+  network          String
+  blockNumber      Int
+  status           String    @default("UNMATCHED")
+  matchedDepositId String?
+  processedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@map("orphan_transactions")
+}
+
 enum DepositStatus {
   PENDING
   CONFIRMED
@@ -253,102 +331,6 @@ enum WithdrawalStatus {
   REJECTED
   COMPLETED
   FAILED
-}
-
-model VipLevel {
-  id            String   @id @default(uuid())
-  name          String   @unique
-  amount        Decimal  @db.Decimal(18, 8)
-  dailyEarning  Decimal  @db.Decimal(18, 8)
-  bicycleModel  String?  // Bicycle model for this VIP level
-  bicycleColor  String?  // Bicycle color
-  bicycleFeatures String? // Additional bicycle features
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  userVips      UserVip[]
-  earningsSessions EarningsSession[]
-
-  @@map("vip_levels")
-}
-
-model UserVip {
-  id            String   @id @default(uuid())
-  userId        String   @unique
-  vipLevelId    String
-  joinedAt      DateTime @default(now())
-  isActive      Boolean  @default(true)
-  totalPaid     Decimal  @db.Decimal(18, 8)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  vipLevel      VipLevel @relation(fields: [vipLevelId], references: [id])
-
-  @@map("user_vips")
-}
-
-model EarningsSession {
-  id                String   @id @default(uuid())
-  userId            String
-  vipLevelId        String
-  startTime         DateTime @default(now())
-  expectedEndTime   DateTime
-  actualEndTime     DateTime?
-  status            EarningSessionStatus @default(ACTIVE)
-  dailyEarningRate  Decimal  @db.Decimal(18, 8)
-  totalEarnings     Decimal? @db.Decimal(18, 8)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  // Relations
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  vipLevel          VipLevel @relation(fields: [vipLevelId], references: [id])
-
-  @@map("earnings_sessions")
-}
-
-model Task {
-  id          String    @id @default(uuid())
-  title       String
-  description String
-  type        TaskType
-  reward      Decimal   @db.Decimal(18, 8)
-  requirements Json?    // Additional requirements for task completion
-  isActive    Boolean   @default(true)
-  isRepeatable Boolean  @default(false)
-  cooldownHours Int?    // Hours to wait before task can be repeated
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  userTasks   UserTask[]
-
-  @@map("tasks")
-}
-
-model UserTask {
-  id          String    @id @default(uuid())
-  userId      String
-  taskId      String
-  status      TaskStatus @default(PENDING)
-  startedAt   DateTime?
-  completedAt DateTime?
-  rewardEarned Decimal? @db.Decimal(18, 8)
-  metadata    Json?     // Additional data about task completion
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  task        Task      @relation(fields: [taskId], references: [id])
-
-  @@unique([userId, taskId])
-
-  @@map("user_tasks")
 }
 
 enum TransactionType {
@@ -382,22 +364,4 @@ enum TaskStatus {
 
 enum TaskType {
   DAILY_EARNING
-}
-
-model OrphanTransaction {
-  id              String   @id @default(uuid())
-  transactionHash String   @unique
-  fromAddress     String
-  toAddress       String
-  amount          Decimal  @db.Decimal(18, 8)
-  currency        String
-  network         String
-  blockNumber     Int
-  status          String   @default("UNMATCHED") // UNMATCHED, MATCHED, PROCESSED
-  matchedDepositId String?
-  processedAt     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@map("orphan_transactions")
 }

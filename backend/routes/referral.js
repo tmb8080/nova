@@ -108,9 +108,9 @@ router.get('/stats', authenticateToken, async (req, res) => {
         directReferralList: directReferrals,
         indirectReferralList: indirectReferrals,
         recentBonuses: recentBonuses,
-        // Bonus rates
-        level1Rate: 5, // 5%
-        level2Rate: 3  // 3%
+        // VIP Commission rates (only triggered when users join VIP levels)
+        level1Rate: 5, // 5% for direct referrals
+        level2Rate: 3  // 3% for indirect referrals
       }
     });
 

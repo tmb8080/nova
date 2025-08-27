@@ -4,7 +4,7 @@ const { body, validationResult } = require('express-validator');
 const { processUsdtDepositConfirmation } = require('../services/depositService');
 const { PrismaClient } = require('@prisma/client');
 
-const { updateWalletBalance, processReferralBonus } = require('../services/walletService');
+const { updateWalletBalance } = require('../services/walletService');
 const { sendEmail } = require('../services/emailService');
 
 const router = express.Router();
@@ -243,19 +243,8 @@ const handleChargeConfirmed = async (charge) => {
         deposit.id
       );
 
-      // Process referral bonus if user was referred
-      if (deposit.user.referredBy) {
-        try {
-          await processReferralBonus(
-            deposit.user.referredBy,
-            deposit.userId,
-            deposit.amount,
-            deposit.id
-          );
-        } catch (referralError) {
-          console.error('Error processing referral bonus:', referralError);
-        }
-      }
+      // Note: Referral bonuses are now only processed when users join VIP levels
+      // Deposit-based referral bonuses have been removed
     });
 
     // Get updated wallet balance

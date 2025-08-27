@@ -3,8 +3,8 @@ const { body, query, validationResult } = require('express-validator');
 const axios = require('axios');
 const { PrismaClient } = require('@prisma/client');
 
-const { authenticateToken, requireEmailVerification, requireAdmin } = require('../middleware/auth');
-const { updateWalletBalance, processReferralBonus } = require('../services/walletService');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { updateWalletBalance } = require('../services/walletService');
 const { sendEmail } = require('../services/emailService');
 const { 
   verifyUsdtDeposit, 
@@ -178,7 +178,7 @@ const verifyTransactionBeforeDeposit = async (transactionHash, network, expected
 router.post('/create', [
   body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be greater than 0.01'),
   body('currency').isIn(['BTC', 'ETH', 'USDT']).withMessage('Invalid currency')
-], authenticateToken, requireEmailVerification, async (req, res) => {
+], authenticateToken, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -401,7 +401,7 @@ router.get('/company-addresses', authenticateToken, async (req, res) => {
 // Auto-fill transaction details when hash is pasted
 router.post('/auto-fill-transaction', [
   body('transactionHash').notEmpty().withMessage('Transaction hash is required')
-], authenticateToken, requireEmailVerification, async (req, res) => {
+], authenticateToken, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -512,7 +512,7 @@ router.post('/auto-fill-transaction', [
 // Get transaction details without verification (for debugging)
 router.post('/transaction-details', [
   body('transactionHash').notEmpty().withMessage('Transaction hash is required')
-], authenticateToken, requireEmailVerification, async (req, res) => {
+], authenticateToken, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -568,7 +568,7 @@ router.post('/pre-verify', [
   body('transactionHash').notEmpty().withMessage('Transaction hash is required'),
   body('network').isIn(['BEP20', 'TRC20', 'ERC20', 'POLYGON']).withMessage('Invalid network'),
   body('amount').isFloat({ min: 1 }).withMessage('Amount must be at least 1 USDT')
-], authenticateToken, requireEmailVerification, async (req, res) => {
+], authenticateToken, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -664,7 +664,7 @@ router.post('/usdt/create', [
   body('transactionHash').notEmpty().withMessage('Transaction hash is required'),
   body('status').optional().isIn(['PENDING', 'CONFIRMED']).withMessage('Invalid status'),
   body('autoConfirmed').optional().isBoolean().withMessage('autoConfirmed must be boolean')
-], authenticateToken, requireEmailVerification, async (req, res) => {
+], authenticateToken, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -1029,7 +1029,7 @@ router.get('/:depositId', authenticateToken, async (req, res) => {
 // Update transaction hash for a deposit
 router.patch('/:depositId/transaction-hash', [
   body('transactionHash').notEmpty().withMessage('Transaction hash is required')
-], authenticateToken, requireEmailVerification, async (req, res) => {
+], authenticateToken, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -1097,7 +1097,7 @@ router.patch('/:depositId/transaction-hash', [
 });
 
 // Verify deposit transaction (for users)
-router.post('/:depositId/verify', authenticateToken, requireEmailVerification, async (req, res) => {
+router.post('/:depositId/verify', authenticateToken, async (req, res) => {
   try {
     const { depositId } = req.params;
     const userId = req.user.id;

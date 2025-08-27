@@ -2,7 +2,7 @@ const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { PrismaClient } = require('@prisma/client');
 
-const { authenticateToken, requireEmailVerification, requireAdmin } = require('../middleware/auth');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { updateWalletBalance } = require('../services/walletService');
 const { sendEmail } = require('../services/emailService');
 const { getNetworkFee, getAvailableNetworks } = require('../services/networkFeeService');
@@ -22,7 +22,7 @@ router.post('/request', [
   body('currency').isIn(['BTC', 'ETH', 'USDT', 'USDC', 'USDT_USDC']).withMessage('Invalid currency'),
   body('walletAddress').notEmpty().withMessage('Wallet address is required'),
   body('network').optional().isIn(['TRC20', 'BEP20', 'ERC20', 'POLYGON', 'ARBITRUM', 'OPTIMISM']).withMessage('Invalid network')
-], authenticateToken, requireEmailVerification, async (req, res) => {
+], authenticateToken, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

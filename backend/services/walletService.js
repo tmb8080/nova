@@ -197,114 +197,7 @@ const getWalletStats = async (userId) => {
   }
 };
 
-// Process referral bonus
-const processReferralBonus = async (referrerId, referredUserId, depositAmount, depositId = null) => {
-  try {
-    // Get admin settings for referral bonus rate
-    const settings = await prisma.adminSettings.findFirst();
-    if (!settings) {
-      throw new Error('Admin settings not found');
-    }
-
-    const bonusRate = parseFloat(settings.referralBonusRate);
-    const bonusAmount = parseFloat(calculatePercentage(depositAmount, bonusRate));
-
-    if (bonusAmount <= 0) {
-      return null;
-    }
-
-    // Get referrer information
-    const referrer = await prisma.user.findUnique({
-      where: { id: referrerId },
-      include: { wallet: true }
-    });
-
-    const referredUser = await prisma.user.findUnique({
-      where: { id: referredUserId },
-      select: { fullName: true, email: true }
-    });
-
-    if (!referrer || !referredUser) {
-      throw new Error('Referrer or referred user not found');
-    }
-
-    // Process bonus in transaction
-    const result = await prisma.$transaction(async (tx) => {
-      // Update referrer's wallet
-      const updatedWallet = await tx.wallet.update({
-        where: { userId: referrerId },
-        data: {
-          balance: {
-            increment: bonusAmount
-          },
-          totalReferralBonus: {
-            increment: bonusAmount
-          }
-        }
-      });
-
-      // Create transaction record
-      const transaction = await tx.transaction.create({
-        data: {
-          userId: referrerId,
-          type: 'REFERRAL_BONUS',
-          amount: bonusAmount,
-          description: `Referral bonus from ${referredUser.fullName || referredUser.email || referredUser.phone || 'User'} (${depositAmount} deposit)`,
-          referenceId: referredUserId,
-          metadata: {
-            depositId: depositId,
-            depositAmount: depositAmount,
-            bonusRate: bonusRate
-          }
-        }
-      });
-
-      // Create referral bonus record
-      const bonusRecord = await tx.referralBonus.create({
-        data: {
-          referrerId,
-          referredId: referredUserId,
-          depositId: depositId || 'unknown-deposit',
-          bonusAmount,
-          bonusRate
-        }
-      });
-
-      return { updatedWallet, transaction, bonusRecord };
-    });
-
-    // Send notification email to referrer
-    try {
-      const totalReferrals = await prisma.user.count({
-        where: { referredBy: referrerId }
-      });
-
-      await sendEmail({
-        to: referrer.email,
-        template: 'referralBonus',
-        data: {
-          fullName: referrer.fullName || referrer.email || referrer.phone || 'User',
-          referredUser: referredUser.fullName || referredUser.email || referredUser.phone || 'User',
-          bonusAmount: bonusAmount.toFixed(8),
-          depositAmount: depositAmount.toFixed(8),
-          currency: 'USD',
-          totalReferrals,
-          referralCode: referrer.referralCode,
-          bonusRate: (bonusRate * 100).toFixed(1) + '%'
-        }
-      });
-    } catch (emailError) {
-      console.error('Failed to send referral bonus email:', emailError);
-    }
-
-    console.log(`Referral bonus processed: ${bonusAmount} for user ${referrerId}`);
-    return result;
-
-  } catch (error) {
-    console.error('Error processing referral bonus:', error);
-    throw error;
-  }
-};
+// Note: processReferralBonus function removed - referral bonuses are now only processed when users join VIP levels
 
 // Update wallet balance (for deposits/withdrawals)
 const updateWalletBalance = async (userId, amount, type, description, referenceId = null) => {
@@ -425,7 +318,6 @@ const calculateProjectedEarnings = async (userId, days = 30) => {
 module.exports = {
   processWalletGrowth,
   getWalletStats,
-  processReferralBonus,
   updateWalletBalance,
   getTransactionHistory,
   calculateProjectedEarnings

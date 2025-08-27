@@ -1,8 +1,9 @@
 const { PrismaClient } = require('@prisma/client');
+const { updateWalletBalance } = require('./walletService');
 const prisma = new PrismaClient();
 
 /**
- * Start daily earning session (the only task available)
+ * Start daily earning session (1 hour duration)
  */
 async function startEarningSession(userId) {
   try {
@@ -21,26 +22,42 @@ async function startEarningSession(userId) {
       throw new Error('No active VIP level found. Please join a VIP level first.');
     }
 
-    // Check if there's already an active session for today
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const existingSession = await prisma.earningsSession.findFirst({
+    // Check if user has completed a task in the last 24 hours
+    const lastCompletedSession = await prisma.earningsSession.findFirst({
       where: {
         userId: userId,
-        startTime: {
-          gte: today,
-          lt: tomorrow
-        },
+        status: 'COMPLETED'
+      },
+      orderBy: {
+        actualEndTime: 'desc'
+      }
+    });
+
+    if (lastCompletedSession) {
+      const timeSinceLastCompletion = Date.now() - new Date(lastCompletedSession.actualEndTime).getTime();
+      const hoursSinceLastCompletion = timeSinceLastCompletion / (1000 * 60 * 60);
+      
+      if (hoursSinceLastCompletion < 24) {
+        const remainingHours = Math.ceil(24 - hoursSinceLastCompletion);
+        throw new Error(`You can start a new daily task in ${remainingHours} hours. Daily tasks have a 24-hour cooldown.`);
+      }
+    }
+
+    // Check if there's already an active session
+    const activeSession = await prisma.earningsSession.findFirst({
+      where: {
+        userId: userId,
         status: 'ACTIVE'
       }
     });
 
-    if (existingSession) {
-      throw new Error('You already have an active earning session for today.');
+    if (activeSession) {
+      throw new Error('You already have an active earning session.');
     }
+
+    // Calculate earnings for 1 hour (daily rate / 24)
+    const hourlyEarningRate = parseFloat(userVip.vipLevel.dailyEarning) / 24;
+    const sessionDuration = 60 * 60 * 1000; // 1 hour in milliseconds
 
     // Create new earning session
     const session = await prisma.earningsSession.create({
@@ -49,10 +66,19 @@ async function startEarningSession(userId) {
         vipLevelId: userVip.vipLevelId,
         startTime: new Date(),
         status: 'ACTIVE',
-        dailyEarningRate: userVip.vipLevel.dailyEarning,
-        expectedEndTime: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
+        dailyEarningRate: hourlyEarningRate,
+        expectedEndTime: new Date(Date.now() + sessionDuration) // 1 hour from now
       }
     });
+
+    // Schedule automatic completion after 1 hour
+    setTimeout(async () => {
+      try {
+        await completeEarningSession(session.id);
+      } catch (error) {
+        console.error('Error auto-completing session:', error);
+      }
+    }, sessionDuration);
 
     return {
       success: true,
@@ -61,7 +87,7 @@ async function startEarningSession(userId) {
         startTime: session.startTime,
         expectedEndTime: session.expectedEndTime,
         dailyEarningRate: session.dailyEarningRate,
-        message: 'Daily earning session started successfully! Your earnings will accumulate for the next 24 hours.'
+        message: 'Daily earning session started! Your task will complete automatically in 1 hour and earnings will be deposited to your wallet.'
       }
     };
   } catch (error) {
@@ -71,22 +97,91 @@ async function startEarningSession(userId) {
 }
 
 /**
+ * Complete earning session and process payout
+ */
+async function completeEarningSession(sessionId) {
+  try {
+    const session = await prisma.earningsSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        vipLevel: true,
+        user: true
+      }
+    });
+
+    if (!session || session.status !== 'ACTIVE') {
+      console.log(`Session ${sessionId} not found or already completed`);
+      return;
+    }
+
+    console.log(`Completing session ${sessionId} for user ${session.userId}`);
+
+    await prisma.$transaction(async (tx) => {
+      // Mark session as completed
+      await tx.earningsSession.update({
+        where: { id: sessionId },
+        data: { 
+          status: 'COMPLETED',
+          actualEndTime: new Date(),
+          totalEarnings: session.dailyEarningRate
+        }
+      });
+
+      // Add earnings to user's wallet
+      await updateWalletBalance(
+        session.userId,
+        session.dailyEarningRate,
+        'VIP_EARNINGS',
+        `Daily task earnings from ${session.vipLevel.name} VIP level`,
+        sessionId
+      );
+
+      // Update user task record
+      const task = await tx.task.findFirst({
+        where: { type: 'DAILY_EARNING' }
+      });
+
+      if (task) {
+        await tx.userTask.upsert({
+          where: {
+            userId_taskId: {
+              userId: session.userId,
+              taskId: task.id
+            }
+          },
+          update: {
+            status: 'COMPLETED',
+            completedAt: new Date(),
+            rewardEarned: session.dailyEarningRate
+          },
+          create: {
+            userId: session.userId,
+            taskId: task.id,
+            status: 'COMPLETED',
+            startedAt: session.startTime,
+            completedAt: new Date(),
+            rewardEarned: session.dailyEarningRate
+          }
+        });
+      }
+    });
+
+    console.log(`✅ Session ${sessionId} completed and earnings processed: ${session.dailyEarningRate}`);
+  } catch (error) {
+    console.error('Error completing earning session:', error);
+    throw error;
+  }
+}
+
+/**
  * Get current earning session status
  */
 async function getEarningSessionStatus(userId) {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const session = await prisma.earningsSession.findFirst({
+    // Check for active session
+    const activeSession = await prisma.earningsSession.findFirst({
       where: {
         userId: userId,
-        startTime: {
-          gte: today,
-          lt: tomorrow
-        },
         status: 'ACTIVE'
       },
       include: {
@@ -94,104 +189,84 @@ async function getEarningSessionStatus(userId) {
       }
     });
 
-    if (!session) {
+    if (activeSession) {
+      const now = new Date();
+      const startTime = new Date(activeSession.startTime);
+      const endTime = new Date(activeSession.expectedEndTime);
+      const isExpired = now >= endTime;
+
+      // Calculate current earnings and progress
+      const elapsedMs = Math.min(now - startTime, endTime - startTime);
+      const totalDuration = endTime - startTime;
+      const progress = (elapsedMs / totalDuration) * 100;
+      const currentEarnings = (elapsedMs / totalDuration) * parseFloat(activeSession.dailyEarningRate);
+
+      // Calculate remaining time
+      const remainingMs = Math.max(0, endTime - now);
+      const remainingMinutes = Math.floor(remainingMs / (1000 * 60));
+      const remainingSeconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
+
       return {
         success: true,
         data: {
-          hasActiveSession: false,
-          canStart: true,
-          message: 'No active session. Click "Start Daily Task" to begin your 24-hour earning cycle.'
+          hasActiveSession: true,
+          canStart: false,
+          sessionId: activeSession.id,
+          startTime: activeSession.startTime,
+          expectedEndTime: activeSession.expectedEndTime,
+          currentEarnings: currentEarnings,
+          dailyEarningRate: activeSession.dailyEarningRate,
+          remainingTime: {
+            minutes: remainingMinutes,
+            seconds: remainingSeconds
+          },
+          progress: progress,
+          message: `Daily task active! Current earnings: $${currentEarnings.toFixed(2)}. Time remaining: ${remainingMinutes}m ${remainingSeconds}s`
         }
       };
     }
 
-    const now = new Date();
-    const startTime = new Date(session.startTime);
-    const endTime = new Date(session.expectedEndTime);
-    const isExpired = now >= endTime;
+    // Check last completed session for cooldown
+    const lastCompletedSession = await prisma.earningsSession.findFirst({
+      where: {
+        userId: userId,
+        status: 'COMPLETED'
+      },
+      orderBy: {
+        actualEndTime: 'desc'
+      }
+    });
 
-    // Calculate current earnings
-    const elapsedHours = Math.min((now - startTime) / (1000 * 60 * 60), 24);
-    const currentEarnings = (elapsedHours / 24) * parseFloat(session.dailyEarningRate);
-
-    // If session is expired, mark it as completed
-    if (isExpired) {
-      console.log(`Session ${session.id} expired, marking as completed and processing earnings...`);
+    if (lastCompletedSession) {
+      const timeSinceLastCompletion = Date.now() - new Date(lastCompletedSession.actualEndTime).getTime();
+      const hoursSinceLastCompletion = timeSinceLastCompletion / (1000 * 60 * 60);
       
-      await prisma.$transaction(async (tx) => {
-        // Mark session as completed
-        await tx.earningsSession.update({
-          where: { id: session.id },
-          data: { 
-            status: 'COMPLETED',
-            actualEndTime: endTime,
-            totalEarnings: session.dailyEarningRate
-          }
-        });
-
-        // Add earnings to user's wallet - update both balance and dailyEarnings
-        await tx.wallet.update({
-          where: { userId: userId },
+      if (hoursSinceLastCompletion < 24) {
+        const remainingHours = Math.ceil(24 - hoursSinceLastCompletion);
+        const remainingMinutes = Math.ceil((24 - hoursSinceLastCompletion) * 60);
+        
+        return {
+          success: true,
           data: {
-            balance: {
-              increment: session.dailyEarningRate
+            hasActiveSession: false,
+            canStart: false,
+            cooldownRemaining: {
+              hours: remainingHours,
+              minutes: remainingMinutes
             },
-            dailyEarnings: {
-              increment: session.dailyEarningRate
-            },
-            totalEarnings: {
-              increment: session.dailyEarningRate
-            }
+            lastEarnings: lastCompletedSession.totalEarnings,
+            message: `Daily task completed! You earned $${lastCompletedSession.totalEarnings}. Next task available in ${remainingHours}h ${remainingMinutes % 60}m`
           }
-        });
-
-        // Create transaction record
-        await tx.transaction.create({
-          data: {
-            userId: userId,
-            type: 'VIP_EARNINGS',
-            amount: session.dailyEarningRate,
-            description: `Daily task earnings from ${session.vipLevel.name} VIP level`,
-            referenceId: session.id,
-            status: 'COMPLETED'
-          }
-        });
-      });
-
-      console.log(`✅ Session ${session.id} completed and earnings processed: ${session.dailyEarningRate}`);
-
-      return {
-        success: true,
-        data: {
-          hasActiveSession: false,
-          canStart: true,
-          message: 'Your 24-hour earning cycle has completed! Earnings have been added to your wallet. Start a new cycle to continue earning.',
-          completedEarnings: session.dailyEarningRate
-        }
-      };
+        };
+      }
     }
-
-    // Calculate remaining time
-    const remainingMs = endTime - now;
-    const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
-    const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
 
     return {
       success: true,
       data: {
-        hasActiveSession: true,
-        canStart: false,
-        sessionId: session.id,
-        startTime: session.startTime,
-        expectedEndTime: session.expectedEndTime,
-        currentEarnings: currentEarnings,
-        dailyEarningRate: session.dailyEarningRate,
-        remainingTime: {
-          hours: remainingHours,
-          minutes: remainingMinutes
-        },
-        progress: (elapsedHours / 24) * 100,
-        message: `Daily task active! Current earnings: $${currentEarnings.toFixed(2)}. Time remaining: ${remainingHours}h ${remainingMinutes}m`
+        hasActiveSession: false,
+        canStart: true,
+        message: 'Ready to start daily task! Click "Start Daily Task" to begin your 1-hour earning session.'
       }
     };
   } catch (error) {
@@ -258,42 +333,23 @@ async function getAvailableTasks(userId) {
       };
     }
 
-    // Get user's task progress
-    const userTask = await prisma.userTask.findFirst({
-      where: { 
-        userId,
-        taskId: task.id
-      }
-    });
-
-    // Check if user can start the task
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const activeSession = await prisma.earningsSession.findFirst({
-      where: {
-        userId: userId,
-        startTime: {
-          gte: today,
-          lt: tomorrow
-        },
-        status: 'ACTIVE'
-      }
-    });
-
-    const canStart = !activeSession;
+    // Get current session status
+    const sessionStatus = await getEarningSessionStatus(userId);
+    
+    const canStart = sessionStatus.data.canStart;
+    const hasActiveSession = sessionStatus.data.hasActiveSession;
 
     return {
       success: true,
       data: [{
         ...task,
-        status: activeSession ? 'IN_PROGRESS' : 'PENDING',
+        status: hasActiveSession ? 'IN_PROGRESS' : (canStart ? 'PENDING' : 'COOLDOWN'),
         canStart,
         canComplete: false,
-        progress: activeSession ? 50 : 0,
-        message: activeSession ? 'Daily task in progress' : 'Ready to start daily task'
+        progress: hasActiveSession ? sessionStatus.data.progress || 0 : 0,
+        message: sessionStatus.data.message,
+        cooldownRemaining: sessionStatus.data.cooldownRemaining,
+        lastEarnings: sessionStatus.data.lastEarnings
       }]
     };
   } catch (error) {
@@ -316,51 +372,8 @@ async function startTask(userId, taskId) {
       throw new Error('Invalid task or task not available');
     }
 
-    // Check if user can start this task
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const existingSession = await prisma.earningsSession.findFirst({
-      where: {
-        userId: userId,
-        startTime: {
-          gte: today,
-          lt: tomorrow
-        },
-        status: 'ACTIVE'
-      }
-    });
-
-    if (existingSession) {
-      throw new Error('You already have an active daily earning session');
-    }
-
     // Start the earning session
     const result = await startEarningSession(userId);
-
-    // Create or update user task record
-    await prisma.userTask.upsert({
-      where: {
-        userId_taskId: {
-          userId,
-          taskId
-        }
-      },
-      update: {
-        status: 'IN_PROGRESS',
-        startedAt: new Date(),
-        completedAt: null,
-        rewardEarned: null
-      },
-      create: {
-        userId,
-        taskId,
-        status: 'IN_PROGRESS',
-        startedAt: new Date()
-      }
-    });
 
     return {
       success: true,
@@ -411,5 +424,6 @@ module.exports = {
   getEarningHistory,
   getAvailableTasks,
   startTask,
-  getTaskHistory
+  getTaskHistory,
+  completeEarningSession
 };

@@ -475,38 +475,8 @@ router.patch('/deposits/:id/process', [
           }
         });
 
-        // Process referral bonus if applicable
-        if (deposit.user.referrerId) {
-          const referralBonus = parseFloat(deposit.amount) * 0.05; // 5% referral bonus
-          
-          const referrerWallet = await tx.wallet.findUnique({
-            where: { userId: deposit.user.referrerId }
-          });
-
-          if (referrerWallet) {
-            await tx.wallet.update({
-              where: { id: referrerWallet.id },
-              data: {
-                balance: { increment: referralBonus },
-                totalReferralBonus: { increment: referralBonus }
-              }
-            });
-
-            await tx.transaction.create({
-              data: {
-                userId: deposit.user.referrerId,
-                type: 'REFERRAL_BONUS',
-                amount: referralBonus,
-                description: `Referral bonus from ${deposit.user.fullName}`,
-                referenceId: deposit.id,
-                metadata: {
-                  referredUserId: deposit.userId,
-                  depositId: deposit.id
-                }
-              }
-            });
-          }
-        }
+        // Note: Referral bonuses are now only processed when users join VIP levels
+        // Deposit-based referral bonuses have been removed
       }
     });
 

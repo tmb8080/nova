@@ -36,13 +36,7 @@ const verifyWithdrawalRequest = async (withdrawalId) => {
       };
     }
 
-    // Check user verification status
-    if (!withdrawal.user.isEmailVerified) {
-      return {
-        verified: false,
-        message: 'User email not verified'
-      };
-    }
+    // Note: Email verification check removed - users without email can make withdrawals
 
     // Check wallet address validity
     const addressValidation = await validateCryptoAddress(

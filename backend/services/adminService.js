@@ -13,9 +13,10 @@ const initializeAdminSettings = async () => {
       settings = await prisma.adminSettings.create({
         data: {
           dailyGrowthRate: parseFloat(process.env.DEFAULT_DAILY_GROWTH_RATE) || 0.01,
-          referralBonusRate: parseFloat(process.env.DEFAULT_REFERRAL_BONUS_RATE) || 0.05,
           minDepositAmount: parseFloat(process.env.MIN_DEPOSIT_AMOUNT) || 10,
+          minUsdtDepositAmount: parseFloat(process.env.MIN_USDT_DEPOSIT_AMOUNT) || 30,
           minWithdrawalAmount: parseFloat(process.env.MIN_WITHDRAWAL_AMOUNT) || 10,
+          minUsdcWithdrawalAmount: parseFloat(process.env.MIN_USDC_WITHDRAWAL_AMOUNT) || 20,
           isDepositEnabled: true,
           isWithdrawalEnabled: true,
           isRegistrationEnabled: true,
@@ -100,7 +101,6 @@ const updateAdminSettings = async (updates) => {
       settings = await prisma.adminSettings.create({
         data: {
           dailyGrowthRate: parseFloat(process.env.DEFAULT_DAILY_GROWTH_RATE) || 0.01,
-          referralBonusRate: parseFloat(process.env.DEFAULT_REFERRAL_BONUS_RATE) || 0.05,
           minDepositAmount: parseFloat(process.env.MIN_DEPOSIT_AMOUNT) || 0.000001,
           minUsdtDepositAmount: parseFloat(process.env.MIN_USDT_DEPOSIT_AMOUNT) || 0.000001,
           minWithdrawalAmount: parseFloat(process.env.MIN_WITHDRAWAL_AMOUNT) || 10,

@@ -38,7 +38,7 @@ router.get('/levels', authenticateToken, async (req, res) => {
   }
 });
 
-// Join VIP level
+// Join VIP level (new user or upgrade)
 router.post('/join', authenticateToken, async (req, res) => {
   try {
     console.log('VIP join request received:', req.body);
@@ -60,17 +60,13 @@ router.post('/join', authenticateToken, async (req, res) => {
 
     // Check if user already has VIP
     const existingVip = await prisma.userVip.findUnique({
-      where: { userId }
+      where: { userId },
+      include: {
+        vipLevel: true
+      }
     });
 
     console.log('Existing VIP check:', existingVip);
-
-    if (existingVip) {
-      return res.status(400).json({
-        success: false,
-        message: 'User already has a VIP membership'
-      });
-    }
 
     // Get VIP level details
     const vipLevel = await prisma.vipLevel.findUnique({
@@ -85,7 +81,7 @@ router.post('/join', authenticateToken, async (req, res) => {
     }
 
     // Check if user has sufficient balance
-    const wallet = await prisma.wallet.findUnique({
+    let wallet = await prisma.wallet.findUnique({
       where: { userId }
     });
 
@@ -130,72 +126,142 @@ router.post('/join', authenticateToken, async (req, res) => {
       wallet = newWallet;
     }
 
+    // Calculate payment amount based on whether user is upgrading or joining new
+    let paymentAmount = vipAmount;
+    let isUpgrade = false;
+    let currentVipLevel = null;
+
+    if (existingVip) {
+      // User is upgrading - calculate the difference
+      isUpgrade = true;
+      currentVipLevel = existingVip.vipLevel;
+      const currentVipAmount = parseFloat(existingVip.totalPaid);
+      paymentAmount = vipAmount - currentVipAmount;
+      
+      console.log('Upgrade calculation:', {
+        currentVipLevel: currentVipLevel.name,
+        currentVipAmount,
+        newVipAmount: vipAmount,
+        paymentAmount,
+        isUpgrade
+      });
+
+      if (paymentAmount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot downgrade to a lower VIP level'
+        });
+      }
+    }
+
     // Recalculate balance after potential wallet creation
     const finalWalletBalance = parseFloat(wallet.balance || 0);
     
-    if (finalWalletBalance < vipAmount) {
+    if (finalWalletBalance < paymentAmount) {
+      const message = isUpgrade 
+        ? `Insufficient balance for upgrade. You have $${finalWalletBalance} but need $${paymentAmount} to upgrade from ${currentVipLevel.name} to ${vipLevel.name}.`
+        : `Insufficient balance. You have $${finalWalletBalance} but need $${paymentAmount} to join this VIP level.`;
+      
       return res.status(400).json({
         success: false,
-        message: `Insufficient balance. You have $${finalWalletBalance} but need $${vipAmount} to join this VIP level.`
+        message
       });
     }
 
     // Start transaction
-    console.log('Starting VIP join transaction...');
+    console.log('Starting VIP join/upgrade transaction...');
     const result = await prisma.$transaction(async (tx) => {
-      console.log('Deducting VIP amount from wallet...');
-      // Deduct VIP amount from wallet
+      console.log('Deducting payment amount from wallet...');
+      // Deduct payment amount from wallet
       await tx.wallet.update({
         where: { userId },
         data: {
           balance: {
-            decrement: vipLevel.amount
+            decrement: paymentAmount
           }
         }
       });
 
-      console.log('Creating VIP membership...');
-      // Create VIP membership
-      const userVip = await tx.userVip.create({
-        data: {
-          userId,
-          vipLevelId,
-          totalPaid: vipLevel.amount
-        }
-      });
+      if (isUpgrade) {
+        console.log('Updating existing VIP membership...');
+        // Update existing VIP membership
+        const userVip = await tx.userVip.update({
+          where: { userId },
+          data: {
+            vipLevelId,
+            totalPaid: vipLevel.amount,
+            updatedAt: new Date()
+          }
+        });
 
-      console.log('Creating transaction record...');
-      // Create transaction record
-      await tx.transaction.create({
-        data: {
-          userId,
-          type: 'VIP_PAYMENT',
-          amount: vipLevel.amount,
-          description: `VIP ${vipLevel.name} membership payment`
-        }
-      });
+        console.log('Creating upgrade transaction record...');
+        // Create transaction record for upgrade
+        await tx.transaction.create({
+          data: {
+            userId,
+            type: 'VIP_PAYMENT',
+            amount: paymentAmount,
+            description: `VIP upgrade from ${currentVipLevel.name} to ${vipLevel.name} (difference: $${paymentAmount})`
+          }
+        });
 
-      console.log('Transaction completed successfully');
-      return userVip;
+        console.log('Upgrade transaction completed successfully');
+        return userVip;
+      } else {
+        console.log('Creating new VIP membership...');
+        // Create new VIP membership
+        const userVip = await tx.userVip.create({
+          data: {
+            userId,
+            vipLevelId,
+            totalPaid: vipLevel.amount
+          }
+        });
+
+        console.log('Creating new membership transaction record...');
+        // Create transaction record for new membership
+        await tx.transaction.create({
+          data: {
+            userId,
+            type: 'VIP_PAYMENT',
+            amount: paymentAmount,
+            description: `VIP ${vipLevel.name} membership payment`
+          }
+        });
+
+        console.log('New membership transaction completed successfully');
+        return userVip;
+      }
     });
 
-    // Process referral bonuses for VIP purchase
-    try {
-      console.log('Processing VIP referral bonuses...');
-      const vipAmount = parseFloat(vipLevel.amount);
-      await processVipReferralBonus(userId, vipLevelId, vipAmount);
-      console.log('VIP referral bonuses processed successfully');
-    } catch (referralError) {
-      console.error('Error processing VIP referral bonuses:', referralError);
-      // Don't fail VIP join if referral bonus processing fails
+    // Process referral bonuses for VIP purchase (only for new memberships, not upgrades)
+    if (!isUpgrade) {
+      try {
+        console.log('Processing VIP referral bonuses...');
+        const vipAmount = parseFloat(vipLevel.amount);
+        await processVipReferralBonus(userId, vipLevelId, vipAmount);
+        console.log('VIP referral bonuses processed successfully');
+      } catch (referralError) {
+        console.error('Error processing VIP referral bonuses:', referralError);
+        // Don't fail VIP join if referral bonus processing fails
+      }
+    } else {
+      console.log('Skipping referral bonuses for VIP upgrade');
     }
 
     // Note: Auto-complete task functionality removed - only daily earning tasks are available
 
     res.json({
       success: true,
-      message: 'Successfully joined VIP level',
-      data: result
+      message: isUpgrade 
+        ? `Successfully upgraded to ${vipLevel.name} VIP level! You paid $${paymentAmount} (difference from your current level)`
+        : 'Successfully joined VIP level',
+      data: {
+        ...result,
+        isUpgrade,
+        paymentAmount,
+        totalPaid: vipLevel.amount
+      }
     });
   } catch (error) {
     console.error('Error joining VIP:', error);

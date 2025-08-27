@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const { updateWalletBalance, processReferralBonus } = require('./walletService');
+const { updateWalletBalance } = require('./walletService');
 const { sendEmail } = require('./emailService');
 // Auto-complete task functionality removed - only daily earning tasks available
 
@@ -55,22 +55,10 @@ const processUsdtDepositConfirmation = async (depositId, transactionHash) => {
         depositId
       );
 
-      // Process referral bonus if user was referred
-      let referralBonus = null;
-      if (deposit.user.referredBy) {
-        try {
-          referralBonus = await processReferralBonus(
-            deposit.user.referredBy,
-            deposit.userId,
-            parseFloat(deposit.amount),
-            deposit.id
-          );
-        } catch (error) {
-          console.error('Error processing referral bonus:', error);
-        }
-      }
+      // Note: Referral bonuses are now only processed when users join VIP levels
+      // Deposit-based referral bonuses have been removed
 
-      return { updatedDeposit, walletUpdate, referralBonus };
+      return { updatedDeposit, walletUpdate };
     });
 
     // Send confirmation email

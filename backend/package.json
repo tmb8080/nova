@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "scripts": "node run-scripts.js",
+    "scripts:list": "node run-scripts.js list",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
@@ -14,12 +16,8 @@
     "db:status": "prisma migrate status",
     "db:studio": "prisma studio",
     "db:seed": "node prisma/seed.js",
-    "db:seed-vip": "node prisma/seed-vip.js",
-    "deposit:test": "node scripts/test-deposit-system.js",
-    "deposit:update": "node scripts/update-user-addresses.js",
-    "api:test": "node scripts/test-wallet-api.js",
-    "test:transaction": "node scripts/test-transaction.js",
-    "test:verification": "node scripts/test-transaction-verification.js"
+    "db:seed-vip": "node prisma/seed-vip.js"
+
   },
   "dependencies": {
     "@prisma/client": "^5.2.0",

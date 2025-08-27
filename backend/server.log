@@ -1,0 +1,10 @@
+
+> trinity-metro-bike-backend@1.0.0 start
+> node server.js
+
+⚠️  Rate limiting has been DISABLED - No request limits enforced
+✅ Database connected successfully
+✅ Admin settings initialized
+🚀 Trinity Metro Bike API running on port 5000
+📊 Environment: development
+🌐 Frontend URL: https://tmbtest.vercel.app
