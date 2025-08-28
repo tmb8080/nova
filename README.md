@@ -173,7 +173,7 @@ The platform includes a comprehensive task system that rewards users for various
 
 The application will be available at:
 - Frontend: https://tmbtest.vercel.app
-- Backend API: http://bambe.shop
+- Backend API: https://bambe.shop
 
 ## 🔧 Configuration
 
