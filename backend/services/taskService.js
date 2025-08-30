@@ -55,26 +55,70 @@ async function startEarningSession(userId) {
       throw new Error('You already have an active earning session.');
     }
 
-    // Calculate earnings for 1 hour (daily rate / 24)
-    const hourlyEarningRate = parseFloat(userVip.vipLevel.dailyEarning) / 24;
+    // Use full daily earning amount instead of hourly rate
+    const dailyEarningAmount = parseFloat(userVip.vipLevel.dailyEarning);
     const sessionDuration = 60 * 60 * 1000; // 1 hour in milliseconds
 
-    // Create new earning session
-    const session = await prisma.earningsSession.create({
-      data: {
-        userId: userId,
-        vipLevelId: userVip.vipLevelId,
-        startTime: new Date(),
-        status: 'ACTIVE',
-        dailyEarningRate: hourlyEarningRate,
-        expectedEndTime: new Date(Date.now() + sessionDuration) // 1 hour from now
+    // Process the entire transaction including wallet deposit
+    const result = await prisma.$transaction(async (tx) => {
+      // Create new earning session
+      const session = await tx.earningsSession.create({
+        data: {
+          userId: userId,
+          vipLevelId: userVip.vipLevelId,
+          startTime: new Date(),
+          status: 'ACTIVE',
+          dailyEarningRate: dailyEarningAmount, // Store full daily amount
+          expectedEndTime: new Date(Date.now() + sessionDuration), // 1 hour from now
+          totalEarnings: dailyEarningAmount // Set total earnings to full daily amount
+        }
+      });
+
+      // Add full daily earnings to user's wallet immediately when task starts
+      await updateWalletBalance(
+        userId,
+        dailyEarningAmount,
+        'VIP_EARNINGS',
+        `Daily task earnings from ${userVip.vipLevel.name} VIP level (task started)`,
+        session.id
+      );
+
+      // Update user task record immediately
+      const task = await tx.task.findFirst({
+        where: { type: 'DAILY_EARNING' }
+      });
+
+      if (task) {
+        await tx.userTask.upsert({
+          where: {
+            userId_taskId: {
+              userId: userId,
+              taskId: task.id
+            }
+          },
+          update: {
+            status: 'COMPLETED',
+            completedAt: new Date(),
+            rewardEarned: dailyEarningAmount
+          },
+          create: {
+            userId: userId,
+            taskId: task.id,
+            status: 'COMPLETED',
+            startedAt: session.startTime,
+            completedAt: new Date(),
+            rewardEarned: dailyEarningAmount
+          }
+        });
       }
+
+      return session;
     });
 
-    // Schedule automatic completion after 1 hour
+    // Schedule automatic completion after 1 hour (without depositing again)
     setTimeout(async () => {
       try {
-        await completeEarningSession(session.id);
+        await completeEarningSession(result.id);
       } catch (error) {
         console.error('Error auto-completing session:', error);
       }
@@ -83,11 +127,11 @@ async function startEarningSession(userId) {
     return {
       success: true,
       data: {
-        sessionId: session.id,
-        startTime: session.startTime,
-        expectedEndTime: session.expectedEndTime,
-        dailyEarningRate: session.dailyEarningRate,
-        message: 'Daily earning session started! Your task will complete automatically in 1 hour and earnings will be deposited to your wallet.'
+        sessionId: result.id,
+        startTime: result.startTime,
+        expectedEndTime: result.expectedEndTime,
+        dailyEarningRate: result.dailyEarningRate,
+        message: `Daily earning session started! You have earned $${dailyEarningAmount} (${userVip.vipLevel.name} VIP level: $${userVip.vipLevel.dailyEarning}/day) which has been deposited to your wallet. Your task will complete automatically in 1 hour.`
       }
     };
   } catch (error) {
@@ -97,7 +141,7 @@ async function startEarningSession(userId) {
 }
 
 /**
- * Complete earning session and process payout
+ * Complete earning session (earnings already deposited when started)
  */
 async function completeEarningSession(sessionId) {
   try {
@@ -114,59 +158,21 @@ async function completeEarningSession(sessionId) {
       return;
     }
 
-    console.log(`Completing session ${sessionId} for user ${session.userId}`);
+    console.log(`Completing session ${sessionId} for user ${session.userId} (earnings already deposited)`);
 
     await prisma.$transaction(async (tx) => {
-      // Mark session as completed
+      // Mark session as completed (earnings already deposited when started)
       await tx.earningsSession.update({
         where: { id: sessionId },
         data: { 
           status: 'COMPLETED',
-          actualEndTime: new Date(),
-          totalEarnings: session.dailyEarningRate
+          actualEndTime: new Date()
+          // totalEarnings already set when session was created
         }
       });
-
-      // Add earnings to user's wallet
-      await updateWalletBalance(
-        session.userId,
-        session.dailyEarningRate,
-        'VIP_EARNINGS',
-        `Daily task earnings from ${session.vipLevel.name} VIP level`,
-        sessionId
-      );
-
-      // Update user task record
-      const task = await tx.task.findFirst({
-        where: { type: 'DAILY_EARNING' }
-      });
-
-      if (task) {
-        await tx.userTask.upsert({
-          where: {
-            userId_taskId: {
-              userId: session.userId,
-              taskId: task.id
-            }
-          },
-          update: {
-            status: 'COMPLETED',
-            completedAt: new Date(),
-            rewardEarned: session.dailyEarningRate
-          },
-          create: {
-            userId: session.userId,
-            taskId: task.id,
-            status: 'COMPLETED',
-            startedAt: session.startTime,
-            completedAt: new Date(),
-            rewardEarned: session.dailyEarningRate
-          }
-        });
-      }
     });
 
-    console.log(`✅ Session ${sessionId} completed and earnings processed: ${session.dailyEarningRate}`);
+    console.log(`✅ Session ${sessionId} completed (earnings were already deposited when started): ${session.dailyEarningRate}`);
   } catch (error) {
     console.error('Error completing earning session:', error);
     throw error;
@@ -221,7 +227,7 @@ async function getEarningSessionStatus(userId) {
             seconds: remainingSeconds
           },
           progress: progress,
-          message: `Daily task active! Current earnings: $${currentEarnings.toFixed(2)}. Time remaining: ${remainingMinutes}m ${remainingSeconds}s`
+          message: `Daily task active! You earned $${activeSession.totalEarnings} (${activeSession.vipLevel.name} VIP level: $${activeSession.vipLevel.dailyEarning}/day, already deposited). Time remaining: ${remainingMinutes}m ${remainingSeconds}s`
         }
       };
     }
@@ -255,7 +261,7 @@ async function getEarningSessionStatus(userId) {
               minutes: remainingMinutes
             },
             lastEarnings: lastCompletedSession.totalEarnings,
-            message: `Daily task completed! You earned $${lastCompletedSession.totalEarnings}. Next task available in ${remainingHours}h ${remainingMinutes % 60}m`
+            message: `Daily task completed! You earned $${lastCompletedSession.totalEarnings} (${lastCompletedSession.vipLevel?.name || 'VIP'} level). Next task available in ${remainingHours}h ${remainingMinutes % 60}m`
           }
         };
       }
@@ -266,7 +272,7 @@ async function getEarningSessionStatus(userId) {
       data: {
         hasActiveSession: false,
         canStart: true,
-        message: 'Ready to start daily task! Click "Start Daily Task" to begin your 1-hour earning session.'
+        message: 'Ready to start daily task! Click "Start Daily Task" to begin your 1-hour earning session based on your VIP level.'
       }
     };
   } catch (error) {

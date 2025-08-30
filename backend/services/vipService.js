@@ -83,7 +83,8 @@ async function processCompletedEarningSessions() {
   try {
     console.log('Processing completed earning sessions...');
     
-    // Find completed sessions that haven't been paid yet
+    // Since earnings are now deposited when tasks start, this function should find no sessions to process
+    // This is kept for backward compatibility and to handle any edge cases
     const completedSessions = await prisma.earningsSession.findMany({
       where: {
         status: 'COMPLETED',
@@ -101,7 +102,7 @@ async function processCompletedEarningSessions() {
       }
     });
 
-    console.log(`Found ${completedSessions.length} completed sessions to process`);
+    console.log(`Found ${completedSessions.length} completed sessions to process (earnings should already be deposited)`);
 
     const results = [];
 
@@ -117,12 +118,21 @@ async function processCompletedEarningSessions() {
         });
 
         if (existingTransaction) {
-          console.log(`Session ${session.id} already processed, skipping...`);
+          console.log(`Session ${session.id} already processed (earnings deposited when started), skipping...`);
+          results.push({
+            sessionId: session.id,
+            userId: session.userId,
+            status: 'skipped',
+            reason: 'Earnings already deposited when task started'
+          });
           continue;
         }
 
+        // This should not happen since earnings are deposited immediately when task starts
+        console.log(`⚠️ Found session ${session.id} without transaction - this should not happen with new logic`);
+        
         const earningsAmount = parseFloat(session.totalEarnings);
-        console.log(`Processing session ${session.id} for user ${session.userId}, amount: ${earningsAmount}`);
+        console.log(`Processing session ${session.id} for user ${session.userId}, amount: ${earningsAmount} (fallback processing)`);
 
         await prisma.$transaction(async (tx) => {
           // Add earnings to wallet - update both balance and dailyEarnings
@@ -147,7 +157,7 @@ async function processCompletedEarningSessions() {
               userId: session.userId,
               type: 'VIP_EARNINGS',
               amount: earningsAmount,
-              description: `Daily VIP earnings completed - ${session.vipLevel?.name || 'VIP'} level`,
+              description: `Daily VIP earnings completed - ${session.vipLevel?.name || 'VIP'} level (fallback processing)`,
               referenceId: session.id
             }
           });
@@ -157,10 +167,11 @@ async function processCompletedEarningSessions() {
           sessionId: session.id,
           userId: session.userId,
           amount: earningsAmount,
-          status: 'success'
+          status: 'success',
+          note: 'Fallback processing - earnings should have been deposited when task started'
         });
 
-        console.log(`✅ Successfully paid ${earningsAmount} to user ${session.userId} for session ${session.id}`);
+        console.log(`✅ Successfully paid ${earningsAmount} to user ${session.userId} for session ${session.id} (fallback)`);
       } catch (error) {
         console.error(`❌ Error processing session ${session.id}:`, error);
         results.push({
@@ -173,9 +184,10 @@ async function processCompletedEarningSessions() {
     }
 
     const successCount = results.filter(r => r.status === 'success').length;
+    const skippedCount = results.filter(r => r.status === 'skipped').length;
     const errorCount = results.filter(r => r.status === 'error').length;
     
-    console.log(`📊 Processing completed: ${successCount} successful, ${errorCount} failed`);
+    console.log(`📊 Processing completed: ${successCount} successful, ${skippedCount} skipped, ${errorCount} failed`);
     return results;
   } catch (error) {
     console.error('❌ Error in processCompletedEarningSessions:', error);

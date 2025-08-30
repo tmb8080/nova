@@ -4,10 +4,32 @@ A comprehensive crypto-powered referral and wallet growth platform built with Re
 
 ## 🚀 Features
 
+### VIP System & Daily Earnings
+The platform features a comprehensive VIP system with 10 different levels, each offering unique daily earning rates:
+
+**VIP Levels & Daily Earnings:**
+- **Starter** - $30 investment, $2/day earnings
+- **Bronze** - $180 investment, $10/day earnings  
+- **Silver** - $400 investment, $24/day earnings
+- **Gold** - $1,000 investment, $50/day earnings
+- **Platinum** - $1,500 investment, $65/day earnings
+- **Diamond** - $2,000 investment, $75/day earnings
+- **Elite** - $5,000 investment, $200/day earnings
+- **Master** - $6,000 investment, $250/day earnings
+- **Legend** - $12,000 investment, $500/day earnings
+- **Supreme** - $25,000 investment, $800/day earnings
+
+**Daily Task Earnings:**
+- Users can start daily 1-hour earning sessions
+- **Full daily amount is deposited immediately when task starts**
+- Earnings are based on VIP level daily rate (e.g., $2/day for Starter)
+- Each VIP level has a 24-hour cooldown between sessions
+
 ### Task & Reward System
 The platform includes a comprehensive task system that rewards users for various activities:
 
 **Available Task Types:**
+- **Daily Earning Session** - Earn based on your VIP level's daily earning rate for 1-hour daily sessions (earnings deposited immediately when started)
 - **Daily Login** - Earn $1.00 for logging in daily (repeatable every 24 hours)
 - **Refer a Friend** - Earn $5.00 for each successful referral
 - **Make Your First Deposit** - Earn $10.00 for completing your first deposit
@@ -20,6 +42,7 @@ The platform includes a comprehensive task system that rewards users for various
 - **Complete Profile** - Earn $1.00 for completing profile information (one-time)
 
 **Key Features:**
+- **Immediate Earnings** - Daily task earnings are deposited to wallet immediately when task starts
 - **Automatic Task Completion** - Tasks are automatically completed based on user actions
 - **Wallet Integration** - All task rewards are automatically added to user wallets
 - **Transaction Tracking** - Task rewards are recorded as transactions with type 'TASK_REWARD'
@@ -28,6 +51,8 @@ The platform includes a comprehensive task system that rewards users for various
 
 ### User Features
 - **User Registration & Authentication** with email/phone verification
+- **VIP System** with 10 different levels, each with unique daily earning rates
+- **Daily Task Earnings** based on VIP level (Starter: $2/day, Bronze: $10/day, Silver: $24/day, Gold: $50/day, etc.)
 - **Referral System** with unique referral codes and bonus tracking
 - **Coinbase Integration** for crypto deposits (BTC, ETH, USDT)
 - **Internal Wallet** with automatic daily growth calculations

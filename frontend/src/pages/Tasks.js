@@ -135,7 +135,7 @@ const Tasks = () => {
             Daily Earning Task
           </h1>
           <p className="text-gray-300 text-sm sm:text-base max-w-2xl mx-auto px-4">
-            Start your daily 1-hour earning session to earn based on your VIP level. Complete the task to receive your earnings!
+            Start your daily 1-hour earning session to earn based on your VIP level's daily earning rate. Earnings are deposited immediately when you start the task!
           </p>
         </div>
 
@@ -193,7 +193,7 @@ const Tasks = () => {
                           <div>
                             <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-1 sm:mb-2">Earning Session Active</h3>
                             <p className="text-emerald-300 font-semibold text-sm sm:text-base lg:text-lg">
-                              Current Earnings: {formatCurrency(earningStatus.data.data.currentEarnings)}
+                              Earnings: {formatCurrency(earningStatus.data.data.totalEarnings || earningStatus.data.data.dailyEarningRate)} (already deposited)
                             </p>
                           </div>
                         </div>
@@ -239,7 +239,7 @@ const Tasks = () => {
                     
                     <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-4 sm:mb-6">Ready to Start Daily Task</h3>
                     <p className="text-gray-300 mb-8 sm:mb-12 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto leading-relaxed px-4">
-                      {earningStatus?.data?.data?.message || 'Click the button below to start your 1-hour earning cycle and begin accumulating profits automatically'}
+                      {earningStatus?.data?.data?.message || 'Click the button below to start your 1-hour earning cycle based on your VIP level. Earnings will be deposited to your wallet immediately!'}
                     </p>
                     
                     <Button
@@ -262,7 +262,7 @@ const Tasks = () => {
               <CardHeader>
                 <CardTitle className="text-xl font-bold text-white">Daily Earning Task</CardTitle>
                 <CardDescription className="text-gray-300">
-                  Start your daily earning session to earn based on your VIP level
+                  Start your daily earning session to earn based on your VIP level's daily earning rate
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -364,7 +364,7 @@ const Tasks = () => {
                         <div className="font-bold text-green-400">
                           +{formatCurrency(userTask.rewardEarned || 0)}
                         </div>
-                        <div className="text-xs text-gray-400">Added to wallet</div>
+                        <div className="text-xs text-gray-400">Deposited when started</div>
                       </div>
                     </div>
                   ))}
@@ -384,7 +384,7 @@ const Tasks = () => {
                 <span className="text-4xl">🎉</span>
               </div>
               <h2 className="text-2xl font-bold text-white mb-2">Congratulations!</h2>
-              <p className="text-emerald-200 mb-6">Your daily task has been completed successfully!</p>
+              <p className="text-emerald-200 mb-6">Your daily task has been completed successfully! Earnings were deposited when you started the task.</p>
             </div>
             
             <div className="bg-emerald-800/50 border border-emerald-500/30 rounded-2xl p-6 mb-6">

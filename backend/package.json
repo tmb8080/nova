@@ -16,7 +16,8 @@
     "db:status": "prisma migrate status",
     "db:studio": "prisma studio",
     "db:seed": "node prisma/seed.js",
-    "db:seed-vip": "node prisma/seed-vip.js"
+    "db:seed-vip": "node prisma/seed-vip.js",
+    "db:setup": "node scripts/setup-new-environment.js"
 
   },
   "dependencies": {
