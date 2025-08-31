@@ -48,6 +48,9 @@ router.post('/request', [
     let minAmount;
     if (currency === 'USDC') {
       minAmount = parseFloat(settings.minUsdcWithdrawalAmount || settings.minWithdrawalAmount);
+    } else if (currency === 'USDT') {
+      // USDT should use the general minimum withdrawal amount (10)
+      minAmount = parseFloat(settings.minWithdrawalAmount);
     } else {
       minAmount = parseFloat(settings.minWithdrawalAmount);
     }
