@@ -66,15 +66,44 @@ const generateTransactionRef = () => {
   return `TMB-${timestamp}-${random}`.toUpperCase();
 };
 
-// Validate crypto address (basic validation)
+// Validate crypto address (flexible validation for any wallet address)
 const isValidCryptoAddress = (address, currency) => {
+  // Basic validation - check if address is not empty and has reasonable length
+  if (!address || typeof address !== 'string' || address.trim().length < 10) {
+    return false;
+  }
+
+  const trimmedAddress = address.trim();
+  
+  // Common wallet address patterns
   const patterns = {
+    // Bitcoin addresses
     'BTC': /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[a-z0-9]{39,59}$/,
+    
+    // Ethereum-style addresses (0x + 40 hex characters) - used for ETH, USDT, USDC on multiple networks
     'ETH': /^0x[a-fA-F0-9]{40}$/,
-    'USDT': /^0x[a-fA-F0-9]{40}$/ // USDT on Ethereum
+    'USDT': /^0x[a-fA-F0-9]{40}$|^T[A-Za-z1-9]{33}$/, // Support both Ethereum-style and TRON addresses
+    'USDC': /^0x[a-fA-F0-9]{40}$/, // USDC uses Ethereum-style addresses
+    
+    // TRON addresses (T + 33 characters)
+    'TRON': /^T[A-Za-z1-9]{33}$/,
+    
+    // Generic patterns for common cryptocurrencies
+    'GENERIC_ETH': /^0x[a-fA-F0-9]{40}$/, // Any Ethereum-style address
+    'GENERIC_TRON': /^T[A-Za-z1-9]{33}$/, // Any TRON-style address
+    'GENERIC_BTC': /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$|^bc1[a-z0-9]{39,59}$/ // Any Bitcoin-style address
   };
   
-  return patterns[currency] ? patterns[currency].test(address) : false;
+  // If we have a specific pattern for this currency, use it
+  if (patterns[currency]) {
+    return patterns[currency].test(trimmedAddress);
+  }
+  
+  // If no specific pattern, check against common patterns
+  // This allows any valid wallet address format
+  return patterns['GENERIC_ETH'].test(trimmedAddress) || 
+         patterns['GENERIC_TRON'].test(trimmedAddress) || 
+         patterns['GENERIC_BTC'].test(trimmedAddress);
 };
 
 // Calculate time difference

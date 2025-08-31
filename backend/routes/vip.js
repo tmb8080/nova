@@ -80,22 +80,26 @@ router.post('/join', authenticateToken, async (req, res) => {
       });
     }
 
-    // Check if user has sufficient balance
+    // Check if user has sufficient deposited balance for VIP upgrade
     let wallet = await prisma.wallet.findUnique({
       where: { userId }
     });
 
     const vipAmount = parseFloat(vipLevel.amount);
-    const walletBalance = parseFloat(wallet?.balance || 0);
+    const totalDeposits = parseFloat(wallet?.totalDeposits || 0);
+    const totalBalance = parseFloat(wallet?.balance || 0);
 
-    console.log('Wallet check:', { 
+    console.log('Wallet check for VIP upgrade:', { 
       wallet: wallet ? 'exists' : 'not found', 
-      walletBalance, 
+      totalDeposits, 
+      totalBalance,
       vipAmount,
       walletDetails: wallet ? {
         id: wallet.id,
         balance: wallet.balance,
-        totalDeposits: wallet.totalDeposits
+        totalDeposits: wallet.totalDeposits,
+        totalEarnings: wallet.totalEarnings,
+        totalReferralBonus: wallet.totalReferralBonus
       } : null
     });
 
@@ -154,17 +158,24 @@ router.post('/join', authenticateToken, async (req, res) => {
       }
     }
 
-    // Recalculate balance after potential wallet creation
-    const finalWalletBalance = parseFloat(wallet.balance || 0);
+    // Recalculate deposited balance after potential wallet creation
+    const finalTotalDeposits = parseFloat(wallet.totalDeposits || 0);
+    const finalTotalBalance = parseFloat(wallet.balance || 0);
     
-    if (finalWalletBalance < paymentAmount) {
+    if (finalTotalDeposits < paymentAmount) {
       const message = isUpgrade 
-        ? `Insufficient balance for upgrade. You have $${finalWalletBalance} but need $${paymentAmount} to upgrade from ${currentVipLevel.name} to ${vipLevel.name}.`
-        : `Insufficient balance. You have $${finalWalletBalance} but need $${paymentAmount} to join this VIP level.`;
+        ? `Insufficient deposited balance for upgrade. You have $${finalTotalDeposits} in deposits but need $${paymentAmount} to upgrade from ${currentVipLevel.name} to ${vipLevel.name}. Daily earnings and referral bonuses cannot be used for VIP upgrades.`
+        : `Insufficient deposited balance. You have $${finalTotalDeposits} in deposits but need $${paymentAmount} to join this VIP level. Daily earnings and referral bonuses cannot be used for VIP upgrades.`;
       
       return res.status(400).json({
         success: false,
-        message
+        message,
+        details: {
+          availableDeposits: finalTotalDeposits,
+          totalBalance: finalTotalBalance,
+          requiredAmount: paymentAmount,
+          canUseDeposits: finalTotalDeposits >= paymentAmount
+        }
       });
     }
 

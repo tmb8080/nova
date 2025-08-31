@@ -78,6 +78,7 @@ export const depositAPI = {
 // Withdrawal API
 export const withdrawalAPI = {
   createWithdrawal: (data) => api.post('/withdrawal/request', data),
+  requestWithdrawal: (data) => api.post('/withdrawal/request', data),
   getWithdrawals: (params) => api.get('/withdrawal/history', { params }),
   getWithdrawalDetails: (id) => api.get(`/withdrawal/${id}`),
   getNetworkFees: (currency) => api.get(`/withdrawal/network-fees/${currency}`),

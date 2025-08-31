@@ -4,11 +4,20 @@ import { useAuth } from '../contexts/AuthContext';
 import { referralAPI } from '../services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import InvitedFriendsList from '../components/InvitedFriendsList';
 import toast from 'react-hot-toast';
 
 const Invite = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Fetch referral statistics including invited friends
+  const { data: referralStats, isLoading: referralLoading } = useQuery({
+    queryKey: ['referralStats'],
+    queryFn: () => referralAPI.getStats(),
+
+
+  });
 
 
 
@@ -26,6 +35,8 @@ const Invite = () => {
       maximumFractionDigits: 2
     }).format(amount);
   };
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-20 md:pb-0">
@@ -65,6 +76,8 @@ const Invite = () => {
             Share the opportunity and earn rewards for every successful referral
           </p>
         </div>
+
+
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
@@ -202,78 +215,165 @@ const Invite = () => {
               </div>
             </div>
 
-
-
+            {/* Invited Friends Section */}
+            <div className="backdrop-blur-xl bg-white/10 rounded-2xl overflow-hidden shadow-2xl border border-white/20">
+              <div className="bg-gradient-to-r from-green-600/80 via-emerald-600/80 to-teal-600/80 backdrop-blur-sm p-6 text-white">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold">Your Invited Friends</h3>
+                      <p className="text-green-100 text-sm">Track your referrals and their VIP levels</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold">👥</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-6">
+                {referralLoading ? (
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="h-20 bg-slate-700/50 rounded-xl"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <InvitedFriendsList referralStats={referralStats} />
+                )}
+              </div>
+            </div>
 
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Referral Statistics */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl blur-3xl"></div>
+              <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-white">Your Referral Stats</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {referralLoading ? (
+                    <div className="space-y-3">
+                      {[...Array(4)].map((_, i) => (
+                        <div key={i} className="animate-pulse">
+                          <div className="h-8 bg-slate-700/50 rounded"></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
+                        <span className="text-gray-300 text-sm">Direct Referrals</span>
+                        <span className="text-white font-bold text-lg">{referralStats?.data?.directReferrals || 0}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
+                        <span className="text-gray-300 text-sm">Indirect Referrals</span>
+                        <span className="text-white font-bold text-lg">{referralStats?.data?.indirectReferrals || 0}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
+                        <span className="text-gray-300 text-sm">Total Bonuses</span>
+                        <span className="text-green-400 font-bold text-lg">
+                          ${(referralStats?.data?.totalBonuses || 0).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
+                        <span className="text-gray-300 text-sm">Level 1 Bonuses</span>
+                        <span className="text-blue-400 font-bold text-lg">
+                          ${(referralStats?.data?.level1Bonuses || 0).toFixed(2)}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
             {/* How It Works */}
-            <Card>
-              <CardHeader>
-                <CardTitle>How It Works</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">
-                    1
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-2xl blur-3xl"></div>
+              <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-white">How It Works</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                      1
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-white">Share Your Link</h4>
+                      <p className="text-sm text-gray-300">Send your referral link to friends</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">Share Your Link</h4>
-                    <p className="text-sm text-gray-600">Send your referral link to friends</p>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                      2
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-white">Friend Joins</h4>
+                      <p className="text-sm text-gray-300">They sign up using your link</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">
-                    2
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                      3
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-white">Earn Daily Rewards</h4>
+                      <p className="text-sm text-gray-300">Both earn from daily task sessions</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">Friend Joins</h4>
-                    <p className="text-sm text-gray-600">They sign up using your link</p>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                      4
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-white">Get Commission</h4>
+                      <p className="text-sm text-gray-300">You earn 5% on their earnings</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">
-                    3
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">Earn Daily Rewards</h4>
-                    <p className="text-sm text-gray-600">Both earn from daily task sessions</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">
-                    4
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">Get Commission</h4>
-                    <p className="text-sm text-gray-600">You earn 5% on their earnings</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Rewards Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Earning System</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Daily Task Earnings</span>
-                  <span className="font-medium text-green-600">24h Sessions</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Referral Commission</span>
-                  <span className="font-medium text-green-600">5%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">VIP Level Bonus</span>
-                  <span className="font-medium text-green-600">Higher Rates</span>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-2xl blur-3xl"></div>
+              <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-white">Earning System</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
+                    <span className="text-sm text-gray-300">Daily Task Earnings</span>
+                    <span className="font-medium text-green-400">24h Sessions</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
+                    <span className="text-sm text-gray-300">Direct Commission</span>
+                    <span className="font-medium text-blue-400">5%</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
+                    <span className="text-sm text-gray-300">Indirect Commission</span>
+                    <span className="font-medium text-green-400">3%</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-slate-700/30 rounded-lg border border-slate-600/30">
+                    <span className="text-sm text-gray-300">VIP Level Bonus</span>
+                    <span className="font-medium text-purple-400">Higher Rates</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>

@@ -8,6 +8,7 @@ import UsdtDeposit from '../components/UsdtDeposit';
 import UsdtWithdrawal from '../components/UsdtWithdrawal';
 import DepositHistory from '../components/DepositHistory';
 import WithdrawalHistory from '../components/WithdrawalHistory';
+import WithdrawalHistoryPreview from '../components/WithdrawalHistoryPreview';
 import ChangePassword from '../components/ChangePassword';
 import toast from 'react-hot-toast';
 
@@ -137,7 +138,7 @@ const Profile = () => {
         </div>
 
         {/* Portfolio Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           {/* Account Balance */}
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
@@ -306,6 +307,37 @@ const Profile = () => {
               </div>
             </div>
           </div>
+
+          {/* Withdrawal Statistics */}
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
+            <div className="relative backdrop-blur-xl bg-white/10 rounded-2xl p-6 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300 hover:scale-105">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <span className="text-2xl">💸</span>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-300">Total Withdrawn</div>
+                  <div className="text-2xl font-bold text-white">
+                    {walletLoading ? (
+                      <div className="animate-pulse bg-gray-600 h-8 w-24 rounded"></div>
+                    ) : (
+                      formatCurrency(walletStats?.data?.data?.totalWithdrawn || 0)
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">All time</div>
+                </div>
+              </div>
+              <div className="mt-4">
+                <Button
+                  onClick={() => setShowWithdrawalHistory(true)}
+                  className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white text-sm py-2 rounded-xl"
+                >
+                  📊 View History
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -372,6 +404,32 @@ const Profile = () => {
                       ))}
                     </div>
                   ) : null}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Withdrawals */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-2xl blur-3xl"></div>
+              <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-xl font-bold text-white">Recent Withdrawals</CardTitle>
+                      <CardDescription className="text-gray-300">
+                        Your latest withdrawal requests and their status
+                      </CardDescription>
+                    </div>
+                    <Button
+                      onClick={() => setShowWithdrawalHistory(true)}
+                      className="bg-orange-600 hover:bg-orange-700 text-white text-sm px-3 py-1 rounded-lg"
+                    >
+                      💸 View All
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <WithdrawalHistoryPreview />
                 </CardContent>
               </Card>
             </div>
@@ -461,6 +519,27 @@ const Profile = () => {
             </div>
 
 
+
+            {/* Withdrawal History */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-2xl blur-3xl"></div>
+              <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-white">Withdrawal History</CardTitle>
+                  <CardDescription className="text-gray-300">
+                    View your withdrawal requests and status
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    onClick={() => setShowWithdrawalHistory(true)}
+                    className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-xl"
+                  >
+                    💸 View Withdrawals
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Admin Access */}
             {user?.isAdmin && (

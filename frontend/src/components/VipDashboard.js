@@ -90,19 +90,22 @@ const VipDashboard = () => {
     if (!vipLevels?.data?.data || !userVip) return [];
     
     const currentVipAmount = parseFloat(userVip.totalPaid);
-    const userBalance = parseFloat(walletStats?.data?.data?.balance) || 0;
+    const totalDeposits = parseFloat(walletStats?.data?.data?.totalDeposits) || 0;
+    const totalBalance = parseFloat(walletStats?.data?.data?.balance) || 0;
     
     return vipLevels.data.data
       .filter(level => parseFloat(level.amount) > currentVipAmount)
       .map(level => {
         const upgradeCost = parseFloat(level.amount) - currentVipAmount;
-        const canAfford = userBalance >= upgradeCost;
+        const canAfford = totalDeposits >= upgradeCost;
         
         return {
           ...level,
           upgradeCost,
           canAfford,
-          missingAmount: Math.max(0, upgradeCost - userBalance)
+          missingAmount: Math.max(0, upgradeCost - totalDeposits),
+          totalDeposits,
+          totalBalance
         };
       })
       .sort((a, b) => a.upgradeCost - b.upgradeCost);
@@ -374,6 +377,9 @@ const VipDashboard = () => {
             </CardTitle>
             <CardDescription>
               Upgrade to higher VIP levels for increased daily earnings
+              <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-700">
+                <strong>Note:</strong> Only deposited funds can be used for VIP upgrades. Daily earnings and referral bonuses are not eligible.
+              </div>
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -417,7 +423,12 @@ const VipDashboard = () => {
                         <span className="mx-2">→</span>
                         <span className="font-medium">New Total:</span> {formatCurrency(upgrade.amount)}
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="text-xs text-gray-500 text-right">
+                        <div>Deposits: {formatCurrency(upgrade.totalDeposits)}</div>
+                        <div>Total Balance: {formatCurrency(upgrade.totalBalance)}</div>
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
                         {upgrade.canAfford ? (
                           <Button
                             size="sm"
@@ -429,7 +440,10 @@ const VipDashboard = () => {
                         ) : (
                           <div className="text-right">
                             <div className="text-sm text-orange-600 font-medium">
-                              Need {formatCurrency(upgrade.missingAmount)} more
+                              Need {formatCurrency(upgrade.missingAmount)} more in deposits
+                            </div>
+                            <div className="text-xs text-gray-500 mb-1">
+                              (Daily earnings & bonuses not eligible)
                             </div>
                             <Button
                               size="sm"
@@ -441,7 +455,6 @@ const VipDashboard = () => {
                           </div>
                         )}
                       </div>
-                    </div>
                   </div>
                 ))}
                 

@@ -86,7 +86,8 @@ const VipSelection = () => {
   });
 
   const handleJoinVip = (vipLevel) => {
-    const userBalance = parseFloat(walletStats?.data?.data?.balance) || 0;
+    const totalDeposits = parseFloat(walletStats?.data?.data?.totalDeposits) || 0;
+    const totalBalance = parseFloat(walletStats?.data?.data?.balance) || 0;
     const levelAmount = parseFloat(vipLevel?.amount) || 0;
     const currentVip = vipStatus?.data?.data?.userVip;
     
@@ -115,7 +116,8 @@ const VipSelection = () => {
     }
     
     console.log('VIP join/upgrade attempt:', {
-      userBalance,
+      totalDeposits,
+      totalBalance,
       levelAmount,
       paymentAmount,
       isUpgrade,
@@ -124,11 +126,11 @@ const VipSelection = () => {
       vipLevel
     });
     
-    if (userBalance < paymentAmount) {
-      // Show deposit prompt for insufficient balance
+    if (totalDeposits < paymentAmount) {
+      // Show deposit prompt for insufficient deposited balance
       const message = isUpgrade 
-        ? `You need ${formatCurrency(paymentAmount - userBalance)} more to upgrade from ${currentVip.vipLevel.name} to ${vipLevel.name}.\n\nWould you like to deposit funds to your wallet?`
-        : `You need ${formatCurrency(levelAmount - userBalance)} more to join ${vipLevel.name}.\n\nWould you like to deposit funds to your wallet?`;
+        ? `You need ${formatCurrency(paymentAmount - totalDeposits)} more in deposits to upgrade from ${currentVip.vipLevel.name} to ${vipLevel.name}.\n\nDaily earnings and referral bonuses cannot be used for VIP upgrades.\n\nWould you like to deposit funds to your wallet?`
+        : `You need ${formatCurrency(levelAmount - totalDeposits)} more in deposits to join ${vipLevel.name}.\n\nDaily earnings and referral bonuses cannot be used for VIP upgrades.\n\nWould you like to deposit funds to your wallet?`;
       
       const shouldDeposit = window.confirm(message);
       
@@ -244,9 +246,17 @@ const VipSelection = () => {
           </div>
           <div className="mt-6 p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg inline-block border border-blue-500/30">
             <div className="flex items-center space-x-4">
-              <p className="text-blue-300 font-medium text-base">
-                Your Current Balance: {walletLoading ? 'Loading...' : formatCurrency(walletStats?.data?.data?.balance || 0)}
-              </p>
+              <div className="text-center">
+                <p className="text-blue-300 font-medium text-base">
+                  Your Deposits: {walletLoading ? 'Loading...' : formatCurrency(walletStats?.data?.data?.totalDeposits || 0)}
+                </p>
+                <p className="text-blue-200 text-sm">
+                  Total Balance: {walletLoading ? 'Loading...' : formatCurrency(walletStats?.data?.data?.balance || 0)}
+                </p>
+                <p className="text-yellow-300 text-xs mt-1">
+                  ⚠️ Only deposits can be used for VIP upgrades
+                </p>
+              </div>
               <Button 
                 onClick={() => {
                   refetchWalletStats();
@@ -266,13 +276,14 @@ const VipSelection = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
           {vipLevels?.data?.data && Array.isArray(vipLevels.data.data) && vipLevels.data.data.length > 0 ? vipLevels.data.data.map((vip) => {
             const currentVip = vipStatus?.data?.data?.userVip;
-            const userBalance = parseFloat(walletStats?.data?.data?.balance) || 0;
+            const totalDeposits = parseFloat(walletStats?.data?.data?.totalDeposits) || 0;
+            const totalBalance = parseFloat(walletStats?.data?.data?.balance) || 0;
             const levelAmount = parseFloat(vip.amount);
             
             // Calculate upgrade cost
             let isUpgrade = false;
             let paymentAmount = levelAmount;
-            let canAfford = userBalance >= levelAmount;
+            let canAfford = totalDeposits >= levelAmount;
             let isLowerLevel = false;
             
             if (currentVip) {
@@ -280,7 +291,7 @@ const VipSelection = () => {
               const currentVipAmount = parseFloat(currentVip.totalPaid);
               paymentAmount = levelAmount - currentVipAmount;
               isLowerLevel = paymentAmount <= 0;
-              canAfford = userBalance >= paymentAmount && paymentAmount > 0;
+              canAfford = totalDeposits >= paymentAmount && paymentAmount > 0;
             }
             
             const dailyReturn = ((vip.dailyEarning / vip.amount) * 100).toFixed(2);
@@ -427,15 +438,15 @@ const VipSelection = () => {
                       <div className="mt-3 pt-3 border-t border-white/20 bg-blue-500/20 backdrop-blur-sm rounded-lg p-2 md:p-3">
                         <div className="flex justify-between items-center text-xs">
                           <div>
-                            <div className="text-gray-300">Your Balance</div>
+                            <div className="text-gray-300">Your Deposits</div>
                             <div className="font-bold text-red-400">
-                              {formatCurrency(userBalance)}
+                              {formatCurrency(totalDeposits)}
                             </div>
                           </div>
                           <div className="text-right">
                             <div className="text-gray-300">Need</div>
                             <div className="font-bold text-white">
-                              {formatCurrency(paymentAmount - userBalance)}
+                              {formatCurrency(paymentAmount - totalDeposits)}
                             </div>
                           </div>
                         </div>

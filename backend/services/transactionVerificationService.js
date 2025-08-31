@@ -400,51 +400,138 @@ class TransactionVerificationService {
    * Verify TRON transaction
    */
   async verifyTronTransaction(transactionHash, expectedAddress, expectedAmount) {
-    // TRON uses different API structure
-    const url = `https://api.trongrid.io/v1/transactions/${transactionHash}`;
+    // Try multiple TRON API endpoints
+    const endpoints = [
+      `https://api.trongrid.io/v1/transactions/${transactionHash}`,
+      `https://api.trongrid.io/wallet/gettransactionbyid?value=${transactionHash}`,
+      `https://api.trongrid.io/wallet/gettransactioninfobyid?value=${transactionHash}`
+    ];
     
-    try {
-      const response = await axios.get(url);
-      const tx = response.data.data[0];
-      
-      if (!tx) {
-        return {
-          isValid: false,
-          error: 'Transaction not found',
-          details: null
-        };
-      }
+    for (const url of endpoints) {
+      try {
+        console.log(`🔍 Verifying TRON transaction via: ${url}`);
+        const response = await axios.get(url, {
+          timeout: 10000,
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'TrinityMetroBike/1.0'
+          }
+        });
+        
+        let tx;
+        if (url.includes('gettransactionbyid')) {
+          tx = response.data;
+        } else if (url.includes('gettransactioninfobyid')) {
+          tx = response.data;
+        } else {
+          tx = response.data.data?.[0] || response.data;
+        }
+        
+        if (!tx) {
+          console.log(`🔍 No transaction data found in response`);
+          continue;
+        }
 
-      // Verify recipient address
-      const recipientAddress = tx.raw_data.contract[0].parameter.value.to_address;
-      const isRecipientValid = recipientAddress && 
-        this.tronAddressToHex(recipientAddress) === expectedAddress.toLowerCase();
+        // Verify recipient address
+        const recipientAddress = tx.raw_data.contract[0].parameter.value.to_address;
+        const recipientAddressHex = this.tronAddressToHex(recipientAddress);
+        const isRecipientValid = recipientAddress && 
+          recipientAddressHex === expectedAddress.toLowerCase();
 
-      // Verify amount (TRON uses sun units, 1 TRX = 1,000,000 sun)
-      const actualAmountSun = tx.raw_data.contract[0].parameter.value.amount;
-      const expectedAmountSun = this.convertToSun(expectedAmount);
-      const isAmountValid = actualAmountSun === expectedAmountSun;
+        // Verify amount (TRON uses sun units, 1 TRX = 1,000,000 sun)
+        const actualAmountSun = tx.raw_data.contract[0].parameter.value.amount;
+        const expectedAmountSun = this.convertToSun(expectedAmount);
+        const isAmountValid = actualAmountSun === expectedAmountSun;
 
-      // Check transaction status
-      const isConfirmed = tx.ret && tx.ret[0].contractRet === 'SUCCESS';
+        // Check transaction status
+        const isConfirmed = tx.ret && tx.ret[0].contractRet === 'SUCCESS';
 
-      return {
-        isValid: isRecipientValid && isAmountValid && isConfirmed,
-        error: null,
-        details: {
-          recipientAddress: this.tronAddressToHex(recipientAddress),
+        console.log(`🔍 TRON verification details:`, {
+          recipientAddress: recipientAddressHex,
+          expectedAddress: expectedAddress.toLowerCase(),
           actualAmount: this.convertFromSun(actualAmountSun),
           expectedAmount,
           isRecipientValid,
           isAmountValid,
-          isConfirmed,
-          blockNumber: tx.blockNumber,
-          network: 'TRON'
-        }
-      };
-    } catch (error) {
-      throw new Error(`TRON API error: ${error.message}`);
+          isConfirmed
+        });
+
+        return {
+          isValid: isRecipientValid && isAmountValid && isConfirmed,
+          error: null,
+          details: {
+            recipientAddress: recipientAddressHex,
+            actualAmount: this.convertFromSun(actualAmountSun),
+            expectedAmount,
+            isRecipientValid,
+            isAmountValid,
+            isConfirmed,
+            blockNumber: tx.blockNumber,
+            network: 'TRON'
+          }
+        };
+      } catch (error) {
+        console.log(`🔍 TRON API endpoint failed: ${url} - ${error.message}`);
+        continue;
+      }
     }
+    
+    // If all endpoints fail, try using Tronscan API as fallback
+    try {
+      console.log(`🔍 Trying Tronscan API for verification`);
+      const tronscanUrl = `https://apilist.tronscanapi.com/api/transaction-info?hash=${transactionHash}`;
+      const response = await axios.get(tronscanUrl, {
+        timeout: 10000,
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'TrinityMetroBike/1.0'
+        }
+      });
+      
+      if (response.data && response.data.hash) {
+        // Extract USDT transfer details from trc20TransferInfo
+        const transferInfo = response.data.trc20TransferInfo?.[0] || response.data.tokenTransferInfo;
+        
+        if (transferInfo) {
+          const recipientAddress = transferInfo.to_address;
+          const actualAmount = parseFloat(transferInfo.amount_str) / Math.pow(10, transferInfo.decimals || 6);
+          const isRecipientValid = recipientAddress.toLowerCase() === expectedAddress.toLowerCase();
+          const isAmountValid = Math.abs(actualAmount - expectedAmount) < 0.01; // Allow small tolerance
+          const isConfirmed = response.data.confirmed;
+
+          console.log(`🔍 Tronscan verification details:`, {
+            recipientAddress,
+            expectedAddress: expectedAddress.toLowerCase(),
+            actualAmount,
+            expectedAmount,
+            isRecipientValid,
+            isAmountValid,
+            isConfirmed
+          });
+
+          return {
+            isValid: isRecipientValid && isAmountValid && isConfirmed,
+            error: null,
+            details: {
+              recipientAddress,
+              actualAmount,
+              expectedAmount,
+              isRecipientValid,
+              isAmountValid,
+              isConfirmed,
+              blockNumber: response.data.block,
+              network: 'TRON',
+              contractAddress: transferInfo.contract_address,
+              tokenSymbol: transferInfo.symbol
+            }
+          };
+        }
+      }
+    } catch (error) {
+      console.log(`🔍 Tronscan API verification also failed: ${error.message}`);
+    }
+    
+    throw new Error(`TRON API error: All endpoints failed for transaction ${transactionHash}`);
   }
 
   /**
@@ -1001,54 +1088,145 @@ class TransactionVerificationService {
    * Get TRON transaction info (without validation)
    */
   async getTronTransactionInfo(transactionHash) {
-    const url = `https://api.trongrid.io/v1/transactions/${transactionHash}`;
+    // Try multiple TRON API endpoints
+    const endpoints = [
+      `https://api.trongrid.io/v1/transactions/${transactionHash}`,
+      `https://api.trongrid.io/wallet/gettransactionbyid?value=${transactionHash}`,
+      `https://api.trongrid.io/wallet/gettransactioninfobyid?value=${transactionHash}`
+    ];
     
-    try {
-      const response = await axios.get(url);
-      const tx = response.data.data[0];
-      
-      if (!tx || !tx.txID) {
-        return {
-          exists: false,
-          error: 'Transaction not found on TRON blockchain',
-          details: null
-        };
-      }
-
-      // Validate that this is actually a transaction
-      if (!tx.raw_data || !tx.raw_data.contract || !tx.raw_data.contract[0]) {
-        return {
-          exists: false,
-          error: 'Invalid transaction data on TRON blockchain',
-          details: null
-        };
-      }
-
-      const contract = tx.raw_data.contract[0];
-      if (!contract.parameter || !contract.parameter.value) {
-        return {
-          exists: false,
-          error: 'Invalid transaction data on TRON blockchain',
-          details: null
-        };
-      }
-
-      return {
-        exists: true,
-        error: null,
-        details: {
-          recipientAddress: this.tronAddressToHex(contract.parameter.value.to_address),
-          senderAddress: this.tronAddressToHex(contract.parameter.value.owner_address),
-          amount: this.convertFromSun(contract.parameter.value.amount),
-          blockNumber: tx.blockNumber,
-          network: 'TRON',
-          isConfirmed: tx.ret && tx.ret[0].contractRet === 'SUCCESS',
-          timestamp: tx.blockTimeStamp || null
+    for (const url of endpoints) {
+      try {
+        console.log(`🔍 Trying TRON API endpoint: ${url}`);
+        const response = await axios.get(url, {
+          timeout: 10000,
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'TrinityMetroBike/1.0'
+          }
+        });
+        
+        console.log(`🔍 TRON API response status: ${response.status}`);
+        console.log(`🔍 TRON API response data:`, response.data);
+        
+        let tx;
+        if (url.includes('gettransactionbyid')) {
+          tx = response.data;
+        } else if (url.includes('gettransactioninfobyid')) {
+          tx = response.data;
+        } else {
+          tx = response.data.data?.[0] || response.data;
         }
-      };
-    } catch (error) {
-      throw new Error(`TRON API error: ${error.message}`);
+        
+        if (!tx || !tx.txID) {
+          console.log(`🔍 No transaction data found in response`);
+          continue;
+        }
+
+        // Validate that this is actually a transaction
+        if (!tx.raw_data || !tx.raw_data.contract || !tx.raw_data.contract[0]) {
+          console.log(`🔍 Invalid transaction structure`);
+          continue;
+        }
+
+        const contract = tx.raw_data.contract[0];
+        if (!contract.parameter || !contract.parameter.value) {
+          console.log(`🔍 Invalid contract parameter structure`);
+          continue;
+        }
+
+        // Extract transaction details
+        const recipientAddress = this.tronAddressToHex(contract.parameter.value.to_address);
+        const senderAddress = this.tronAddressToHex(contract.parameter.value.owner_address);
+        const amount = this.convertFromSun(contract.parameter.value.amount);
+        
+        console.log(`🔍 TRON transaction details:`, {
+          recipientAddress,
+          senderAddress,
+          amount,
+          blockNumber: tx.blockNumber,
+          isConfirmed: tx.ret && tx.ret[0].contractRet === 'SUCCESS'
+        });
+
+        return {
+          exists: true,
+          error: null,
+          details: {
+            recipientAddress,
+            senderAddress,
+            amount,
+            blockNumber: tx.blockNumber,
+            network: 'TRON',
+            isConfirmed: tx.ret && tx.ret[0].contractRet === 'SUCCESS',
+            timestamp: tx.blockTimeStamp || null
+          }
+        };
+      } catch (error) {
+        console.log(`🔍 TRON API endpoint failed: ${url} - ${error.message}`);
+        continue;
+      }
     }
+    
+    // If all endpoints fail, try using Tronscan API as fallback
+    try {
+      console.log(`🔍 Trying Tronscan API as fallback`);
+      const tronscanUrl = `https://apilist.tronscanapi.com/api/transaction-info?hash=${transactionHash}`;
+      const response = await axios.get(tronscanUrl, {
+        timeout: 10000,
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'TrinityMetroBike/1.0'
+        }
+      });
+      
+      console.log(`🔍 Tronscan API response:`, response.data);
+      
+      if (response.data && response.data.hash) {
+        // Extract USDT transfer details from trc20TransferInfo
+        const transferInfo = response.data.trc20TransferInfo?.[0] || response.data.tokenTransferInfo;
+        
+        if (transferInfo) {
+          const recipientAddress = transferInfo.to_address;
+          const senderAddress = transferInfo.from_address;
+          const amount = parseFloat(transferInfo.amount_str) / Math.pow(10, transferInfo.decimals || 6);
+          
+          return {
+            exists: true,
+            error: null,
+            details: {
+              recipientAddress,
+              senderAddress,
+              amount,
+              blockNumber: response.data.block,
+              network: 'TRON',
+              isConfirmed: response.data.confirmed,
+              timestamp: response.data.timestamp,
+              contractAddress: transferInfo.contract_address,
+              tokenSymbol: transferInfo.symbol
+            }
+          };
+        } else {
+          // Fallback to basic transaction info
+          return {
+            exists: true,
+            error: null,
+            details: {
+              recipientAddress: response.data.toAddress || null,
+              senderAddress: response.data.ownerAddress || null,
+              amount: null,
+              blockNumber: response.data.block,
+              network: 'TRON',
+              isConfirmed: response.data.confirmed,
+              timestamp: response.data.timestamp
+            }
+          };
+        }
+      }
+    } catch (error) {
+      console.log(`🔍 Tronscan API also failed: ${error.message}`);
+    }
+    
+    throw new Error(`TRON API error: All endpoints failed for transaction ${transactionHash}`);
   }
 }
 

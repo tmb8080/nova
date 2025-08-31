@@ -179,11 +179,21 @@ const getWalletStats = async (userId) => {
       _sum: { amount: true }
     });
 
+    // Calculate total withdrawals (completed and approved)
+    const totalWithdrawals = await prisma.withdrawal.aggregate({
+      where: {
+        userId,
+        status: { in: ['COMPLETED', 'APPROVED'] }
+      },
+      _sum: { amount: true }
+    });
+
     return {
       balance: parseFloat(wallet.balance),
       totalDeposits: parseFloat(wallet.totalDeposits),
       totalEarnings: parseFloat(dailyTaskEarnings._sum.amount || 0), // Only daily task earnings
       totalReferralBonus: parseFloat(wallet.totalReferralBonus),
+      totalWithdrawn: parseFloat(totalWithdrawals._sum.amount || 0), // Total completed withdrawals
       lastGrowthUpdate: wallet.lastGrowthUpdate,
       referralCode: wallet.user.referralCode,
       referralCount: referralStats._count,
