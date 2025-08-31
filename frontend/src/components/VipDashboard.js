@@ -96,12 +96,16 @@ const VipDashboard = () => {
     return vipLevels.data.data
       .filter(level => parseFloat(level.amount) > currentVipAmount)
       .map(level => {
-        const upgradeCost = parseFloat(level.amount) - currentVipAmount;
-        const canAfford = totalDeposits >= upgradeCost;
+        const fullVipCost = parseFloat(level.amount);
+        const upgradeCost = fullVipCost - currentVipAmount;
+        const amountNeededForFullVip = Math.max(0, fullVipCost - totalDeposits);
+        const canAfford = totalDeposits >= fullVipCost;
         
         return {
           ...level,
           upgradeCost,
+          fullVipCost,
+          amountNeededForFullVip,
           canAfford,
           missingAmount: Math.max(0, upgradeCost - totalDeposits),
           totalDeposits,

@@ -67,7 +67,6 @@ export const depositAPI = {
   preVerifyTransaction: (data) => api.post('/deposit/pre-verify', data),
   getTransactionDetails: (data) => api.post('/deposit/transaction-details', data),
   autoFillTransaction: (data) => api.post('/deposit/auto-fill-transaction', data),
-  getTransactionDetails: (data) => api.post('/deposit/transaction-details', data),
   checkTransactionAllNetworks: (data) => api.post('/admin/check-transaction-all-networks', data),
   getPendingCount: () => api.get('/deposit/pending-count'),
   updateTransactionHash: (depositId, transactionHash) => api.patch(`/deposit/${depositId}/transaction-hash`, { transactionHash }),
@@ -116,15 +115,19 @@ export const adminAPI = {
   getStats: () => api.get('/admin/stats'),
   getUsers: (params) => api.get('/admin/users', { params }),
   getDeposits: (params) => api.get('/admin/deposits', { params }),
+  getPendingDeposits: () => api.get('/admin/deposits/pending'),
   getPendingWithdrawals: () => api.get('/admin/withdrawals/pending'),
+  getWithdrawals: (params) => api.get('/admin/withdrawals', { params }),
   getWithdrawalHistory: (params) => api.get('/admin/withdrawals/history', { params }),
   getSettings: () => api.get('/admin/settings'),
   updateSettings: (data) => api.put('/admin/settings', data),
-  processWithdrawal: (withdrawalId, action, data) => api.post(`/admin/withdrawals/${withdrawalId}/${action}`, data),
+  processWithdrawal: (withdrawalId, action, data) => api.patch(`/admin/withdrawals/${withdrawalId}/process`, { action, ...data }),
+  updateWithdrawal: (withdrawalId, data) => api.put(`/admin/withdrawals/${withdrawalId}`, data),
   processDeposit: (depositId, action, data) => api.post(`/admin/deposits/${depositId}/${action}`, data),
   verifyTransaction: (data) => api.post('/admin/verify-transaction', data),
   checkTransactionBlockchain: (data) => api.post('/admin/check-transaction-blockchain', data),
   checkTransactionAllNetworks: (data) => api.post('/admin/check-transaction-all-networks', data),
+  toggleUserStatus: (userId) => api.put(`/admin/users/${userId}/toggle-status`),
 };
 
 // Company Wallet API

@@ -327,6 +327,14 @@ const getUserManagementData = async (page = 1, limit = 20, search = '') => {
         where: whereClause,
         include: {
           wallet: true,
+          referrer: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              phone: true
+            }
+          },
           _count: {
             select: {
               referrals: true,
@@ -343,8 +351,67 @@ const getUserManagementData = async (page = 1, limit = 20, search = '') => {
       prisma.user.count({ where: whereClause })
     ]);
 
+    // Get detailed financial data for each user
+    const usersWithFinancialData = await Promise.all(
+      users.map(async (user) => {
+        const [
+          totalDeposits,
+          totalWithdrawals,
+          dailyEarnings,
+          referralEarnings
+        ] = await Promise.all([
+          // Total deposits
+          prisma.deposit.aggregate({
+            where: { userId: user.id },
+            _sum: { amount: true },
+            _count: true
+          }),
+          
+          // Total withdrawals
+          prisma.withdrawal.aggregate({
+            where: { userId: user.id },
+            _sum: { amount: true },
+            _count: true
+          }),
+          
+          // Daily earnings (VIP_EARNINGS transactions from today)
+          prisma.transaction.aggregate({
+            where: {
+              userId: user.id,
+              type: 'VIP_EARNINGS',
+              createdAt: {
+                gte: new Date(new Date().setHours(0, 0, 0, 0))
+              }
+            },
+            _sum: { amount: true }
+          }),
+          
+          // Total referral earnings
+          prisma.transaction.aggregate({
+            where: {
+              userId: user.id,
+              type: 'REFERRAL_BONUS'
+            },
+            _sum: { amount: true }
+          })
+        ]);
+
+        return {
+          ...user,
+          financialData: {
+            totalDeposits: totalDeposits._sum.amount || 0,
+            totalDepositsCount: totalDeposits._count || 0,
+            totalWithdrawals: totalWithdrawals._sum.amount || 0,
+            totalWithdrawalsCount: totalWithdrawals._count || 0,
+            dailyEarnings: dailyEarnings._sum.amount || 0,
+            referralEarnings: referralEarnings._sum.amount || 0
+          }
+        };
+      })
+    );
+
     return {
-      users,
+      users: usersWithFinancialData,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),

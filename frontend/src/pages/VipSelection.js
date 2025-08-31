@@ -6,6 +6,8 @@ import { vipAPI, walletAPI } from '../services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import UsdtDeposit from '../components/UsdtDeposit';
+import VipUpgradeProgress from '../components/VipUpgradeProgress';
+import { formatCurrency, getVipColor } from '../utils/vipCalculations';
 import toast from 'react-hot-toast';
 
 const VipSelection = () => {
@@ -151,27 +153,7 @@ const VipSelection = () => {
     }
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
 
-  const getVipColor = (amount) => {
-    if (amount >= 25000) return 'from-purple-500 to-pink-500';
-    if (amount >= 12000) return 'from-yellow-400 to-orange-500';
-    if (amount >= 6000) return 'from-blue-500 to-purple-500';
-    if (amount >= 5000) return 'from-green-500 to-blue-500';
-    if (amount >= 2000) return 'from-gray-400 to-gray-600';
-    if (amount >= 1500) return 'from-purple-400 to-blue-500';
-    if (amount >= 1000) return 'from-yellow-500 to-orange-400';
-    if (amount >= 400) return 'from-gray-300 to-gray-500';
-    if (amount >= 180) return 'from-orange-400 to-red-500';
-    return 'from-green-400 to-blue-400';
-  };
 
   if (vipLoading) {
     return (
@@ -270,7 +252,28 @@ const VipSelection = () => {
           </div>
         </div>
 
-
+        {/* VIP Upgrade Progress Section */}
+        {vipStatus?.data?.data?.userVip ? (
+          <div className="mb-8">
+            <VipUpgradeProgress 
+              vipLevels={vipLevels?.data?.data || []}
+              currentVip={vipStatus.data.data.userVip}
+              totalDeposits={parseFloat(walletStats?.data?.data?.totalDeposits) || 0}
+              onUpgradeClick={(nextLevel) => handleJoinVip(nextLevel)}
+              showUpgradeButton={true}
+            />
+          </div>
+        ) : (
+          <div className="mb-8">
+            <VipUpgradeProgress 
+              vipLevels={vipLevels?.data?.data || []}
+              currentVip={null}
+              totalDeposits={parseFloat(walletStats?.data?.data?.totalDeposits) || 0}
+              onUpgradeClick={(nextLevel) => handleJoinVip(nextLevel)}
+              showUpgradeButton={true}
+            />
+          </div>
+        )}
 
         {/* VIP Levels Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
@@ -280,18 +283,21 @@ const VipSelection = () => {
             const totalBalance = parseFloat(walletStats?.data?.data?.balance) || 0;
             const levelAmount = parseFloat(vip.amount);
             
-            // Calculate upgrade cost
+            // Calculate VIP cost and amount needed
             let isUpgrade = false;
-            let paymentAmount = levelAmount;
-            let canAfford = totalDeposits >= levelAmount;
+            let fullVipCost = levelAmount;
+            let amountNeeded = Math.max(0, fullVipCost - totalDeposits);
+            let canAfford = totalDeposits >= fullVipCost;
             let isLowerLevel = false;
             
             if (currentVip) {
               isUpgrade = true;
               const currentVipAmount = parseFloat(currentVip.totalPaid);
-              paymentAmount = levelAmount - currentVipAmount;
-              isLowerLevel = paymentAmount <= 0;
-              canAfford = totalDeposits >= paymentAmount && paymentAmount > 0;
+              const upgradeCost = levelAmount - currentVipAmount;
+              isLowerLevel = upgradeCost <= 0;
+              // For upgrade, we still use the full VIP cost for display
+              amountNeeded = Math.max(0, fullVipCost - totalDeposits);
+              canAfford = totalDeposits >= fullVipCost && !isLowerLevel;
             }
             
             const dailyReturn = ((vip.dailyEarning / vip.amount) * 100).toFixed(2);
@@ -400,21 +406,21 @@ const VipSelection = () => {
                         </div>
                         <div className="flex justify-between items-center text-xs">
                           <div>
-                            <div className="text-gray-300">Current VIP</div>
+                            <div className="text-gray-300">Your Deposits</div>
                             <div className="font-bold text-green-400">
-                              {formatCurrency(currentVip.totalPaid)}
+                              {formatCurrency(totalDeposits)}
                             </div>
                           </div>
                           <div className="text-center">
-                            <div className="text-gray-300">Upgrade Cost</div>
+                            <div className="text-gray-300">VIP Level Cost</div>
                             <div className="font-bold text-white">
-                              {formatCurrency(paymentAmount)}
+                              {formatCurrency(fullVipCost)}
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-gray-300">New Total</div>
+                            <div className="text-gray-300">Amount Needed</div>
                             <div className="font-bold text-green-400">
-                              {formatCurrency(levelAmount)}
+                              {formatCurrency(amountNeeded)}
                             </div>
                           </div>
                         </div>
@@ -444,9 +450,9 @@ const VipSelection = () => {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-gray-300">Need</div>
+                            <div className="text-gray-300">Amount Needed</div>
                             <div className="font-bold text-white">
-                              {formatCurrency(paymentAmount - totalDeposits)}
+                              {formatCurrency(amountNeeded)}
                             </div>
                           </div>
                         </div>

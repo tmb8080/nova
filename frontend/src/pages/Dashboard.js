@@ -6,9 +6,11 @@ import { walletAPI, referralAPI, vipAPI, taskAPI } from '../services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import VipDashboard from '../components/VipDashboard';
+import VipUpgradeProgress from '../components/VipUpgradeProgress';
 import UsdtDeposit from '../components/UsdtDeposit';
 import MemberList from '../components/MemberList';
 import { toast } from 'react-hot-toast';
+import { calculateNextVipUpgrade } from '../utils/vipCalculations';
 import {
   ResponsiveContainer,
   LineChart,
@@ -533,23 +535,37 @@ const Dashboard = () => {
                   <span className="text-gray-600">Progress to next level:</span>
                   <span className="text-emerald-600 font-medium">
                     {(() => {
-                      const currentIndex = vipLevels.data.data.findIndex(level => level.id === userVipStatus.data.data.userVip.vipLevel.id);
-                      const nextLevel = vipLevels.data.data[currentIndex + 1];
-                      if (nextLevel) {
-                        const currentBalance = walletStats?.data?.data?.balance || 0;
-                        const needed = nextLevel.amount - currentBalance;
-                        if (needed > 0) {
-                          return `Need ${formatCurrency(needed)} more for ${nextLevel.name}`;
-                        } else {
-                          return `Ready for ${nextLevel.name}!`;
-                        }
+                      const upgradeInfo = calculateNextVipUpgrade(
+                        vipLevels.data.data,
+                        userVipStatus.data.data.userVip,
+                        parseFloat(walletStats?.data?.data?.totalDeposits) || 0
+                      );
+                      
+                      if (!upgradeInfo || !upgradeInfo.hasNextLevel) {
+                        return 'Maximum level reached!';
                       }
-                      return 'Maximum level reached!';
+                      
+                      if (upgradeInfo.canAfford) {
+                        return `Ready for ${upgradeInfo.nextLevel.name}!`;
+                      } else {
+                        return `Need ${formatCurrency(upgradeInfo.amountNeededForFullVip)} more for ${upgradeInfo.nextLevel.name}`;
+                      }
                     })()}
                   </span>
                 </div>
               </div>
             )}
+          </div>
+
+          {/* VIP Upgrade Progress Section */}
+          <div className="p-4">
+            <VipUpgradeProgress 
+              vipLevels={vipLevels?.data?.data || []}
+              currentVip={userVipStatus?.data?.data?.userVip}
+              totalDeposits={parseFloat(walletStats?.data?.data?.totalDeposits) || 0}
+              onUpgradeClick={(nextLevel) => handleJoinVip(nextLevel.id, nextLevel)}
+              showUpgradeButton={true}
+            />
           </div>
 
           <div className="p-8">
@@ -587,10 +603,11 @@ const Dashboard = () => {
                   // Convert string amounts to numbers
                   const levelAmount = parseFloat(level.amount) || 0;
                   const levelDailyEarning = parseFloat(level.dailyEarning) || 0;
-                  const userBalance = parseFloat(walletStats?.data?.data?.balance) || 0;
+                  const totalDeposits = parseFloat(walletStats?.data?.data?.totalDeposits) || 0;
                   
                   const isCurrentLevel = userVipStatus?.data?.data?.userVip?.vipLevel?.id === level.id;
-                  const canAfford = userBalance >= levelAmount;
+                  const amountNeeded = Math.max(0, levelAmount - totalDeposits);
+                  const canAfford = totalDeposits >= levelAmount;
                   const dailyReturn = levelAmount > 0 ? ((levelDailyEarning / levelAmount) * 100).toFixed(2) : '0';
                   
                   return (
@@ -670,15 +687,15 @@ const Dashboard = () => {
                         <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-white/20 bg-blue-500/20 backdrop-blur-sm rounded-lg p-1.5 md:p-3">
                           <div className="flex justify-between items-center text-xs">
                             <div>
-                              <div className="text-gray-300">Your Balance</div>
+                              <div className="text-gray-300">Your Deposits</div>
                               <div className="font-bold text-red-400">
-                                {formatCurrency(userBalance)}
+                                {formatCurrency(totalDeposits)}
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="text-gray-300">Need</div>
+                              <div className="text-gray-300">Amount Needed</div>
                               <div className="font-bold text-white">
-                                {formatCurrency(levelAmount - userBalance)}
+                                {formatCurrency(amountNeeded)}
                               </div>
                             </div>
                           </div>

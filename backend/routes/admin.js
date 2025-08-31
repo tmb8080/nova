@@ -72,6 +72,7 @@ router.get('/withdrawals', [
       whereClause.OR = [
         { user: { fullName: { contains: search, mode: 'insensitive' } } },
         { user: { email: { contains: search, mode: 'insensitive' } } },
+        { user: { phone: { contains: search, mode: 'insensitive' } } },
         { walletAddress: { contains: search, mode: 'insensitive' } },
         { transactionHash: { contains: search, mode: 'insensitive' } }
       ];
@@ -85,7 +86,8 @@ router.get('/withdrawals', [
             select: {
               id: true,
               fullName: true,
-              email: true
+              email: true,
+              phone: true
             }
           }
         },
@@ -129,7 +131,8 @@ router.get('/withdrawals/pending', async (req, res) => {
           select: {
             id: true,
             fullName: true,
-            email: true
+            email: true,
+            phone: true
           }
         }
       },
@@ -144,6 +147,91 @@ router.get('/withdrawals/pending', async (req, res) => {
     console.error('Error fetching pending withdrawals:', error);
     res.status(500).json({
       error: 'Failed to fetch pending withdrawals',
+      message: error.message
+    });
+  }
+});
+
+// Update withdrawal details (admin only)
+router.put('/withdrawals/:id', [
+  body('amount').optional().isFloat({ min: 0 }).withMessage('Amount must be a positive number'),
+  body('walletAddress').optional().isLength({ min: 10, max: 100 }).withMessage('Wallet address must be between 10 and 100 characters'),
+  body('adminNotes').optional().isLength({ max: 500 }).withMessage('Admin notes must be less than 500 characters'),
+  body('currency').optional().isIn(['USDT', 'BTC', 'ETH']).withMessage('Invalid currency'),
+  body('network').optional().isIn(['TRC20', 'ERC20', 'BTC', 'ETH']).withMessage('Invalid network')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { id } = req.params;
+    const { amount, walletAddress, adminNotes, currency, network } = req.body;
+
+    // Get withdrawal
+    const withdrawal = await prisma.withdrawal.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true
+          }
+        }
+      }
+    });
+
+    if (!withdrawal) {
+      return res.status(404).json({
+        error: 'Withdrawal not found'
+      });
+    }
+
+    // Only allow editing if withdrawal is still pending
+    if (withdrawal.status !== 'PENDING') {
+      return res.status(400).json({
+        error: 'Can only edit pending withdrawals'
+      });
+    }
+
+    // Update withdrawal
+    const updatedWithdrawal = await prisma.withdrawal.update({
+      where: { id },
+      data: {
+        ...(amount && { amount: amount.toString() }),
+        ...(walletAddress && { walletAddress }),
+        ...(adminNotes && { adminNotes }),
+        ...(currency && { currency }),
+        ...(network && { network }),
+        updatedAt: new Date()
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true
+          }
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Withdrawal updated successfully',
+      data: updatedWithdrawal
+    });
+  } catch (error) {
+    console.error('Error updating withdrawal:', error);
+    res.status(500).json({
+      error: 'Failed to update withdrawal',
       message: error.message
     });
   }
@@ -176,7 +264,8 @@ router.patch('/withdrawals/:id/process', [
           select: {
             id: true,
             fullName: true,
-            email: true
+            email: true,
+            phone: true
           }
         }
       }

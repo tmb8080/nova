@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { adminAPI } from '../services/api';
+import { adminAPI, walletAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import WithdrawalHistory from '../components/WithdrawalHistory';
 import AdminWithdrawalHistory from '../components/AdminWithdrawalHistory';
+import AdminUserManagement from '../components/AdminUserManagement';
 import MobileBottomNav from '../components/MobileBottomNav';
 import DesktopNav from '../components/layout/DesktopNav';
 import toast from 'react-hot-toast';
@@ -20,6 +21,14 @@ const AdminPanel = () => {
   const [selectedWithdrawal, setSelectedWithdrawal] = useState(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [transactionHash, setTransactionHash] = useState('');
+  const [isEditingWithdrawal, setIsEditingWithdrawal] = useState(false);
+  const [editWithdrawalData, setEditWithdrawalData] = useState({
+    amount: '',
+    walletAddress: '',
+    adminNotes: '',
+    currency: '',
+    network: ''
+  });
   const [selectedDeposit, setSelectedDeposit] = useState(null);
   const [depositAdminNotes, setDepositAdminNotes] = useState('');
   const [depositTransactionHash, setDepositTransactionHash] = useState('');
@@ -77,15 +86,7 @@ const AdminPanel = () => {
     refetchIntervalInBackground: true,
   });
 
-  const { data: users, isLoading: usersLoading } = useQuery({
-    queryKey: ['adminUsers'],
-    queryFn: async () => {
-      const response = await adminAPI.getUsers({ page: 1, limit: 50 });
-      console.log('Users response:', response);
-      return response.data.data || response.data; // Handle both nested and direct responses
-    },
-    enabled: !!user?.isAdmin, // Only run if user is admin
-  });
+
 
   const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ['adminSettings'],
@@ -101,7 +102,7 @@ const AdminPanel = () => {
   const { data: addressesData, isLoading: addressesLoading } = useQuery({
     queryKey: ['companyAddresses'],
     queryFn: async () => {
-      const response = await adminAPI.getCompanyWalletAddresses();
+      const response = await walletAPI.getCompanyWalletAddresses();
       console.log('Company addresses response:', response);
       return response.data.data || response.data;
     },
@@ -139,7 +140,7 @@ const AdminPanel = () => {
   // Mutations
   const processWithdrawalMutation = useMutation({
     mutationFn: ({ id, action, adminNotes, transactionHash }) => 
-      adminAPI.processWithdrawal(id, { action, adminNotes, transactionHash }),
+      adminAPI.processWithdrawal(id, action, { adminNotes, transactionHash }),
     onSuccess: () => {
       toast.success('Withdrawal processed successfully!');
       queryClient.invalidateQueries(['pendingWithdrawals']);
@@ -152,16 +153,26 @@ const AdminPanel = () => {
     },
   });
 
-  const toggleUserStatusMutation = useMutation({
-    mutationFn: (userId) => adminAPI.toggleUserStatus(userId),
+  const updateWithdrawalMutation = useMutation({
+    mutationFn: ({ id, data }) => adminAPI.updateWithdrawal(id, data),
     onSuccess: () => {
-      toast.success('User status updated successfully!');
-      queryClient.invalidateQueries(['adminUsers']);
+      toast.success('Withdrawal updated successfully!');
+      queryClient.invalidateQueries(['pendingWithdrawals']);
+      setIsEditingWithdrawal(false);
+      setEditWithdrawalData({
+        amount: '',
+        walletAddress: '',
+        adminNotes: '',
+        currency: '',
+        network: ''
+      });
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to update user status');
+      toast.error(error.response?.data?.message || 'Failed to update withdrawal');
     },
   });
+
+
 
   const updateSettingsMutation = useMutation({
     mutationFn: (settings) => adminAPI.updateSettings(settings),
@@ -268,14 +279,55 @@ const AdminPanel = () => {
   const handleProcessWithdrawal = (action) => {
     if (!selectedWithdrawal) return;
 
-    const adminNotes = prompt('Enter admin notes (optional):');
-    const transactionHash = action === 'approve' ? prompt('Enter transaction hash (optional):') : null;
-
     processWithdrawalMutation.mutate({
       id: selectedWithdrawal.id,
       action: action.toUpperCase(),
       adminNotes: adminNotes || null,
       transactionHash: transactionHash || null
+    });
+  };
+
+  const handleEditWithdrawal = () => {
+    if (!selectedWithdrawal) return;
+    
+    // Populate edit form with current withdrawal data
+    setEditWithdrawalData({
+      amount: selectedWithdrawal.amount || '',
+      walletAddress: selectedWithdrawal.walletAddress || '',
+      adminNotes: selectedWithdrawal.adminNotes || '',
+      currency: selectedWithdrawal.currency || '',
+      network: selectedWithdrawal.network || ''
+    });
+    setIsEditingWithdrawal(true);
+  };
+
+  const handleUpdateWithdrawal = () => {
+    if (!selectedWithdrawal) return;
+    
+    // Filter out empty values
+    const updateData = Object.fromEntries(
+      Object.entries(editWithdrawalData).filter(([_, value]) => value !== '')
+    );
+    
+    if (Object.keys(updateData).length === 0) {
+      toast.error('Please provide at least one field to update');
+      return;
+    }
+    
+    updateWithdrawalMutation.mutate({
+      id: selectedWithdrawal.id,
+      data: updateData
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingWithdrawal(false);
+    setEditWithdrawalData({
+      amount: '',
+      walletAddress: '',
+      adminNotes: '',
+      currency: '',
+      network: ''
     });
   };
 
@@ -642,34 +694,89 @@ const AdminPanel = () => {
                  {(Array.isArray(pendingWithdrawals?.data) ? pendingWithdrawals.data : []).map((withdrawal) => (
                   <div key={withdrawal.id} className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
                     <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3 className="text-lg font-semibold text-white">{withdrawal.user.fullName || withdrawal.user.email || withdrawal.user.phone || 'User'}</h3>
-                        <p className="text-gray-300">{withdrawal.user.email}</p>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-semibold text-white">
+                            {withdrawal.user.fullName || withdrawal.user.email || withdrawal.user.phone || 'User'}
+                          </h3>
+                          <div className="text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400">
+                            PENDING
+                          </div>
+                        </div>
+                        <div className="space-y-1 text-sm">
+                          {withdrawal.user.email && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-400">📧</span>
+                              <span className="text-white">{withdrawal.user.email}</span>
+                            </div>
+                          )}
+                          {withdrawal.user.phone && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-400">📱</span>
+                              <span className="text-white">{withdrawal.user.phone}</span>
+                            </div>
+                          )}
+                          {withdrawal.user.fullName && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-400">👤</span>
+                              <span className="text-white">{withdrawal.user.fullName}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right ml-4">
                         <div className="text-xl font-bold text-white">{formatCurrency(withdrawal.amount)}</div>
                         <div className="text-sm text-gray-300">{withdrawal.currency} • {withdrawal.network}</div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          ID: {withdrawal.user.id.slice(0, 8)}...
+                        </div>
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <div>
-                        <span className="text-gray-300 text-sm">Wallet Address:</span>
-                        <p className="text-white font-mono text-sm break-all">{withdrawal.walletAddress}</p>
+                        <span className="text-gray-300 text-sm flex items-center gap-1">
+                          <span>💳</span> Wallet Address:
+                        </span>
+                        <p className="text-white font-mono text-sm break-all mt-1">{withdrawal.walletAddress}</p>
                       </div>
                       <div>
-                        <span className="text-gray-300 text-sm">Requested:</span>
-                        <p className="text-white">{formatDate(withdrawal.createdAt)}</p>
+                        <span className="text-gray-300 text-sm flex items-center gap-1">
+                          <span>📅</span> Requested:
+                        </span>
+                        <p className="text-white mt-1">{formatDate(withdrawal.createdAt)}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-300 text-sm flex items-center gap-1">
+                          <span>🆔</span> Withdrawal ID:
+                        </span>
+                        <p className="text-white font-mono text-xs mt-1">{withdrawal.id.slice(0, 8)}...</p>
                       </div>
                     </div>
                     
-                    <div className="flex space-x-2">
-                      <Button
-                        onClick={() => setSelectedWithdrawal(withdrawal)}
-                        className="bg-blue-500 hover:bg-blue-600 text-white"
-                      >
-                        Process
-                      </Button>
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <span>💰</span> Amount: {formatCurrency(withdrawal.amount)}
+                        </span>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          onClick={() => setSelectedWithdrawal(withdrawal)}
+                          className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2"
+                        >
+                          🔄 Process
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setSelectedWithdrawal(withdrawal);
+                            handleEditWithdrawal();
+                          }}
+                          className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm px-4 py-2"
+                        >
+                          ✏️ Edit
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -774,55 +881,7 @@ const AdminPanel = () => {
           </div>
         )}
 
-        {activeTab === 'users' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">User Management</h2>
-            
-            {usersLoading ? (
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="bg-white/10 rounded-lg p-4">
-                      <div className="h-4 bg-white/20 rounded w-1/4 mb-2"></div>
-                      <div className="h-3 bg-white/20 rounded w-1/2"></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-                         ) : (
-               <div className="space-y-4">
-                 {(Array.isArray(users?.data) ? users.data : []).map((user) => (
-                  <div key={user.id} className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold text-white">{user.fullName || user.email || user.phone || 'User'}</h3>
-                        <p className="text-gray-300">{user.email}</p>
-                        <p className="text-sm text-gray-400">Joined: {formatDate(user.createdAt)}</p>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <div className="text-right">
-                          <div className="text-sm text-gray-300">Balance</div>
-                          <div className="text-lg font-bold text-white">{formatCurrency(user.wallet?.balance || 0)}</div>
-                        </div>
-                        <Button
-                          onClick={() => toggleUserStatusMutation.mutate(user.id)}
-                          disabled={toggleUserStatusMutation.isLoading}
-                          className={`${
-                            user.isActive 
-                              ? 'bg-red-500 hover:bg-red-600 text-white' 
-                              : 'bg-green-500 hover:bg-green-600 text-white'
-                          }`}
-                        >
-                          {user.isActive ? 'Suspend' : 'Activate'}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {activeTab === 'users' && <AdminUserManagement />}
 
         {activeTab === 'settings' && (
           <div className="space-y-6">
@@ -918,63 +977,216 @@ const AdminPanel = () => {
       {/* Withdrawal Processing Modal */}
       {selectedWithdrawal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="backdrop-blur-xl bg-white/10 rounded-2xl w-full max-w-md border border-white/20 shadow-2xl">
+          <div className="backdrop-blur-xl bg-white/10 rounded-2xl w-full max-w-lg border border-white/20 shadow-2xl">
             <div className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Process Withdrawal</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-white">
+                  {isEditingWithdrawal ? 'Edit Withdrawal' : 'Process Withdrawal'}
+                </h3>
+                {!isEditingWithdrawal && selectedWithdrawal.status === 'PENDING' && (
+                  <Button
+                    onClick={handleEditWithdrawal}
+                    className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-1"
+                  >
+                    ✏️ Edit
+                  </Button>
+                )}
+              </div>
               
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Admin Notes
-                  </label>
-                  <textarea
-                    value={adminNotes}
-                    onChange={(e) => setAdminNotes(e.target.value)}
-                    placeholder="Optional notes about this withdrawal"
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    rows="3"
-                  />
+                {/* Withdrawal Details */}
+                <div className="bg-white/10 rounded-lg p-4 mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-300 text-sm">User:</span>
+                    <span className="text-white font-medium">{selectedWithdrawal.user.fullName || selectedWithdrawal.user.email || selectedWithdrawal.user.phone || 'User'}</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-300 text-sm">Amount:</span>
+                    <span className="text-white font-bold">{formatCurrency(selectedWithdrawal.amount)}</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-300 text-sm">Currency:</span>
+                    <span className="text-white">{selectedWithdrawal.currency} • {selectedWithdrawal.network}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300 text-sm">Status:</span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      selectedWithdrawal.status === 'PENDING' ? 'bg-yellow-500/20 text-yellow-400' :
+                      selectedWithdrawal.status === 'COMPLETED' ? 'bg-green-500/20 text-green-400' :
+                      'bg-red-500/20 text-red-400'
+                    }`}>
+                      {selectedWithdrawal.status}
+                    </span>
+                  </div>
                 </div>
+
+                {/* Edit Form (when in edit mode) */}
+                {isEditingWithdrawal && (
+                  <div className="space-y-4 border-t border-white/20 pt-4">
+                    <h4 className="text-sm font-medium text-gray-300">Edit Withdrawal Details</h4>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Amount
+                      </label>
+                      <input
+                        type="number"
+                        value={editWithdrawalData.amount}
+                        onChange={(e) => setEditWithdrawalData(prev => ({ ...prev, amount: e.target.value }))}
+                        placeholder="Enter new amount"
+                        step="0.01"
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Wallet Address
+                      </label>
+                      <input
+                        type="text"
+                        value={editWithdrawalData.walletAddress}
+                        onChange={(e) => setEditWithdrawalData(prev => ({ ...prev, walletAddress: e.target.value }))}
+                        placeholder="Enter new wallet address"
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Currency
+                      </label>
+                      <select
+                        value={editWithdrawalData.currency}
+                        onChange={(e) => setEditWithdrawalData(prev => ({ ...prev, currency: e.target.value }))}
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      >
+                        <option value="">Select currency</option>
+                        <option value="USDT">USDT</option>
+                        <option value="BTC">BTC</option>
+                        <option value="ETH">ETH</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Network
+                      </label>
+                      <select
+                        value={editWithdrawalData.network}
+                        onChange={(e) => setEditWithdrawalData(prev => ({ ...prev, network: e.target.value }))}
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      >
+                        <option value="">Select network</option>
+                        <option value="TRC20">TRC20</option>
+                        <option value="ERC20">ERC20</option>
+                        <option value="BTC">BTC</option>
+                        <option value="ETH">ETH</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Admin Notes
+                      </label>
+                      <textarea
+                        value={editWithdrawalData.adminNotes}
+                        onChange={(e) => setEditWithdrawalData(prev => ({ ...prev, adminNotes: e.target.value }))}
+                        placeholder="Optional notes about this withdrawal"
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        rows="3"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Process Form (when not in edit mode) */}
+                {!isEditingWithdrawal && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Admin Notes
+                    </label>
+                    <textarea
+                      value={adminNotes}
+                      onChange={(e) => setAdminNotes(e.target.value)}
+                      placeholder="Optional notes about this withdrawal"
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      rows="3"
+                    />
+                  </div>
+                )}
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Transaction Hash (for approval)
-                  </label>
-                  <input
-                    type="text"
-                    value={transactionHash}
-                    onChange={(e) => setTransactionHash(e.target.value)}
-                    placeholder="Enter transaction hash if approving"
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
+                {/* Transaction Hash (only for processing) */}
+                {!isEditingWithdrawal && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Transaction Hash (for approval)
+                    </label>
+                    <input
+                      type="text"
+                      value={transactionHash}
+                      onChange={(e) => setTransactionHash(e.target.value)}
+                      placeholder="Enter transaction hash if approving"
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
               </div>
               
               <div className="flex space-x-3 mt-6">
-                <Button
-                  onClick={() => handleProcessWithdrawal('approve')}
-                  disabled={processWithdrawalMutation.isLoading}
-                  className="flex-1 bg-green-500 hover:bg-green-600 text-white"
-                >
-                  Approve
-                </Button>
-                <Button
-                  onClick={() => handleProcessWithdrawal('reject')}
-                  disabled={processWithdrawalMutation.isLoading}
-                  className="flex-1 bg-red-500 hover:bg-red-600 text-white"
-                >
-                  Reject
-                </Button>
-                <Button
-                  onClick={() => {
-                    setSelectedWithdrawal(null);
-                    setAdminNotes('');
-                    setTransactionHash('');
-                  }}
-                  className="flex-1 bg-gray-500 hover:bg-gray-600 text-white"
-                >
-                  Cancel
-                </Button>
+                {isEditingWithdrawal ? (
+                  <>
+                    <Button
+                      onClick={handleUpdateWithdrawal}
+                      disabled={updateWithdrawalMutation.isLoading}
+                      className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+                    >
+                      {updateWithdrawalMutation.isLoading ? 'Updating...' : 'Update'}
+                    </Button>
+                    <Button
+                      onClick={handleCancelEdit}
+                      disabled={updateWithdrawalMutation.isLoading}
+                      className="flex-1 bg-gray-500 hover:bg-gray-600 text-white"
+                    >
+                      Cancel Edit
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      onClick={() => handleProcessWithdrawal('APPROVE')}
+                      disabled={processWithdrawalMutation.isLoading}
+                      className="flex-1 bg-green-500 hover:bg-green-600 text-white"
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      onClick={() => handleProcessWithdrawal('REJECT')}
+                      disabled={processWithdrawalMutation.isLoading}
+                      className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                    >
+                      Reject
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setSelectedWithdrawal(null);
+                        setAdminNotes('');
+                        setTransactionHash('');
+                        setIsEditingWithdrawal(false);
+                        setEditWithdrawalData({
+                          amount: '',
+                          walletAddress: '',
+                          adminNotes: '',
+                          currency: '',
+                          network: ''
+                        });
+                      }}
+                      className="flex-1 bg-gray-500 hover:bg-gray-600 text-white"
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>

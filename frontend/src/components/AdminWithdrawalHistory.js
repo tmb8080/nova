@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminAPI } from '../services/api';
 import { Button } from './ui/Button';
@@ -17,9 +17,6 @@ const AdminWithdrawalHistory = () => {
   } = useQuery({
     queryKey: ['adminWithdrawals', page, statusFilter, searchTerm],
     queryFn: async () => {
-      console.log('Making API call with params:', { page, statusFilter, searchTerm });
-      
-      // Try without filters first to see if that's the issue
       const params = { 
         page, 
         limit: 20
@@ -29,13 +26,8 @@ const AdminWithdrawalHistory = () => {
       if (statusFilter) params.status = statusFilter;
       if (searchTerm) params.search = searchTerm;
       
-      console.log('Final API params:', params);
-      
       const response = await adminAPI.getWithdrawals(params);
-      console.log('API Response:', response);
-      console.log('Response data:', response?.data);
-      console.log('Response data type:', typeof response?.data);
-      console.log('Response data is array:', Array.isArray(response?.data));
+      console.log('AdminWithdrawalHistory - API response:', response);
       return response;
     },
     keepPreviousData: true,
@@ -43,36 +35,37 @@ const AdminWithdrawalHistory = () => {
     staleTime: 0
   });
 
-  // Extract data from API response with safety checks
-  // Extract data from API response with better error handling
-  let withdrawals = [];
-  let pagination = null;
-  
-  // Debug the data structure
-  console.log('Raw withdrawalsData:', withdrawalsData);
-  
-  if (withdrawalsData) {
-    // Try different possible response structures
-    if (withdrawalsData.data && Array.isArray(withdrawalsData.data)) {
-      withdrawals = withdrawalsData.data;
-      pagination = withdrawalsData.pagination;
-    } else if (Array.isArray(withdrawalsData)) {
-      withdrawals = withdrawalsData;
-    } else if (withdrawalsData.data && withdrawalsData.data.data && Array.isArray(withdrawalsData.data.data)) {
-      withdrawals = withdrawalsData.data.data;
-      pagination = withdrawalsData.data.pagination;
-    } else {
-      console.warn('Unexpected data structure:', withdrawalsData);
-      // Try to extract any array from the response
-      if (withdrawalsData.data && Array.isArray(withdrawalsData.data)) {
-        withdrawals = withdrawalsData.data;
-      }
+  // Extract data from API response with robust handling
+  const withdrawals = useMemo(() => {
+    if (!withdrawalsData) return [];
+    
+    // Debug logging
+    console.log('AdminWithdrawalHistory - withdrawalsData:', withdrawalsData);
+    console.log('AdminWithdrawalHistory - withdrawalsData type:', typeof withdrawalsData);
+    console.log('AdminWithdrawalHistory - withdrawalsData.data:', withdrawalsData?.data);
+    
+    // Handle different possible response structures
+    if (Array.isArray(withdrawalsData)) {
+      return withdrawalsData;
     }
-  }
+    
+    if (withdrawalsData.data && Array.isArray(withdrawalsData.data)) {
+      return withdrawalsData.data;
+    }
+    
+    if (withdrawalsData.data && withdrawalsData.data.data && Array.isArray(withdrawalsData.data.data)) {
+      return withdrawalsData.data.data;
+    }
+    
+    // If it's an object with a data property that's not an array, it might be a single item
+    if (withdrawalsData.data && typeof withdrawalsData.data === 'object' && !Array.isArray(withdrawalsData.data)) {
+      return [withdrawalsData.data];
+    }
+    
+    return [];
+  }, [withdrawalsData]);
   
-  console.log('Processed withdrawals:', withdrawals);
-  console.log('Is array:', Array.isArray(withdrawals));
-  console.log('Withdrawals length:', withdrawals.length);
+  const pagination = withdrawalsData?.pagination || withdrawalsData?.data?.pagination || null;
   
 
   
@@ -136,18 +129,7 @@ const AdminWithdrawalHistory = () => {
 
   return (
     <div className="space-y-6">
-      {/* Debug Info */}
-      <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-4">
-        <h3 className="text-blue-400 font-semibold mb-2">Debug Information:</h3>
-        <div className="text-blue-300 text-sm space-y-1">
-          <div>Loading: {isLoading ? 'Yes' : 'No'}</div>
-          <div>Error: {error ? 'Yes' : 'No'}</div>
-          <div>Withdrawals Data Available: {withdrawalsData ? 'Yes' : 'No'}</div>
-          <div>Withdrawals Array: {Array.isArray(withdrawals) ? 'Yes' : 'No'}</div>
-          <div>Withdrawals Length: {withdrawals.length}</div>
-          <div>Pagination Available: {pagination ? 'Yes' : 'No'}</div>
-        </div>
-      </div>
+
       
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -167,7 +149,7 @@ const AdminWithdrawalHistory = () => {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <input
             type="text"
-            placeholder="Search users, addresses..."
+            placeholder="Search by name, email, phone, wallet address..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -239,9 +221,39 @@ const AdminWithdrawalHistory = () => {
             <Card key={withdrawal.id} className="backdrop-blur-xl bg-white/10 border border-white/20">
               <div className="p-4 md:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                  <div>
-                    <h3 className="text-base md:text-lg font-semibold text-white">{withdrawal.user.fullName || withdrawal.user.email || withdrawal.user.phone || 'User'}</h3>
-                    <p className="text-gray-300 text-sm">{withdrawal.user.email}</p>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-base md:text-lg font-semibold text-white">
+                        {withdrawal.user.fullName || withdrawal.user.email || withdrawal.user.phone || 'User'}
+                      </h3>
+                      <div className={`text-xs px-2 py-1 rounded-full ${getStatusColor(withdrawal.status)}`}>
+                        {withdrawal.status}
+                      </div>
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      {withdrawal.user.email && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-400">📧</span>
+                          <span className="text-white">{withdrawal.user.email}</span>
+                        </div>
+                      )}
+                      {withdrawal.user.phone && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-400">📱</span>
+                          <span className="text-white">{withdrawal.user.phone}</span>
+                        </div>
+                      )}
+                      {withdrawal.user.fullName && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-400">👤</span>
+                          <span className="text-white">{withdrawal.user.fullName}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-400">🆔</span>
+                        <span className="text-white font-mono text-xs">ID: {withdrawal.user.id.slice(0, 8)}...</span>
+                      </div>
+                    </div>
                   </div>
                   <div className="text-left sm:text-right">
                     <div className="text-lg md:text-xl font-bold text-white">
@@ -255,34 +267,42 @@ const AdminWithdrawalHistory = () => {
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-4">
                   <div>
-                    <span className="text-gray-300 text-xs md:text-sm">Status:</span>
-                    <div className={`text-xs px-2 md:px-3 py-1 rounded-full inline-block mt-1 ${getStatusColor(withdrawal.status)}`}>
-                      {withdrawal.status}
-                    </div>
+                    <span className="text-gray-300 text-xs md:text-sm flex items-center gap-1">
+                      <span>📅</span> Requested:
+                    </span>
+                    <p className="text-white text-xs md:text-sm mt-1">{formatDate(withdrawal.createdAt)}</p>
                   </div>
                   <div>
-                    <span className="text-gray-300 text-xs md:text-sm">Requested:</span>
-                    <p className="text-white text-xs md:text-sm">{formatDate(withdrawal.createdAt)}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-300 text-xs md:text-sm">Processed:</span>
-                    <p className="text-white text-xs md:text-sm">
+                    <span className="text-gray-300 text-xs md:text-sm flex items-center gap-1">
+                      <span>⚡</span> Processed:
+                    </span>
+                    <p className="text-white text-xs md:text-sm mt-1">
                       {withdrawal.processedAt ? formatDate(withdrawal.processedAt) : 'Not processed'}
                     </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-300 text-xs md:text-sm flex items-center gap-1">
+                      <span>🆔</span> Withdrawal ID:
+                    </span>
+                    <p className="text-white font-mono text-xs mt-1">{withdrawal.id.slice(0, 8)}...</p>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mb-4">
                   <div>
-                    <span className="text-gray-300 text-xs md:text-sm">Wallet Address:</span>
-                    <p className="text-white font-mono text-xs md:text-sm break-all">
+                    <span className="text-gray-300 text-xs md:text-sm flex items-center gap-1">
+                      <span>💳</span> Wallet Address:
+                    </span>
+                    <p className="text-white font-mono text-xs md:text-sm break-all mt-1">
                       {withdrawal.walletAddress}
                     </p>
                   </div>
                   {withdrawal.transactionHash && (
                     <div>
-                      <span className="text-gray-300 text-xs md:text-sm">Transaction Hash:</span>
-                      <p className="text-white font-mono text-xs md:text-sm break-all">
+                      <span className="text-gray-300 text-xs md:text-sm flex items-center gap-1">
+                        <span>🔗</span> Transaction Hash:
+                      </span>
+                      <p className="text-white font-mono text-xs md:text-sm break-all mt-1">
                         {withdrawal.transactionHash}
                       </p>
                     </div>
@@ -291,7 +311,9 @@ const AdminWithdrawalHistory = () => {
                 
                 {withdrawal.adminNotes && (
                   <div className="mt-4 p-3 bg-white/5 rounded-lg">
-                    <span className="text-gray-300 text-xs md:text-sm">Admin Notes:</span>
+                    <span className="text-gray-300 text-xs md:text-sm flex items-center gap-1">
+                      <span>📝</span> Admin Notes:
+                    </span>
                     <p className="text-white text-xs md:text-sm mt-1">{withdrawal.adminNotes}</p>
                   </div>
                 )}

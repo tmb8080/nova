@@ -7,6 +7,11 @@ const WithdrawalHistoryPreview = () => {
   const { data: withdrawals, isLoading, error } = useQuery({
     queryKey: ['withdrawals', { limit: 5, page: 1 }],
     queryFn: () => withdrawalAPI.getWithdrawals({ limit: 5, page: 1 }),
+    retry: 2,
+    retryDelay: 1000,
+    onError: (error) => {
+      console.error('WithdrawalHistoryPreview API Error:', error);
+    }
   });
 
   const formatCurrency = (amount) => {
@@ -62,14 +67,33 @@ const WithdrawalHistoryPreview = () => {
   }
 
   if (error) {
+    console.error('WithdrawalHistoryPreview Error:', error);
     return (
       <div className="text-center py-8">
         <div className="text-gray-400 text-sm">Failed to load withdrawal history</div>
+        <div className="text-gray-500 text-xs mt-1">
+          {error.message || 'Please try again later'}
+        </div>
       </div>
     );
   }
 
-  const recentWithdrawals = withdrawals?.data?.withdrawals || [];
+  // Ensure recentWithdrawals is always an array with fallback handling
+  let recentWithdrawals = [];
+  
+  if (withdrawals && withdrawals.success && Array.isArray(withdrawals.data)) {
+    recentWithdrawals = withdrawals.data;
+  } else if (Array.isArray(withdrawals?.data)) {
+    recentWithdrawals = withdrawals.data;
+  } else if (Array.isArray(withdrawals)) {
+    recentWithdrawals = withdrawals;
+  }
+  
+  // Debug logging (remove in production)
+  console.log('WithdrawalHistoryPreview - withdrawals:', withdrawals);
+  console.log('WithdrawalHistoryPreview - withdrawals.data:', withdrawals?.data);
+  console.log('WithdrawalHistoryPreview - recentWithdrawals:', recentWithdrawals);
+  console.log('WithdrawalHistoryPreview - isArray:', Array.isArray(recentWithdrawals));
 
   if (recentWithdrawals.length === 0) {
     return (
@@ -83,7 +107,7 @@ const WithdrawalHistoryPreview = () => {
 
   return (
     <div className="space-y-3">
-      {recentWithdrawals.slice(0, 5).map((withdrawal) => (
+      {Array.isArray(recentWithdrawals) && recentWithdrawals.slice(0, 5).map((withdrawal) => (
         <div key={withdrawal.id} className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl border border-slate-600/30 hover:bg-slate-700/50 transition-all duration-200">
           <div className="flex items-center space-x-3">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${getStatusColor(withdrawal.status)}`}>
@@ -112,7 +136,7 @@ const WithdrawalHistoryPreview = () => {
         </div>
       ))}
       
-      {recentWithdrawals.length >= 5 && (
+      {Array.isArray(recentWithdrawals) && recentWithdrawals.length >= 5 && (
         <div className="text-center pt-2">
           <div className="text-gray-400 text-xs">
             Showing 5 most recent withdrawals
