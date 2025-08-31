@@ -141,7 +141,7 @@ const VipUpgradeProgress = ({ vipLevels, currentVip, totalDeposits, onUpgradeCli
                 asChild
                 className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
               >
-                <Link to="/vip">
+                <Link to="/vip-selection">
                   <span className="mr-2">💳</span>
                   Deposit & Upgrade
                 </Link>

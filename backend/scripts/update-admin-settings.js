@@ -14,7 +14,7 @@ async function updateAdminSettings() {
       settings = await prisma.adminSettings.create({
         data: {
           minWithdrawalAmount: 10,
-          minUsdcWithdrawalAmount: 20,
+          minUsdcWithdrawalAmount: 10, // Changed from 20 to 10
           minUsdtDepositAmount: 30,
           isWithdrawalEnabled: true,
           isDepositEnabled: true,
@@ -30,6 +30,8 @@ async function updateAdminSettings() {
       console.log('- minUsdcWithdrawalAmount:', settings.minUsdcWithdrawalAmount.toString());
       console.log('- minUsdtDepositAmount:', settings.minUsdtDepositAmount.toString());
       
+      let updated = false;
+      
       // Update minimum withdrawal amount to 10 if it's not already
       if (parseFloat(settings.minWithdrawalAmount) !== 10) {
         console.log('Updating minWithdrawalAmount to 10...');
@@ -40,8 +42,28 @@ async function updateAdminSettings() {
           }
         });
         console.log('minWithdrawalAmount updated to 10 successfully!');
+        updated = true;
       } else {
         console.log('minWithdrawalAmount is already set to 10.');
+      }
+      
+      // Update USDC minimum withdrawal amount to 10 if it's not already
+      if (parseFloat(settings.minUsdcWithdrawalAmount) !== 10) {
+        console.log('Updating minUsdcWithdrawalAmount to 10...');
+        await prisma.adminSettings.update({
+          where: { id: settings.id },
+          data: {
+            minUsdcWithdrawalAmount: 10
+          }
+        });
+        console.log('minUsdcWithdrawalAmount updated to 10 successfully!');
+        updated = true;
+      } else {
+        console.log('minUsdcWithdrawalAmount is already set to 10.');
+      }
+      
+      if (!updated) {
+        console.log('All settings are already correct.');
       }
     }
     

@@ -30,6 +30,7 @@ const Dashboard = () => {
   const [vipToJoin, setVipToJoin] = useState(null);
   const [previousBalance, setPreviousBalance] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(true);
 
   // Fetch wallet stats
   const { data: walletStats, isLoading: walletLoading } = useQuery({
@@ -91,6 +92,14 @@ const Dashboard = () => {
       setPreviousBalance(walletStats.data.data.balance);
     }
   }, [walletStats?.data?.data?.balance, previousBalance]);
+
+  // Handle video mute state changes
+  useEffect(() => {
+    const videoElement = document.querySelector('video');
+    if (videoElement) {
+      videoElement.muted = isVideoMuted;
+    }
+  }, [isVideoMuted]);
 
   // Video protection and autoplay
   useEffect(() => {
@@ -401,6 +410,11 @@ const Dashboard = () => {
               </div>
               <div className="aspect-video bg-gradient-to-br from-slate-800/50 to-purple-900/50 relative overflow-hidden select-none video-container" onContextMenu={(e) => e.preventDefault()}>
                 <video
+                  ref={(el) => {
+                    if (el) {
+                      el.muted = isVideoMuted;
+                    }
+                  }}
                   className="w-full h-full object-cover"
                   controls
                   poster="/video-poster.jpg"
@@ -408,6 +422,7 @@ const Dashboard = () => {
                   loop
                   autoPlay
                   playsInline
+                  muted={isVideoMuted}
                   onContextMenu={(e) => e.preventDefault()}
                   onLoadStart={(e) => {
                     e.target.play().catch(error => {
@@ -428,6 +443,24 @@ const Dashboard = () => {
                   <source src="/introduction.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
+                
+                {/* Mute/Unmute Button */}
+                <button
+                  onClick={() => setIsVideoMuted(!isVideoMuted)}
+                  className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white p-2 rounded-lg transition-all duration-200 hover:scale-110 border border-white/20"
+                  title={isVideoMuted ? "Unmute Video" : "Mute Video"}
+                >
+                  {isVideoMuted ? (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793L4.5 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.5l3.883-3.707a1 1 0 011.617.793zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793L4.5 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.5l3.883-3.707a1 1 0 011.617.793z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </button>
+                
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
               </div>
             </div>
