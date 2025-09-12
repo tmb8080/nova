@@ -141,7 +141,7 @@ const DepositHistory = ({ onClose }) => {
   if (!user) {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div className="backdrop-blur-xl bg-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl">
+        <div className="binance-section w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
           <div className="p-6">
             <div className="text-center text-red-400">
               <p>Authentication required</p>
@@ -161,7 +161,7 @@ const DepositHistory = ({ onClose }) => {
   if (error) {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div className="backdrop-blur-xl bg-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl">
+        <div className="binance-section w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
           <div className="p-6">
             <div className="text-center text-red-400">
               <p>Error loading deposit history</p>
@@ -184,7 +184,7 @@ const DepositHistory = ({ onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/20">
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg sm:text-xl font-semibold text-white">Deposit History</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-binance-text-primary">Deposit History</h2>
             {pendingCount > 0 && (
               <p className="text-sm text-yellow-400 mt-1">
                 {pendingCount} pending deposit{pendingCount !== 1 ? 's' : ''}
@@ -283,7 +283,7 @@ const DepositHistory = ({ onClose }) => {
           ) : (
             <div className="space-y-4" key={`deposits-${page}-${statusFilter}`}>
               {deposits.map((deposit) => (
-                <div key={deposit.id} className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                <div key={deposit.id} className="binance-list-item">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">

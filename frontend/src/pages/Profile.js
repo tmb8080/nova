@@ -99,23 +99,22 @@ const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-20 md:pb-0">
-      {/* Modern Header */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white dark:bg-binance-dark pb-20 md:pb-0">
+      {/* Binance-style Header */}
+      <div className="bg-white dark:bg-binance-dark-secondary border-b border-gray-200 dark:border-binance-dark-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 bg-binance-yellow rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-binance-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
-              <h1 className="text-xl font-bold text-white">Trinity Metro</h1>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-binance-text-primary">NovaStaking</h1>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-sm text-gray-300">Live</span>
+              <div className="w-2 h-2 bg-binance-green rounded-full animate-pulse"></div>
+              <span className="text-sm text-gray-600 dark:text-binance-text-secondary">Live</span>
             </div>
           </div>
         </div>
@@ -123,16 +122,16 @@ const Profile = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 md:pb-8">
-        {/* Modern Profile Header */}
+        {/* Binance-style Profile Header */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full border border-blue-500/30 mb-6">
-            <div className="w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse"></div>
-            <span className="text-blue-300 text-sm font-medium">Profile Dashboard</span>
+          <div className="inline-flex items-center px-4 py-2 bg-gray-50 dark:bg-binance-dark-tertiary rounded-full border border-gray-200 dark:border-binance-dark-border mb-6">
+            <div className="w-2 h-2 bg-binance-yellow rounded-full mr-2 animate-pulse"></div>
+            <span className="text-gray-600 dark:text-binance-text-secondary text-sm font-medium">Profile Dashboard</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-binance-text-primary mb-4">
             My Profile
           </h1>
-          <p className="text-gray-300 text-base max-w-2xl mx-auto">
+          <p className="text-gray-600 dark:text-binance-text-secondary text-base max-w-2xl mx-auto">
             Manage your account, view earnings, and track your progress
           </p>
         </div>
@@ -140,20 +139,18 @@ const Profile = () => {
         {/* Portfolio Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           {/* Account Balance */}
-          <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-            <div className="relative backdrop-blur-xl bg-white/10 rounded-2xl p-6 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300 hover:scale-105">
+          <div className="bg-white dark:bg-binance-dark-secondary rounded-lg p-6 shadow-lg border border-gray-200 dark:border-binance-dark-border hover:shadow-xl transition-all duration-200">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-12 h-12 bg-binance-green rounded-xl flex items-center justify-center shadow-lg">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                   </svg>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-medium text-gray-300">Account Balance</div>
-                  <div className="text-2xl font-bold text-white">
+                <div className="text-sm font-medium text-gray-600 dark:text-binance-text-secondary">Account Balance</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-binance-text-primary">
                     {walletLoading ? (
-                      <div className="animate-pulse bg-gray-600 h-8 w-24 rounded"></div>
+                    <div className="animate-pulse bg-gray-200 dark:bg-binance-dark-tertiary h-8 w-24 rounded"></div>
                     ) : (
                       formatCurrency(walletStats?.data?.data?.balance || 0)
                     )}
@@ -161,37 +158,34 @@ const Profile = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Button
+              <button
                   onClick={() => setShowDepositModal(true)}
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm py-2 rounded-xl"
+                className="w-full btn-primary text-sm py-2 rounded-lg"
                 >
                   💰 Deposit
-                </Button>
-                <Button
+              </button>
+              <button
                   onClick={() => setShowWithdrawalModal(true)}
-                  className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white text-sm py-2 rounded-xl"
+                className="w-full btn-secondary text-sm py-2 rounded-lg"
                 >
                   💸 Withdraw
-                </Button>
-              </div>
+              </button>
             </div>
           </div>
 
           {/* Total Deposits */}
-          <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-            <div className="relative backdrop-blur-xl bg-white/10 rounded-2xl p-6 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300 hover:scale-105">
+          <div className="bg-white dark:bg-binance-dark-secondary rounded-lg p-6 shadow-lg border border-gray-200 dark:border-binance-dark-border hover:shadow-xl transition-all duration-200">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 bg-binance-yellow rounded-xl flex items-center justify-center shadow-lg">
+                <svg className="w-6 h-6 text-binance-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
                   </svg>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-medium text-gray-300">Total Deposits</div>
-                  <div className="text-2xl font-bold text-white">
+                <div className="text-sm font-medium text-gray-600 dark:text-binance-text-secondary">Total Deposits</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-binance-text-primary">
                     {walletLoading ? (
-                      <div className="animate-pulse bg-gray-600 h-8 w-24 rounded"></div>
+                    <div className="animate-pulse bg-gray-200 dark:bg-binance-dark-tertiary h-8 w-24 rounded"></div>
                     ) : (
                       formatCurrency(walletStats?.data?.data?.totalDeposits || 0)
                     )}
@@ -199,34 +193,31 @@ const Profile = () => {
                 </div>
               </div>
               <div className="mt-4">
-                <Button
+              <button
                   onClick={() => setShowDepositHistory(true)}
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white text-sm py-2 rounded-xl"
+                className="w-full btn-secondary text-sm py-2 rounded-lg"
                 >
                   📊 View History
-                </Button>
-              </div>
+              </button>
             </div>
           </div>
 
           {/* VIP Task Earnings */}
-          <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-            <div className="relative backdrop-blur-xl bg-white/10 rounded-2xl p-6 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300 hover:scale-105">
+          <div className="bg-white dark:bg-binance-dark-secondary rounded-lg p-6 shadow-lg border border-gray-200 dark:border-binance-dark-border hover:shadow-xl transition-all duration-200">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-12 h-12 bg-binance-yellow rounded-xl flex items-center justify-center shadow-lg">
                   <span className="text-2xl">🚴</span>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-medium text-gray-300">Daily Task Earnings</div>
-                  <div className="text-2xl font-bold text-white">
+                <div className="text-sm font-medium text-gray-600 dark:text-binance-text-secondary">Daily Task Earnings</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-binance-text-primary">
                     {walletLoading ? (
-                      <div className="animate-pulse bg-gray-600 h-8 w-24 rounded"></div>
+                    <div className="animate-pulse bg-gray-200 dark:bg-binance-dark-tertiary h-8 w-24 rounded"></div>
                     ) : (
                       formatCurrency(walletStats?.data?.data?.totalEarnings || 0)
                     )}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">From VIP tasks</div>
+                </div>
+                <div className="text-xs text-gray-500 dark:text-binance-text-tertiary mt-1">From VIP tasks</div>
                 </div>
               </div>
               
@@ -234,26 +225,26 @@ const Profile = () => {
               {earningStatus?.data?.data?.hasActiveSession && (
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-gray-300">Session Progress</span>
-                    <span className="text-xs text-green-400 font-medium">
+                  <span className="text-xs text-gray-600 dark:text-binance-text-secondary">Session Progress</span>
+                  <span className="text-xs text-binance-green font-medium">
                       {earningStatus.data.data.progress || 0}%
                     </span>
                   </div>
-                  <div className="w-full bg-gray-700/50 rounded-full h-2">
+                <div className="w-full bg-gray-200 dark:bg-binance-dark-border rounded-full h-2">
                     <div 
-                      className="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full transition-all duration-300"
+                    className="bg-binance-green h-2 rounded-full transition-all duration-300"
                       style={{ 
                         width: `${earningStatus.data.data.progress || 0}%`,
                         animation: 'pulse 2s infinite'
                       }}
                     ></div>
                   </div>
-                  <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
+                <div className="flex justify-between items-center mt-2 text-xs text-gray-500 dark:text-binance-text-tertiary">
                     <span>Started: {earningStatus.data.data.startTime ? new Date(earningStatus.data.data.startTime).toLocaleTimeString() : 'N/A'}</span>
                     <span>Ends: {earningStatus.data.data.endTime ? new Date(earningStatus.data.data.endTime).toLocaleTimeString() : 'N/A'}</span>
                   </div>
                   <div className="mt-2 text-center">
-                    <span className="text-xs text-green-400 font-medium">
+                  <span className="text-xs text-binance-green font-medium">
                       Earning: {formatCurrency(earningStatus.data.data.currentEarnings || 0)}
                     </span>
                   </div>
@@ -261,81 +252,74 @@ const Profile = () => {
               )}
               
               <div className="mt-4">
-                <Button
+              <button
                   onClick={() => window.location.href = '/tasks'}
-                  className={`w-full text-sm py-2 rounded-xl ${
+                className={`w-full text-sm py-2 rounded-lg ${
                     earningStatus?.data?.data?.hasActiveSession 
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white'
-                      : 'bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white'
+                    ? 'btn-primary'
+                    : 'btn-secondary'
                   }`}
                 >
                   {earningStatus?.data?.data?.hasActiveSession ? '🔄 View Progress' : '🎯 Start Task'}
-                </Button>
-              </div>
+              </button>
             </div>
           </div>
 
           {/* Referral Bonus */}
-          <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-            <div className="relative backdrop-blur-xl bg-white/10 rounded-2xl p-6 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300 hover:scale-105">
+          <div className="bg-white dark:bg-binance-dark-secondary rounded-lg p-6 shadow-lg border border-gray-200 dark:border-binance-dark-border hover:shadow-xl transition-all duration-200">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-12 h-12 bg-binance-green rounded-xl flex items-center justify-center shadow-lg">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-medium text-gray-300">Referral Bonus</div>
-                  <div className="text-2xl font-bold text-white">
+                <div className="text-sm font-medium text-gray-600 dark:text-binance-text-secondary">Referral Bonus</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-binance-text-primary">
                     {walletLoading ? (
-                      <div className="animate-pulse bg-gray-600 h-8 w-24 rounded"></div>
+                    <div className="animate-pulse bg-gray-200 dark:bg-binance-dark-tertiary h-8 w-24 rounded"></div>
                     ) : (
                       formatCurrency(walletStats?.data?.data?.totalReferralBonus || 0)
                     )}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">VIP commissions only</div>
+                </div>
+                <div className="text-xs text-gray-500 dark:text-binance-text-tertiary mt-1">VIP commissions (L1=10%, L2=5%, L3=2%)</div>
                 </div>
               </div>
               <div className="mt-4">
-                <Button
+              <button
                   onClick={() => window.location.href = '/invite'}
-                  className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white text-sm py-2 rounded-xl"
+                className="w-full btn-primary text-sm py-2 rounded-lg"
                 >
                   👥 Invite Friends
-                </Button>
-              </div>
+              </button>
             </div>
           </div>
 
           {/* Withdrawal Statistics */}
-          <div className="relative group">
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-            <div className="relative backdrop-blur-xl bg-white/10 rounded-2xl p-6 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300 hover:scale-105">
+          <div className="bg-white dark:bg-binance-dark-secondary rounded-lg p-6 shadow-lg border border-gray-200 dark:border-binance-dark-border hover:shadow-xl transition-all duration-200">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-12 h-12 bg-binance-yellow rounded-xl flex items-center justify-center shadow-lg">
                   <span className="text-2xl">💸</span>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-medium text-gray-300">Total Withdrawn</div>
-                  <div className="text-2xl font-bold text-white">
+                <div className="text-sm font-medium text-gray-600 dark:text-binance-text-secondary">Total Withdrawn</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-binance-text-primary">
                     {walletLoading ? (
-                      <div className="animate-pulse bg-gray-600 h-8 w-24 rounded"></div>
+                    <div className="animate-pulse bg-gray-200 dark:bg-binance-dark-tertiary h-8 w-24 rounded"></div>
                     ) : (
                       formatCurrency(walletStats?.data?.data?.totalWithdrawn || 0)
                     )}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">All time</div>
+                </div>
+                <div className="text-xs text-gray-500 dark:text-binance-text-tertiary mt-1">All time</div>
                 </div>
               </div>
               <div className="mt-4">
-                <Button
+              <button
                   onClick={() => setShowWithdrawalHistory(true)}
-                  className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white text-sm py-2 rounded-xl"
+                className="w-full btn-secondary text-sm py-2 rounded-lg"
                 >
                   📊 View History
-                </Button>
-              </div>
+              </button>
             </div>
           </div>
         </div>
@@ -344,59 +328,55 @@ const Profile = () => {
           {/* Main Content Area */}
           <div className="lg:col-span-2 space-y-6">
             {/* Recent Transactions */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl blur-3xl"></div>
-              <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
+            <div className="bg-white dark:bg-binance-dark-secondary rounded-lg shadow-lg border border-gray-200 dark:border-binance-dark-border">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
                     <div>
-                      <CardTitle className="text-xl font-bold text-white">Recent Transactions</CardTitle>
-                      <CardDescription className="text-gray-300">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-binance-text-primary">Recent Transactions</h3>
+                    <p className="text-gray-600 dark:text-binance-text-secondary">
                         Your latest account activity and earnings
-                      </CardDescription>
+                    </p>
                     </div>
                     <div className="flex space-x-2">
-                      <Button
+                    <button
                         onClick={() => setShowDepositModal(true)}
-                        className="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1 rounded-lg"
+                      className="btn-primary text-sm px-3 py-1 rounded-lg"
                       >
                         💰 Deposit
-                      </Button>
-                      <Button
+                    </button>
+                    <button
                         onClick={() => setShowWithdrawalModal(true)}
-                        className="bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1 rounded-lg"
+                      className="btn-secondary text-sm px-3 py-1 rounded-lg"
                       >
                         💸 Withdraw
-                      </Button>
-                    </div>
+                    </button>
                   </div>
-                </CardHeader>
-                <CardContent>
+                </div>
                   {transactionsLoading ? (
                     <div className="space-y-4">
                       {[...Array(5)].map((_, i) => (
                         <div key={i} className="animate-pulse">
-                          <div className="h-16 bg-slate-700/50 rounded-xl"></div>
+                        <div className="h-16 bg-gray-200 dark:bg-binance-dark-tertiary rounded-lg"></div>
                         </div>
                       ))}
                     </div>
                   ) : transactions?.data?.transactions?.length > 0 ? (
                     <div className="space-y-3">
                       {transactions.data.transactions.slice(0, 8).map((transaction) => (
-                        <div key={transaction.id} className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl border border-slate-600/30 hover:bg-slate-700/50 transition-all duration-200">
+                      <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg border border-gray-200 dark:border-binance-dark-border hover:bg-gray-100 dark:hover:bg-binance-dark-border transition-all duration-200">
                           <div className="flex items-center space-x-3">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${getTransactionColor(transaction.type)}`}>
                               {getTransactionIcon(transaction.type)}
                             </div>
                             <div>
-                              <div className="font-medium text-white">{transaction.description}</div>
-                              <div className="text-sm text-gray-400">{formatDate(transaction.createdAt)}</div>
-                            </div>
+                            <div className="font-medium text-gray-900 dark:text-binance-text-primary">{transaction.description}</div>
+                            <div className="text-sm text-gray-600 dark:text-binance-text-secondary">{formatDate(transaction.createdAt)}</div>
+                          </div>
                           </div>
                           <div className={`font-semibold text-lg ${
                             transaction.type === 'DEPOSIT' || transaction.type === 'VIP_EARNINGS' || transaction.type === 'REFERRAL_BONUS' 
-                              ? 'text-green-400' 
-                              : 'text-red-400'
+                            ? 'text-binance-green' 
+                            : 'text-binance-red'
                           }`}>
                             {transaction.type === 'DEPOSIT' || transaction.type === 'VIP_EARNINGS' || transaction.type === 'REFERRAL_BONUS' ? '+' : ''}{formatCurrency(transaction.amount)}
                           </div>
@@ -404,173 +384,148 @@ const Profile = () => {
                       ))}
                     </div>
                   ) : null}
-                </CardContent>
-              </Card>
+              </div>
             </div>
 
             {/* Recent Withdrawals */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-2xl blur-3xl"></div>
-              <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
+            <div className="bg-white dark:bg-binance-dark-secondary rounded-lg shadow-lg border border-gray-200 dark:border-binance-dark-border">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
                     <div>
-                      <CardTitle className="text-xl font-bold text-white">Recent Withdrawals</CardTitle>
-                      <CardDescription className="text-gray-300">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-binance-text-primary">Recent Withdrawals</h3>
+                    <p className="text-gray-600 dark:text-binance-text-secondary">
                         Your latest withdrawal requests and their status
-                      </CardDescription>
+                    </p>
                     </div>
-                    <Button
+                  <button
                       onClick={() => setShowWithdrawalHistory(true)}
-                      className="bg-orange-600 hover:bg-orange-700 text-white text-sm px-3 py-1 rounded-lg"
+                    className="btn-secondary text-sm px-3 py-1 rounded-lg"
                     >
                       💸 View All
-                    </Button>
+                  </button>
                   </div>
-                </CardHeader>
-                <CardContent>
                   <WithdrawalHistoryPreview />
-                </CardContent>
-              </Card>
+              </div>
             </div>
 
             {/* Account Statistics */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-2xl blur-3xl"></div>
-              <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold text-white">Account Statistics</CardTitle>
-                  <CardDescription className="text-gray-300">
+            <div className="bg-white dark:bg-binance-dark-secondary rounded-lg shadow-lg border border-gray-200 dark:border-binance-dark-border">
+              <div className="p-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-binance-text-primary mb-2">Account Statistics</h3>
+                <p className="text-gray-600 dark:text-binance-text-secondary mb-6">
                     Overview of your account activity and performance
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+                </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="text-center p-4 bg-slate-700/30 rounded-xl border border-slate-600/30">
-                      <div className="text-3xl font-bold text-white mb-2">
+                  <div className="text-center p-4 bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg border border-gray-200 dark:border-binance-dark-border">
+                    <div className="text-3xl font-bold text-gray-900 dark:text-binance-text-primary mb-2">
                         {walletLoading ? '...' : formatCurrency(walletStats?.data?.data?.balance || 0)}
-                      </div>
-                      <div className="text-sm text-gray-300">Current Balance</div>
                     </div>
-                    <div className="text-center p-4 bg-slate-700/30 rounded-xl border border-slate-600/30">
-                      <div className="text-3xl font-bold text-white mb-2">
-                        {formatDate(user?.createdAt || new Date())}
-                      </div>
-                      <div className="text-sm text-gray-300">Member Since</div>
-                    </div>
+                    <div className="text-sm text-gray-600 dark:text-binance-text-secondary">Current Balance</div>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="text-center p-4 bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg border border-gray-200 dark:border-binance-dark-border">
+                    <div className="text-3xl font-bold text-gray-900 dark:text-binance-text-primary mb-2">
+                        {formatDate(user?.createdAt || new Date())}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-binance-text-secondary">Member Since</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
             {/* User Profile */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl blur-3xl"></div>
-              <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold text-white">Profile Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+            <div className="bg-white dark:bg-binance-dark-secondary rounded-lg shadow-lg border border-gray-200 dark:border-binance-dark-border">
+              <div className="p-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-binance-text-primary mb-6">Profile Information</h3>
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
-                    <div className="p-3 bg-slate-700/30 rounded-lg text-white border border-slate-600/30">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-binance-text-secondary mb-2">Full Name</label>
+                    <div className="p-3 bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg text-gray-900 dark:text-binance-text-primary border border-gray-200 dark:border-binance-dark-border">
                       {user?.fullName || 'N/A'}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
-                    <div className="p-3 bg-slate-700/30 rounded-lg text-white border border-slate-600/30">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-binance-text-secondary mb-2">Email</label>
+                    <div className="p-3 bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg text-gray-900 dark:text-binance-text-primary border border-gray-200 dark:border-binance-dark-border">
                       {user?.email || 'N/A'}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Phone</label>
-                    <div className="p-3 bg-slate-700/30 rounded-lg text-white border border-slate-600/30">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-binance-text-secondary mb-2">Phone</label>
+                    <div className="p-3 bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg text-gray-900 dark:text-binance-text-primary border border-gray-200 dark:border-binance-dark-border">
                       {user?.phone || 'N/A'}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Referral Code</label>
-                    <div className="p-3 bg-slate-700/30 rounded-lg text-white font-mono border border-slate-600/30">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-binance-text-secondary mb-2">Referral Code</label>
+                    <div className="p-3 bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg text-gray-900 dark:text-binance-text-primary font-mono border border-gray-200 dark:border-binance-dark-border">
                       {user?.referralCode || 'N/A'}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Member Since</label>
-                    <div className="p-3 bg-slate-700/30 rounded-lg text-white border border-slate-600/30">
+                    <label className="block text-sm font-medium text-gray-600 dark:text-binance-text-secondary mb-2">Member Since</label>
+                    <div className="p-3 bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg text-gray-900 dark:text-binance-text-primary border border-gray-200 dark:border-binance-dark-border">
                       {formatDate(user?.createdAt || new Date())}
                     </div>
                   </div>
                   
                   {/* Change Password Button */}
                   <div className="pt-4">
-                    <Button
+                    <button
                       onClick={() => setShowChangePassword(true)}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-700 hover:from-blue-700 hover:to-purple-800 text-white rounded-xl"
+                      className="w-full btn-primary rounded-lg"
                     >
                       🔐 Change Password
-                    </Button>
+                    </button>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
 
 
 
             {/* Withdrawal History */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-2xl blur-3xl"></div>
-              <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold text-white">Withdrawal History</CardTitle>
-                  <CardDescription className="text-gray-300">
+            <div className="bg-white dark:bg-binance-dark-secondary rounded-lg shadow-lg border border-gray-200 dark:border-binance-dark-border">
+              <div className="p-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-binance-text-primary mb-2">Withdrawal History</h3>
+                <p className="text-gray-600 dark:text-binance-text-secondary mb-6">
                     View your withdrawal requests and status
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button
+                </p>
+                <button
                     onClick={() => setShowWithdrawalHistory(true)}
-                    className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-xl"
+                  className="w-full btn-secondary rounded-lg"
                   >
                     💸 View Withdrawals
-                  </Button>
-                </CardContent>
-              </Card>
+                </button>
+              </div>
             </div>
 
             {/* Admin Access */}
             {user?.isAdmin && (
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-pink-500/10 rounded-2xl blur-3xl"></div>
-                <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
-                  <CardContent className="pt-6">
-                    <Button
+              <div className="bg-white dark:bg-binance-dark-secondary rounded-lg shadow-lg border border-gray-200 dark:border-binance-dark-border">
+                <div className="p-6">
+                  <button
                       onClick={() => window.location.href = '/admin'}
-                      className="w-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white rounded-xl"
+                    className="w-full btn-primary rounded-lg"
                     >
                       🔐 Admin Panel
-                    </Button>
-                  </CardContent>
-                </Card>
+                  </button>
+                </div>
               </div>
             )}
 
             {/* Logout */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-gray-500/10 to-slate-500/10 rounded-2xl blur-3xl"></div>
-              <Card className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 border border-slate-700/50 shadow-2xl backdrop-blur-sm">
-                <CardContent className="pt-6">
-                  <Button
+            <div className="bg-white dark:bg-binance-dark-secondary rounded-lg shadow-lg border border-gray-200 dark:border-binance-dark-border">
+              <div className="p-6">
+                <button
                     onClick={handleLogout}
-                    className="w-full bg-gradient-to-r from-gray-600 to-slate-700 hover:from-gray-700 hover:to-slate-800 text-white rounded-xl"
+                  className="w-full btn-secondary rounded-lg"
                   >
                     🚪 Logout
-                  </Button>
-                </CardContent>
-              </Card>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -597,16 +552,16 @@ const Profile = () => {
 
       {showWithdrawalHistory && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="backdrop-blur-xl bg-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-white/20 shadow-2xl">
+          <div className="bg-white dark:bg-binance-dark-secondary rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden border border-gray-200 dark:border-binance-dark-border shadow-2xl">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-white">Withdrawal History</h3>
-                <Button
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-binance-text-primary">Withdrawal History</h3>
+                <button
                   onClick={() => setShowWithdrawalHistory(false)}
-                  className="bg-gray-500 hover:bg-gray-600 text-white"
+                  className="bg-gray-500 hover:bg-gray-600 text-white rounded-lg p-2"
                 >
                   ✕
-                </Button>
+                </button>
               </div>
               <div className="max-h-[70vh] overflow-y-auto">
                 <WithdrawalHistory />

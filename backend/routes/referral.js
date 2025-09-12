@@ -88,7 +88,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
 
     // Get referral link
     const referralLink = generateReferralLink(
-      process.env.FRONTEND_URL || 'https://www.tmb8080.online',
+      process.env.FRONTEND_URL || 'http://localhost:3000',
       req.user.referralCode
     );
 
@@ -109,8 +109,9 @@ router.get('/stats', authenticateToken, async (req, res) => {
         indirectReferralList: indirectReferrals,
         recentBonuses: recentBonuses,
         // VIP Commission rates (only triggered when users join VIP levels)
-        level1Rate: 5, // 5% for direct referrals
-        level2Rate: 3  // 3% for indirect referrals
+        level1Rate: 10, // 10% for direct referrals
+        level2Rate: 5,  // 5% for indirect referrals
+        level3Rate: 2   // 2% for third level referrals
       }
     });
 

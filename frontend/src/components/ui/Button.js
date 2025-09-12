@@ -13,17 +13,17 @@ const Button = React.forwardRef(({
 }, ref) => {
   const Comp = asChild ? 'span' : 'button';
 
-  const baseClasses = 'inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50';
+  const baseClasses = 'inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-binance-yellow focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50';
 
   const variants = {
-    default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-    destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-    outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-    secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-    ghost: 'hover:bg-accent hover:text-accent-foreground',
-    link: 'text-primary underline-offset-4 hover:underline',
-    success: 'bg-green-600 text-white hover:bg-green-700',
-    warning: 'bg-yellow-600 text-white hover:bg-yellow-700',
+    default: 'bg-binance-yellow text-binance-dark hover:bg-binance-yellow-dark font-semibold shadow-lg hover:shadow-xl',
+    destructive: 'bg-binance-red text-white hover:bg-red-600 font-semibold shadow-lg hover:shadow-xl',
+    outline: 'border border-binance-dark-border bg-binance-dark-secondary text-binance-text-primary hover:bg-binance-dark-tertiary font-medium',
+    secondary: 'bg-binance-dark-secondary text-binance-text-primary hover:bg-binance-dark-tertiary font-medium',
+    ghost: 'text-binance-text-primary hover:bg-binance-dark-tertiary hover:text-binance-text-primary',
+    link: 'text-binance-yellow underline-offset-4 hover:underline',
+    success: 'bg-binance-green text-white hover:bg-green-600 font-semibold shadow-lg hover:shadow-xl',
+    warning: 'bg-binance-yellow text-binance-dark hover:bg-binance-yellow-dark font-semibold shadow-lg hover:shadow-xl',
   };
 
   const sizes = {

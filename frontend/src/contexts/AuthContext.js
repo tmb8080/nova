@@ -145,8 +145,29 @@ export const AuthProvider = ({ children }) => {
         payload: { token, user }
       });
 
+      // Set login time for welcome banner
+      localStorage.setItem('lastLoginTime', Date.now().toString());
+
       const displayName = user.fullName || user.email || user.phone || 'User';
-      toast.success(`Welcome back, ${displayName}!`);
+      const currentTime = new Date().getHours();
+      let greeting = 'Welcome back';
+      
+      if (currentTime < 12) {
+        greeting = 'Good morning';
+      } else if (currentTime < 18) {
+        greeting = 'Good afternoon';
+      } else {
+        greeting = 'Good evening';
+      }
+      
+      toast.success(`${greeting}, ${displayName}! 🎉 You're successfully logged in.`, {
+        duration: 4000,
+        style: {
+          background: '#363636',
+          color: '#fff',
+          fontSize: '14px',
+        },
+      });
       return { success: true };
 
     } catch (error) {
@@ -183,7 +204,14 @@ export const AuthProvider = ({ children }) => {
       });
 
       const displayName = user.fullName || user.email || user.phone || 'User';
-      toast.success(`Welcome to Trinity Metro Bike, ${displayName}!`);
+      toast.success(`🎉 Welcome to NovaStaking, ${displayName}! Your account has been created successfully.`, {
+        duration: 5000,
+        style: {
+          background: '#363636',
+          color: '#fff',
+          fontSize: '14px',
+        },
+      });
       return { success: true };
 
     } catch (error) {

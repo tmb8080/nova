@@ -37,9 +37,9 @@ const processVipReferralBonus = async (userId, vipLevelId, vipAmount) => {
 
     const results = [];
 
-    // Process Level 1 (Direct) Referral - 5%
+    // Process Level 1 (Direct) Referral - 10%
     const level1ReferrerId = vipUser.referredBy;
-    const level1BonusRate = 5; // 5%
+    const level1BonusRate = 10; // 10%
     const level1BonusAmount = calculatePercentage(vipAmount, level1BonusRate);
 
     console.log(`Processing Level 1 bonus: ${level1BonusAmount} for referrer ${level1ReferrerId}`);
@@ -59,7 +59,7 @@ const processVipReferralBonus = async (userId, vipLevelId, vipAmount) => {
       results.push(level1Result);
     }
 
-    // Process Level 2 (Indirect) Referral - 3%
+    // Process Level 2 (Indirect) Referral - 5%
     if (level1ReferrerId) {
       const level1Referrer = await prisma.user.findUnique({
         where: { id: level1ReferrerId },
@@ -68,7 +68,7 @@ const processVipReferralBonus = async (userId, vipLevelId, vipAmount) => {
 
       if (level1Referrer && level1Referrer.referredBy) {
         const level2ReferrerId = level1Referrer.referredBy;
-        const level2BonusRate = 3; // 3%
+        const level2BonusRate = 5; // 5%
         const level2BonusAmount = calculatePercentage(vipAmount, level2BonusRate);
 
         console.log(`Processing Level 2 bonus: ${level2BonusAmount} for referrer ${level2ReferrerId}`);
@@ -86,6 +86,35 @@ const processVipReferralBonus = async (userId, vipLevelId, vipAmount) => {
 
         if (level2Result) {
           results.push(level2Result);
+        }
+
+        // Process Level 3 (Third Level) Referral - 2%
+        const level2Referrer = await prisma.user.findUnique({
+          where: { id: level2ReferrerId },
+          select: { referredBy: true }
+        });
+
+        if (level2Referrer && level2Referrer.referredBy) {
+          const level3ReferrerId = level2Referrer.referredBy;
+          const level3BonusRate = 2; // 2%
+          const level3BonusAmount = calculatePercentage(vipAmount, level3BonusRate);
+
+          console.log(`Processing Level 3 bonus: ${level3BonusAmount} for referrer ${level3ReferrerId}`);
+
+          const level3Result = await processReferralBonus(
+            level3ReferrerId,
+            userId,
+            vipAmount,
+            level3BonusAmount,
+            level3BonusRate,
+            3,
+            null,
+            vipLevelId
+          );
+
+          if (level3Result) {
+            results.push(level3Result);
+          }
         }
       }
     }

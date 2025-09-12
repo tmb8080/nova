@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
+import ThemeToggle from '../components/ui/ThemeToggle.js';
 import { referralAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -12,6 +14,7 @@ const Register = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { register: registerUser, isLoading } = useAuth();
+  const { isDarkMode } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [referralCode, setReferralCode] = useState('');
@@ -80,14 +83,23 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 px-4 py-8 pb-20 md:pb-0">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-binance-dark px-4 py-8 pb-20 md:pb-0">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Trinity Metro Bike</h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-2">Join the crypto growth revolution</p>
+          <div className="flex justify-center mb-4">
+            <img 
+              src={isDarkMode ? "/navalogowhite.png" : "/novalogo.png"} 
+              alt="NovaStaking Logo" 
+              className="h-24 w-auto"
+            />
+          </div>
+          <p className="text-gray-600 dark:text-binance-text-secondary mt-2">Join the crypto growth revolution</p>
+          <div className="flex justify-center mt-4">
+            <ThemeToggle size="sm" />
+          </div>
         </div>
 
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <Card className="bg-white dark:bg-binance-dark-secondary border-gray-200 dark:border-binance-dark-border shadow-xl">
           <CardHeader>
             <CardTitle className="text-gray-900 dark:text-white">Create Account</CardTitle>
             <CardDescription className="text-gray-600 dark:text-gray-300">
@@ -109,7 +121,7 @@ const Register = () => {
                     }
                   })}
                 />
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <p className="mt-1 text-xs text-accent-600 dark:text-accent-400">
                   You can skip this field if you prefer to remain anonymous
                 </p>
               </div>

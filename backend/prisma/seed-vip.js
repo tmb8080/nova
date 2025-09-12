@@ -3,16 +3,20 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const vipLevels = [
-  { name: 'Starter', amount: 30, dailyEarning: 2 },
-  { name: 'Bronze', amount: 180, dailyEarning: 10 },
-  { name: 'Silver', amount: 400, dailyEarning: 24 },
-  { name: 'Gold', amount: 1000, dailyEarning: 50 },
-  { name: 'Platinum', amount: 1500, dailyEarning: 65 },
-  { name: 'Diamond', amount: 2000, dailyEarning: 75 },
-  { name: 'Elite', amount: 5000, dailyEarning: 200 },
-  { name: 'Master', amount: 6000, dailyEarning: 250 },
-  { name: 'Legend', amount: 12000, dailyEarning: 500 },
-  { name: 'Supreme', amount: 25000, dailyEarning: 800 }
+  { name: 'Starter', amount: 10, dailyEarning: 1.00 },
+  { name: 'Bronze', amount: 50, dailyEarning: 5.00 },
+  { name: 'Silver', amount: 100, dailyEarning: 10.00 },
+  { name: 'Gold', amount: 150, dailyEarning: 16.50 },
+  { name: 'Platinum', amount: 250, dailyEarning: 27.50 },
+  { name: 'Diamond', amount: 300, dailyEarning: 33.00 },
+  { name: 'Elite', amount: 500, dailyEarning: 55.00 },
+  { name: 'Master', amount: 650, dailyEarning: 74.75 },
+  { name: 'Legend', amount: 900, dailyEarning: 108.00 },
+  { name: 'Supreme', amount: 1000, dailyEarning: 120.00 },
+  { name: 'Ultimate', amount: 1500, dailyEarning: 187.50 },
+  { name: 'Mega', amount: 10000, dailyEarning: 1250.00 },
+  { name: 'Giga', amount: 50000, dailyEarning: 6500.00 },
+  { name: 'Tera', amount: 200000, dailyEarning: 26000.00 }
 ];
 
 async function seedVipLevels() {

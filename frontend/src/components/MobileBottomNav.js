@@ -1,13 +1,16 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 
 const MobileBottomNav = () => {
   const location = useLocation();
-  const { user } = useAuth();
 
   const isActive = (path) => {
     return location.pathname === path;
+  };
+
+  const handleNavigation = () => {
+    // Scroll to top when navigating
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Admin navigation items
@@ -116,8 +119,8 @@ const MobileBottomNav = () => {
   return (
     <div className={`fixed bottom-0 left-0 right-0 z-50 md:hidden ${
       isAdminPanel 
-        ? 'bg-slate-800/90 backdrop-blur-sm border-t border-white/20' 
-        : 'bg-white border-t border-gray-200'
+        ? 'bg-binance-dark/95 backdrop-blur-md border-t border-binance-dark-border' 
+        : 'bg-white dark:bg-binance-dark border-t border-gray-200 dark:border-binance-dark-border shadow-lg'
     }`}>
       <div className="flex items-center justify-around px-2 py-2">
         {navItems.map((item) => {
@@ -130,29 +133,24 @@ const MobileBottomNav = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200 ${
+              onClick={handleNavigation}
+              className={`flex items-center justify-center p-3 rounded-lg transition-all duration-200 ${
                 isAdminPanel
                   ? isItemActive
-                    ? 'text-blue-400 bg-blue-500/20'
-                    : 'text-gray-300 hover:text-white hover:bg-white/10'
+                    ? 'text-binance-dark bg-binance-yellow'
+                    : 'text-binance-text-secondary hover:text-binance-text-primary hover:bg-binance-dark-tertiary'
                   : isItemActive
-                    ? 'text-blue-600 bg-blue-50'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    ? 'text-binance-dark bg-binance-yellow'
+                    : 'text-gray-500 dark:text-binance-text-secondary hover:text-gray-700 dark:hover:text-binance-text-primary hover:bg-gray-50 dark:hover:bg-binance-dark-tertiary'
               }`}
+              title={item.label}
             >
               <div className={isAdminPanel
-                ? isItemActive ? 'text-blue-400' : 'text-gray-300'
-                : isItemActive ? 'text-blue-600' : 'text-gray-500'
+                ? isItemActive ? 'text-accent-400' : 'text-gray-300'
+                : isItemActive ? 'text-accent-600' : 'text-gray-500 dark:text-gray-400'
               }>
                 {item.icon}
               </div>
-              <span className={`text-xs font-medium mt-1 ${
-                isAdminPanel
-                  ? isItemActive ? 'text-blue-400' : 'text-gray-300'
-                  : isItemActive ? 'text-blue-600' : 'text-gray-500'
-              }`}>
-                {item.label}
-              </span>
             </Link>
           );
         })}

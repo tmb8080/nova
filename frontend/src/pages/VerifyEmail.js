@@ -2,14 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
+import ThemeToggle from '../components/ui/ThemeToggle.js';
 import toast from 'react-hot-toast';
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
   const { user, verifyEmail, resendVerification, isLoading } = useAuth();
+  const { isDarkMode } = useTheme();
   const [countdown, setCountdown] = useState(0);
   const [isResending, setIsResending] = useState(false);
 
@@ -78,7 +81,7 @@ const VerifyEmail = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-binance-dark flex items-center justify-center">
         <Card className="max-w-md w-full mx-4">
           <CardContent className="text-center py-8">
             <p className="text-gray-600">Please log in to verify your email.</p>
@@ -95,14 +98,23 @@ const VerifyEmail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-white dark:bg-binance-dark flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Trinity Metro Bike</h1>
+          <div className="flex justify-center mb-4">
+            <img 
+              src={isDarkMode ? "/navalogowhite.png" : "/novalogo.png"} 
+              alt="NovaStaking Logo" 
+              className="h-24 w-auto"
+            />
+          </div>
           <p className="text-gray-600 mt-2">Verify your email address</p>
+          <div className="flex justify-center mt-4">
+            <ThemeToggle size="sm" />
+          </div>
         </div>
 
-        <Card>
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <CardHeader>
             <CardTitle className="text-center">Check Your Email</CardTitle>
             <CardDescription className="text-center">
@@ -189,6 +201,7 @@ const VerifyEmail = () => {
                 variant="ghost"
                 onClick={() => navigate('/profile')}
                 size="sm"
+                className="text-accent-600 hover:text-accent-700"
               >
                 Update Email Address
               </Button>

@@ -9,6 +9,8 @@ import VipDashboard from '../components/VipDashboard';
 import VipUpgradeProgress from '../components/VipUpgradeProgress';
 import UsdtDeposit from '../components/UsdtDeposit';
 import MemberList from '../components/MemberList';
+import WelcomeModal from '../components/ui/WelcomeModal';
+import WelcomeBanner from '../components/ui/WelcomeBanner';
 import { toast } from 'react-hot-toast';
 import { calculateNextVipUpgrade } from '../utils/vipCalculations';
 import {
@@ -31,6 +33,7 @@ const Dashboard = () => {
   const [previousBalance, setPreviousBalance] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   // Fetch wallet stats
   const { data: walletStats, isLoading: walletLoading } = useQuery({
@@ -196,6 +199,19 @@ const Dashboard = () => {
     };
   }, []);
 
+  // Show welcome modal on first visit
+  useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+    if (!hasSeenWelcome) {
+      setShowWelcomeModal(true);
+    }
+  }, []);
+
+  const handleCloseWelcomeModal = () => {
+    setShowWelcomeModal(false);
+    localStorage.setItem('hasSeenWelcome', 'true');
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -355,19 +371,26 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-20 md:pb-0 md:pt-16">
+    <>
+      <WelcomeBanner />
+      <WelcomeModal 
+        isOpen={showWelcomeModal} 
+        onClose={handleCloseWelcomeModal} 
+      />
+      <div className="min-h-screen bg-white dark:bg-binance-dark pb-20 md:pb-0 md:pt-16">
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Modern Dashboard Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full border border-blue-500/30 mb-6">
-            <div className="w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse"></div>
-            <span className="text-blue-300 text-sm font-medium">Investment Dashboard</span>
-          </div>
-          <div className="flex items-center justify-center space-x-4 mb-4">
-            <h1 className="text-3xl md:text-4xl font-bold text-white bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Investment Dashboard
-            </h1>
+        {/* Binance-style Dashboard Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-binance-text-primary mb-2">
+                Dashboard
+              </h1>
+              <p className="text-gray-600 dark:text-binance-text-secondary">
+                Monitor your portfolio performance and investment opportunities
+              </p>
+            </div>
             <button
               onClick={async () => {
                 setIsRefreshing(true);
@@ -380,17 +403,14 @@ const Dashboard = () => {
                 setIsRefreshing(false);
               }}
               disabled={isRefreshing}
-              className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2"
+              className="btn-primary flex items-center space-x-2"
             >
-              <svg className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
               <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
             </button>
           </div>
-          <p className="text-gray-300 text-base max-w-2xl mx-auto">
-            Monitor your portfolio performance and investment opportunities
-          </p>
         </div>
 
 
@@ -399,10 +419,10 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Video Section */}
           <div className="lg:col-span-2">
-            <div className="backdrop-blur-xl bg-white/10 rounded-2xl overflow-hidden shadow-2xl border border-white/20">
-              <div className="bg-gradient-to-r from-blue-600/80 to-purple-600/80 backdrop-blur-sm p-4">
-                <h3 className="text-white font-semibold flex items-center">
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <div className="binance-section">
+              <div className="binance-section-header">
+                <h3 className="binance-section-title flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-binance-yellow" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                   </svg>
                   Platform Introduction
@@ -468,10 +488,10 @@ const Dashboard = () => {
 
           {/* News Section */}
           <div className="lg:col-span-1">
-            <div className="backdrop-blur-xl bg-white/10 rounded-2xl shadow-2xl border border-white/20">
-              <div className="bg-gradient-to-r from-blue-600/80 to-purple-600/80 backdrop-blur-sm px-6 py-4">
-                <h3 className="text-white font-semibold flex items-center">
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <div className="binance-section">
+              <div className="binance-section-header">
+                <h3 className="binance-section-title flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-binance-yellow" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
                   </svg>
                   Latest News
@@ -480,28 +500,28 @@ const Dashboard = () => {
               <div className="p-6">
                 <div className="space-y-4">
                   <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-blue-500/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0 border border-blue-400/30">
-                      <svg className="w-6 h-6 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <div className="w-12 h-12 bg-binance-yellow/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0 border border-binance-yellow/30">
+                      <svg className="w-6 h-6 text-binance-yellow" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-white mb-1">New VIP Levels Available</h4>
-                      <p className="text-sm text-gray-300">We've added exciting new investment tiers with higher returns</p>
-                      <p className="text-xs text-gray-400 mt-1">2 hours ago</p>
+                      <h4 className="font-semibold text-gray-900 dark:text-binance-text-primary mb-1">New VIP Levels Available</h4>
+                      <p className="text-sm text-gray-600 dark:text-binance-text-secondary">We've added exciting new investment tiers with higher returns</p>
+                      <p className="text-xs text-gray-500 dark:text-binance-text-tertiary mt-1">2 hours ago</p>
                     </div>
                   </div>
                   
                   <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-green-500/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0 border border-green-400/30">
-                      <svg className="w-6 h-6 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <div className="w-12 h-12 bg-binance-green/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0 border border-binance-green/30">
+                      <svg className="w-6 h-6 text-binance-green" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-white mb-1">System Maintenance Complete</h4>
-                      <p className="text-sm text-gray-300">All systems are now running smoothly with improved performance</p>
-                      <p className="text-xs text-gray-400 mt-1">1 day ago</p>
+                      <h4 className="font-semibold text-gray-900 dark:text-binance-text-primary mb-1">System Maintenance Complete</h4>
+                      <p className="text-sm text-gray-600 dark:text-binance-text-secondary">All systems are now running smoothly with improved performance</p>
+                      <p className="text-xs text-gray-500 dark:text-binance-text-tertiary mt-1">1 day ago</p>
                     </div>
                   </div>
                 </div>
@@ -516,43 +536,43 @@ const Dashboard = () => {
         </div>
 
         {/* VIP Levels Section */}
-        <div className="backdrop-blur-xl bg-white/10 rounded-2xl overflow-hidden shadow-2xl border border-white/20 mb-8">
-          <div className="bg-gradient-to-r from-purple-600/80 via-blue-600/80 to-indigo-700/80 backdrop-blur-sm px-8 py-6">
+        <div className="binance-section mb-8">
+          <div className="binance-section-header">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-white flex items-center mb-2">
-                  <svg className="w-8 h-8 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-binance-text-primary flex items-center mb-2">
+                  <svg className="w-6 h-6 mr-3 text-binance-yellow" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
                   VIP Investment Levels
                 </h2>
-                <p className="text-purple-100">Choose your investment level to start earning daily income</p>
+                <p className="binance-section-subtitle">Choose your investment level to start earning daily income</p>
               </div>
               <div className="hidden lg:block">
-                <div className="text-right text-white">
-                  <div className="text-sm opacity-90">Current Members</div>
-                  <div className="text-2xl font-bold">1,247</div>
+                <div className="text-right text-gray-900 dark:text-binance-text-primary">
+                  <div className="text-sm text-gray-600 dark:text-binance-text-secondary">Current Members</div>
+                  <div className="text-xl font-bold text-binance-yellow">1,247</div>
                 </div>
               </div>
             </div>
           </div>
           
           {/* Current VIP Status Banner */}
-          <div className="bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-blue-500/20 backdrop-blur-sm border-b border-emerald-400/30 p-4">
+          <div className="bg-gray-50 dark:bg-binance-dark-tertiary border-b border-gray-200 dark:border-binance-dark-border p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center text-white font-bold text-lg mr-4 shadow-lg">
+                <div className="w-12 h-12 bg-gradient-to-br from-binance-green to-binance-yellow rounded-xl flex items-center justify-center text-binance-dark font-bold text-lg mr-4 shadow-lg">
                   {userVipStatus?.data?.data?.userVip ? userVipStatus.data.data.userVip.vipLevel.name.charAt(0) : 'V'}
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg text-white">
+                  <h3 className="font-bold text-lg text-gray-900 dark:text-binance-text-primary">
                     Current VIP Status
                   </h3>
-                  <p className="text-gray-300">
+                  <p className="text-gray-600 dark:text-binance-text-secondary">
                     {userVipStatus?.data?.data?.userVip ? userVipStatus.data.data.userVip.vipLevel.name : 'V0 - No VIP Joined'}
                   </p>
                                       {userVipStatus?.data?.data?.userVip && (
-                      <p className="text-xs text-emerald-400 font-medium mt-1">
+                      <p className="text-xs text-binance-green font-medium mt-1">
                         Member since {formatDate(userVipStatus.data.data.userVip.createdAt)}
                       </p>
                     )}
@@ -563,10 +583,10 @@ const Dashboard = () => {
             
             {/* Progress to Next Level */}
             {userVipStatus?.data?.data?.userVip && vipLevels?.data?.data && (
-              <div className="mt-4 pt-4 border-t border-emerald-200">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Progress to next level:</span>
-                  <span className="text-emerald-600 font-medium">
+                              <div className="mt-4 pt-4 border-t border-binance-green/30">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600 dark:text-binance-text-secondary">Progress to next level:</span>
+                    <span className="text-binance-green font-medium">
                     {(() => {
                       const upgradeInfo = calculateNextVipUpgrade(
                         vipLevels.data.data,
@@ -612,7 +632,7 @@ const Dashboard = () => {
             ) : vipError ? (
               <div className="text-center py-16">
                 <div className="text-4xl mb-4">❌</div>
-                <h3 className="text-lg font-semibold text-white mb-2">Error Loading VIP Levels</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Error Loading VIP Levels</h3>
                 <p className="text-gray-300 mb-4">{vipError.message || 'Failed to load VIP levels'}</p>
                 <button 
                   onClick={() => window.location.reload()}
@@ -624,14 +644,14 @@ const Dashboard = () => {
             ) : !vipLevels?.data?.data || !Array.isArray(vipLevels.data.data) || vipLevels.data.data.length === 0 ? (
               <div className="text-center py-16">
                 <div className="text-4xl mb-4">📋</div>
-                <h3 className="text-lg font-semibold text-white mb-2">No VIP Levels Available</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No VIP Levels Available</h3>
                 <p className="text-gray-300 mb-4">VIP levels data is empty or not available</p>
                 <div className="text-sm text-gray-400">
                   Debug info: vipLevels = {JSON.stringify(vipLevels, null, 2)}
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {vipLevels.data.data.slice(0, 6).map((level, index) => {
                   // Convert string amounts to numbers
                   const levelAmount = parseFloat(level.amount) || 0;
@@ -646,15 +666,15 @@ const Dashboard = () => {
                   return (
                     <div 
                       key={level.id} 
-                      className={`relative backdrop-blur-xl bg-white/10 rounded-lg p-2 md:p-4 border transition-all duration-300 hover:shadow-2xl ${
+                      className={`relative bg-white dark:bg-binance-dark-secondary rounded-lg p-4 border transition-all duration-200 hover:shadow-lg ${
                         isCurrentLevel 
-                          ? 'border-emerald-400 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 shadow-2xl ring-2 ring-emerald-400/30' 
-                          : 'border-white/20 hover:border-purple-400/50 hover:shadow-3xl cursor-pointer transform hover:-translate-y-1'
+                          ? 'border-binance-green bg-green-50 dark:bg-binance-green/10' 
+                          : 'border-gray-200 dark:border-binance-dark-border hover:border-binance-yellow/50'
                       }`}
                     >
                       {/* Current Level Badge */}
                       {isCurrentLevel && (
-                        <div className="absolute -top-2 -right-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg z-10">
+                        <div className="absolute -top-2 -right-2 bg-binance-green text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg z-10">
                           ✓ ACTIVE
                         </div>
                       )}
@@ -664,14 +684,14 @@ const Dashboard = () => {
                         {/* Left Side - Badge and Level Info */}
                         <div className="flex items-center space-x-2 md:space-x-3">
                           {/* VIP Badge */}
-                          <div className={`w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-gradient-to-br ${getVipLevelGradient(index)} flex items-center justify-center text-white font-bold text-sm md:text-lg shadow-lg`}>
-                            {getVipLevelIcon(index)}
+                          <div className="w-10 h-10 rounded-lg bg-binance-yellow flex items-center justify-center text-binance-dark font-bold text-sm shadow-sm">
+                            V{index + 1}
                           </div>
                           
                           {/* Level Information */}
                           <div>
-                            <div className="text-base md:text-xl font-bold text-white">V{index + 1}</div>
-                            <div className="text-red-400 font-semibold text-xs md:text-sm">{level.name}</div>
+                            <div className="text-lg font-bold text-gray-900 dark:text-binance-text-primary">{level.name}</div>
+                            <div className="text-sm text-gray-600 dark:text-binance-text-secondary">VIP Level {index + 1}</div>
                           </div>
                         </div>
                       
@@ -684,10 +704,10 @@ const Dashboard = () => {
                                 e.stopPropagation();
                                 handleJoinVip(level.id, level);
                               }}
-                              className={`px-2 py-1 md:px-4 md:py-2 rounded-lg font-semibold transition-all duration-300 text-xs md:text-sm ${
+                              className={`px-3 py-1.5 rounded-lg font-medium transition-all duration-200 text-sm ${
                                 canAfford 
-                                  ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-md hover:shadow-lg transform hover:scale-105' 
-                                  : 'bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-md hover:shadow-lg transform hover:scale-105'
+                                  ? 'btn-primary' 
+                                  : 'btn-secondary'
                               }`}
                             >
                               {canAfford ? 'Join' : 'Deposit'}
@@ -695,39 +715,39 @@ const Dashboard = () => {
                           )}
                       
                           {isCurrentLevel && (
-                            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-2 py-1 md:px-4 md:py-2 rounded-lg font-semibold text-xs md:text-sm shadow-md">
+                            <div className="bg-binance-green text-white px-3 py-1.5 rounded-lg font-medium text-sm">
                               ✓ Active
                             </div>
                           )}
                         </div>
                       </div>
 
-                      {/* Compact Stats Grid */}
-                      <div className="grid grid-cols-2 gap-1 md:gap-3">
-                        <div className="text-center bg-white/10 backdrop-blur-sm rounded-lg p-1.5 md:p-3 border border-white/20">
-                          <div className="text-xs text-gray-300 mb-1">Daily Tasks</div>
-                          <div className="text-sm md:text-lg font-bold text-white">1</div>
+                      {/* Stats Grid */}
+                      <div className="grid grid-cols-2 gap-3 mt-4">
+                        <div className="text-center bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg p-3 border border-gray-200 dark:border-binance-dark-border">
+                          <div className="text-xs text-gray-600 dark:text-binance-text-secondary mb-1">Daily Return</div>
+                          <div className="text-sm font-bold text-binance-green">{dailyReturn}%</div>
                         </div>
 
-                        <div className="text-center bg-white/10 backdrop-blur-sm rounded-lg p-1.5 md:p-3 border border-white/20">
-                          <div className="text-xs text-gray-300 mb-1">Investment</div>
-                          <div className="text-sm md:text-lg font-bold text-white">{formatCurrency(levelAmount)}</div>
+                        <div className="text-center bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg p-3 border border-gray-200 dark:border-binance-dark-border">
+                          <div className="text-xs text-gray-600 dark:text-binance-text-secondary mb-1">Investment</div>
+                          <div className="text-sm font-bold text-gray-900 dark:text-binance-text-primary">{formatCurrency(levelAmount)}</div>
                         </div>
                       </div>
                       
-                      {/* Compact Balance Info for Unaffordable Levels */}
+                      {/* Balance Info for Unaffordable Levels */}
                       {!isCurrentLevel && !canAfford && (
-                        <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-white/20 bg-blue-500/20 backdrop-blur-sm rounded-lg p-1.5 md:p-3">
+                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-binance-dark-border bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg p-3">
                           <div className="flex justify-between items-center text-xs">
                             <div>
-                              <div className="text-gray-300">Your Deposits</div>
-                              <div className="font-bold text-red-400">
+                              <div className="text-gray-600 dark:text-binance-text-secondary">Your Deposits</div>
+                              <div className="font-bold text-gray-900 dark:text-binance-text-primary">
                                 {formatCurrency(totalDeposits)}
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="text-gray-300">Amount Needed</div>
-                              <div className="font-bold text-white">
+                              <div className="text-gray-600 dark:text-binance-text-secondary">Amount Needed</div>
+                              <div className="font-bold text-binance-yellow">
                                 {formatCurrency(amountNeeded)}
                               </div>
                             </div>
@@ -744,17 +764,17 @@ const Dashboard = () => {
           
           {/* View More Button */}
           {vipLevels?.data?.data && vipLevels.data.data.length > 6 && (
-            <div className="text-center mt-8">
+            <div className="text-center mt-6">
               <Link 
                 to="/vip-selection"
-                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
+                className="btn-primary inline-flex items-center px-4 py-2"
               >
                 <span>View All VIP Levels</span>
-                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
               </Link>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-gray-600 dark:text-binance-text-secondary mt-2">
                 Showing 6 of {vipLevels.data.data.length} VIP levels
               </p>
             </div>
@@ -788,22 +808,22 @@ const Dashboard = () => {
 
         
                 {/* Task/Earning Session Section */}
-        <div className="backdrop-blur-xl bg-white/10 rounded-2xl overflow-hidden shadow-2xl border border-white/20 mb-8">
-          <div className="bg-gradient-to-r from-emerald-600/80 via-green-600/80 to-teal-700/80 backdrop-blur-sm px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+        <div className="binance-section mb-8">
+          <div className="binance-section-header px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <div className="flex-1">
-                <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center mb-2">
-                  <svg className="w-6 h-6 sm:w-8 sm:h-8 mr-2 sm:mr-3" fill="currentColor" viewBox="0 0 20 20">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-binance-text-primary flex items-center mb-2">
+                  <svg className="w-6 h-6 mr-3 text-binance-green" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                   Daily Earning Session
                 </h2>
-                <p className="text-emerald-100 text-sm sm:text-base">Monitor your active earning session and track real-time profits</p>
+                <p className="binance-section-subtitle">Monitor your active earning session and track real-time profits</p>
               </div>
               <div className="sm:hidden lg:block">
-                <div className="text-center sm:text-right text-white">
-                  <div className="text-xs sm:text-sm opacity-90">Session Status</div>
-                  <div className="text-lg sm:text-2xl font-bold">
+                <div className="text-center sm:text-right text-gray-900 dark:text-binance-text-primary">
+                  <div className="text-xs sm:text-sm text-gray-600 dark:text-binance-text-secondary">Session Status</div>
+                  <div className="text-lg sm:text-xl font-bold text-binance-green">
                     {earningStatus?.data?.data?.hasActiveSession ? 'Active' : 'Inactive'}
                   </div>
                 </div>
@@ -839,7 +859,7 @@ const Dashboard = () => {
                           <span className="text-2xl sm:text-3xl lg:text-4xl animate-bounce">🚴</span>
                         </div>
                         <div>
-                          <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-1 sm:mb-2">Earning Session Active</h3>
+                          <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">Earning Session Active</h3>
                           <p className="text-emerald-300 font-semibold text-sm sm:text-base lg:text-lg">
                             Current Earnings: {formatCurrency(earningStatus.data.data.currentEarnings)}
                           </p>
@@ -894,8 +914,8 @@ const Dashboard = () => {
                     <div className="absolute inset-0 w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 mx-auto rounded-full border-2 border-red-500/20 animate-ping" style={{animationDelay: '0.5s'}}></div>
                   </div>
                   
-                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-4 sm:mb-6">Ready to Start Earning</h3>
-                  <p className="text-gray-300 mb-8 sm:mb-12 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto leading-relaxed px-4">
+                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">Ready to Start Earning</h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-8 sm:mb-12 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto leading-relaxed px-4">
                     {earningStatus?.data?.data?.message || 'Click the button below to start your 24-hour earning cycle and begin accumulating profits automatically'}
                   </p>
                   
@@ -931,6 +951,7 @@ const Dashboard = () => {
           />
         )}
       </div>
+    </>
   );
 };
 

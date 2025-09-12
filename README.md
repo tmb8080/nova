@@ -5,24 +5,28 @@ A comprehensive crypto-powered referral and wallet growth platform built with Re
 ## 🚀 Features
 
 ### VIP System & Daily Earnings
-The platform features a comprehensive VIP system with 10 different levels, each offering unique daily earning rates:
+The platform features a comprehensive VIP system with 14 different levels, each offering unique daily earning rates:
 
 **VIP Levels & Daily Earnings:**
-- **Starter** - $30 investment, $2/day earnings
-- **Bronze** - $180 investment, $10/day earnings  
-- **Silver** - $400 investment, $24/day earnings
-- **Gold** - $1,000 investment, $50/day earnings
-- **Platinum** - $1,500 investment, $65/day earnings
-- **Diamond** - $2,000 investment, $75/day earnings
-- **Elite** - $5,000 investment, $200/day earnings
-- **Master** - $6,000 investment, $250/day earnings
-- **Legend** - $12,000 investment, $500/day earnings
-- **Supreme** - $25,000 investment, $800/day earnings
+- **Starter** - $10 investment, $1.00/day earnings (10%)
+- **Bronze** - $50 investment, $5.00/day earnings (10%)
+- **Silver** - $100 investment, $10.00/day earnings (10%)
+- **Gold** - $150 investment, $16.50/day earnings (11%)
+- **Platinum** - $250 investment, $27.50/day earnings (11%)
+- **Diamond** - $300 investment, $33.00/day earnings (11%)
+- **Elite** - $500 investment, $55.00/day earnings (11%)
+- **Master** - $650 investment, $74.75/day earnings (11.5%)
+- **Legend** - $900 investment, $108.00/day earnings (12%)
+- **Supreme** - $1,000 investment, $120.00/day earnings (12%)
+- **Ultimate** - $1,500 investment, $187.50/day earnings (12.5%)
+- **Mega** - $10,000 investment, $1,250.00/day earnings (12.5%)
+- **Giga** - $50,000 investment, $6,500.00/day earnings (13%)
+- **Tera** - $200,000 investment, $26,000.00/day earnings (13%)
 
 **Daily Task Earnings:**
 - Users can start daily 1-hour earning sessions
 - **Full daily amount is deposited immediately when task starts**
-- Earnings are based on VIP level daily rate (e.g., $2/day for Starter)
+- Earnings are based on VIP level daily rate (e.g., $1.00/day for Starter)
 - Each VIP level has a 24-hour cooldown between sessions
 
 ### Task & Reward System
@@ -140,7 +144,7 @@ The platform includes a comprehensive task system that rewards users for various
    # Server
    PORT=5000
    NODE_ENV="development"
-   FRONTEND_URL="https://www.tmb8080.online"
+   FRONTEND_URL="http://localhost:3000"
    
    # Coinbase Commerce
    COINBASE_COMMERCE_API_KEY="your-coinbase-api-key"
@@ -197,8 +201,8 @@ The platform includes a comprehensive task system that rewards users for various
    ```
 
 The application will be available at:
-- Frontend: https://www.tmb8080.online
-- Backend API: https://bambe.shop
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:5000
 
 ## 🔧 Configuration
 

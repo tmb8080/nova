@@ -157,10 +157,10 @@ const VipSelection = () => {
 
   if (vipLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-binance-dark flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto"></div>
-          <p className="mt-4 text-gray-300">Loading VIP levels...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-binance-yellow mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-binance-text-secondary">Loading VIP levels...</p>
         </div>
       </div>
     );
@@ -168,86 +168,85 @@ const VipSelection = () => {
 
   if (vipError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-binance-dark flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-4">❌</div>
-          <h3 className="text-lg font-semibold text-white mb-2">Error Loading VIP Levels</h3>
-          <p className="text-gray-300 mb-4">{vipError.message || 'Failed to load VIP levels'}</p>
-          <Button onClick={() => refetchVipLevels()}>Retry</Button>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-binance-text-primary mb-2">Error Loading VIP Levels</h3>
+          <p className="text-gray-600 dark:text-binance-text-secondary mb-4">{vipError.message || 'Failed to load VIP levels'}</p>
+          <button onClick={() => refetchVipLevels()} className="btn-primary">Retry</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-20 md:pb-0">
-      {/* Modern Header */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white dark:bg-binance-dark pb-20 md:pb-0">
+      {/* Binance-style Header */}
+      <div className="bg-white dark:bg-binance-dark-secondary border-b border-gray-200 dark:border-binance-dark-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 bg-binance-yellow rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-binance-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <h1 className="text-xl font-bold text-white">Trinity Metro</h1>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-binance-text-primary">NovaStaking</h1>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-sm text-gray-300">Live</span>
+              <div className="w-2 h-2 bg-binance-green rounded-full animate-pulse"></div>
+              <span className="text-sm text-gray-600 dark:text-binance-text-secondary">Live</span>
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Modern Header */}
+        {/* Binance-style Header */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full border border-blue-500/30 mb-6">
-            <div className="w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse"></div>
-            <span className="text-blue-300 text-sm font-medium">VIP Selection</span>
+          <div className="inline-flex items-center px-4 py-2 bg-gray-50 dark:bg-binance-dark-tertiary rounded-full border border-gray-200 dark:border-binance-dark-border mb-6">
+            <div className="w-2 h-2 bg-binance-yellow rounded-full mr-2 animate-pulse"></div>
+            <span className="text-gray-600 dark:text-binance-text-secondary text-sm font-medium">VIP Selection</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-binance-text-primary mb-4">
             Choose Your VIP Level
           </h1>
-          <p className="text-gray-300 text-base max-w-3xl mx-auto px-4 mb-6">
+          <p className="text-gray-600 dark:text-binance-text-secondary text-base max-w-3xl mx-auto px-4 mb-6">
             Join a VIP level to start earning daily income. Each level offers guaranteed daily returns on your investment.
           </p>
           
           {/* Bicycle Benefits Highlight */}
-          <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg border border-blue-500/30 p-4 max-w-2xl mx-auto">
+          <div className="bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg border border-gray-200 dark:border-binance-dark-border p-4 max-w-2xl mx-auto">
             <div className="flex items-center justify-center mb-2">
               <span className="text-3xl mr-3">🚲</span>
-              <h3 className="text-lg font-semibold text-blue-300">Exclusive Bicycle Included!</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-binance-text-primary">Exclusive Bicycle Included!</h3>
             </div>
-            <p className="text-sm text-blue-200 text-center">
+            <p className="text-sm text-gray-600 dark:text-binance-text-secondary text-center">
               Every VIP level comes with a premium bicycle model. Higher levels include more advanced features and luxury options.
             </p>
           </div>
-          <div className="mt-6 p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg inline-block border border-blue-500/30">
+          <div className="mt-6 p-4 bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg inline-block border border-gray-200 dark:border-binance-dark-border">
             <div className="flex items-center space-x-4">
               <div className="text-center">
-                <p className="text-blue-300 font-medium text-base">
+                <p className="text-gray-900 dark:text-binance-text-primary font-medium text-base">
                   Your Deposits: {walletLoading ? 'Loading...' : formatCurrency(walletStats?.data?.data?.totalDeposits || 0)}
                 </p>
-                <p className="text-blue-200 text-sm">
+                <p className="text-gray-600 dark:text-binance-text-secondary text-sm">
                   Total Balance: {walletLoading ? 'Loading...' : formatCurrency(walletStats?.data?.data?.balance || 0)}
                 </p>
-                <p className="text-yellow-300 text-xs mt-1">
+                <p className="text-binance-yellow text-xs mt-1">
                   ⚠️ Only deposits can be used for VIP upgrades
                 </p>
               </div>
-              <Button 
+              <button 
                 onClick={() => {
                   refetchWalletStats();
                   refetchVipLevels();
                 }}
-                className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded"
+                className="px-3 py-1 text-xs btn-primary"
               >
                 Refresh
-              </Button>
+              </button>
             </div>
           </div>
         </div>
@@ -305,19 +304,18 @@ const VipSelection = () => {
             return (
               <div 
                 key={vip.id} 
-                className={`relative overflow-hidden transition-all duration-300 backdrop-blur-xl bg-white/10 rounded-2xl border ${
+                className={`relative overflow-hidden transition-all duration-300 bg-white dark:bg-binance-dark-secondary rounded-lg border ${
                   currentVip && currentVip.vipLevel.id === vip.id 
-                    ? 'border-green-500/50 shadow-lg shadow-green-500/20 hover:scale-105 hover:shadow-2xl' 
+                    ? 'border-binance-green shadow-lg shadow-binance-green/20 hover:scale-105' 
                     : isLowerLevel 
-                      ? 'border-gray-500/30 opacity-60 cursor-not-allowed' 
-                      : 'border-white/20 hover:scale-105 hover:shadow-2xl'
+                      ? 'border-gray-300 dark:border-gray-600 opacity-60 cursor-not-allowed' 
+                      : 'border-gray-200 dark:border-binance-dark-border hover:scale-105 hover:shadow-lg'
                 }`}
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${getVipColor(vip.amount)} opacity-20`}></div>
                 <div className="relative p-4 md:p-6">
                   {/* Current VIP Level Badge */}
                   {currentVip && currentVip.vipLevel.id === vip.id && (
-                    <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-semibold z-10">
+                    <div className="absolute top-2 right-2 bg-binance-green text-white text-xs px-2 py-1 rounded-full font-semibold z-10">
                       Current VIP
                     </div>
                   )}
@@ -329,29 +327,29 @@ const VipSelection = () => {
                     </div>
                   )}
                   
-                  <div className="text-lg md:text-xl font-bold text-center text-white mb-4">
+                  <div className="text-lg md:text-xl font-bold text-center text-gray-900 dark:text-binance-text-primary mb-4">
                     {vip.name}
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl md:text-3xl font-bold text-white mb-2">
+                    <div className="text-2xl md:text-3xl font-bold text-binance-yellow mb-2">
                       {formatCurrency(vip.amount)}
                     </div>
-                    <div className="text-base md:text-lg font-semibold text-green-400">
+                    <div className="text-base md:text-lg font-semibold text-binance-green">
                       {formatCurrency(vip.dailyEarning)}/day
                     </div>
                     
                     {/* Bicycle Information */}
                     {vip.bicycleModel && (
-                      <div className="mt-3 p-3 bg-blue-500/20 backdrop-blur-sm rounded-lg border border-blue-400/30">
+                      <div className="mt-3 p-3 bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg border border-gray-200 dark:border-binance-dark-border">
                         <div className="flex items-center justify-center mb-2">
                           <span className="text-2xl mr-2">🚲</span>
-                          <span className="text-sm font-semibold text-blue-300">Included Bicycle</span>
+                          <span className="text-sm font-semibold text-gray-900 dark:text-binance-text-primary">Included Bicycle</span>
                         </div>
                         <div className="text-center">
-                          <div className="text-sm font-bold text-white mb-1">
+                          <div className="text-sm font-bold text-gray-900 dark:text-binance-text-primary mb-1">
                             {vip.bicycleModel}
                           </div>
-                          <div className="text-xs text-blue-200">
+                          <div className="text-xs text-gray-600 dark:text-binance-text-secondary">
                             {vip.bicycleColor}
                           </div>
                         </div>
@@ -362,21 +360,21 @@ const VipSelection = () => {
                 <div className="relative p-4 md:p-6">
                   <div className="space-y-2 md:space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs md:text-sm text-gray-300">Daily Return:</span>
-                      <span className="font-semibold text-green-400 text-sm md:text-base">{dailyReturn}%</span>
+                      <span className="text-xs md:text-sm text-gray-600 dark:text-binance-text-secondary">Daily Return:</span>
+                      <span className="font-semibold text-binance-green text-sm md:text-base">{dailyReturn}%</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs md:text-sm text-gray-300">Monthly Earning:</span>
-                      <span className="font-semibold text-white text-sm md:text-base">{formatCurrency(vip.dailyEarning * 30)}</span>
+                      <span className="text-xs md:text-sm text-gray-600 dark:text-binance-text-secondary">Monthly Earning:</span>
+                      <span className="font-semibold text-gray-900 dark:text-binance-text-primary text-sm md:text-base">{formatCurrency(vip.dailyEarning * 30)}</span>
                     </div>
                     <div className="pt-3 md:pt-4">
-                      <Button 
-                        className={`w-full text-sm md:text-base ${
+                      <button 
+                        className={`w-full text-sm md:text-base px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
                           isLowerLevel
-                            ? 'bg-gray-500 cursor-not-allowed opacity-50'
+                            ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-50'
                             : canAfford 
-                              ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-md hover:shadow-lg transform hover:scale-105' 
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-md hover:shadow-lg transform hover:scale-105'
+                              ? 'btn-primary' 
+                              : 'btn-secondary'
                         }`}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -392,34 +390,34 @@ const VipSelection = () => {
                             ? (canAfford ? 'Upgrade VIP' : 'Deposit & Upgrade')
                             : (canAfford ? 'Join VIP' : 'Deposit & Join')
                         }
-                      </Button>
+                      </button>
                     </div>
                     
                     {/* Upgrade Info */}
                     {isUpgrade && !isLowerLevel && (
-                      <div className="mt-3 pt-3 border-t border-white/20 bg-green-500/20 backdrop-blur-sm rounded-lg p-2 md:p-3">
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-binance-dark-border bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg p-2 md:p-3">
                         <div className="text-center mb-2">
-                          <div className="text-xs text-green-300 font-semibold">VIP Upgrade</div>
-                          <div className="text-xs text-green-200">
+                          <div className="text-xs text-gray-600 dark:text-binance-text-secondary font-semibold">VIP Upgrade</div>
+                          <div className="text-xs text-gray-600 dark:text-binance-text-secondary">
                             From {currentVip.vipLevel.name} to {vip.name}
                           </div>
                         </div>
                         <div className="flex justify-between items-center text-xs">
                           <div>
-                            <div className="text-gray-300">Your Deposits</div>
-                            <div className="font-bold text-green-400">
+                            <div className="text-gray-600 dark:text-binance-text-secondary">Your Deposits</div>
+                            <div className="font-bold text-binance-green">
                               {formatCurrency(totalDeposits)}
                             </div>
                           </div>
                           <div className="text-center">
-                            <div className="text-gray-300">VIP Level Cost</div>
-                            <div className="font-bold text-white">
+                            <div className="text-gray-600 dark:text-binance-text-secondary">VIP Level Cost</div>
+                            <div className="font-bold text-gray-900 dark:text-binance-text-primary">
                               {formatCurrency(fullVipCost)}
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-gray-300">Amount Needed</div>
-                            <div className="font-bold text-green-400">
+                            <div className="text-gray-600 dark:text-binance-text-secondary">Amount Needed</div>
+                            <div className="font-bold text-binance-yellow">
                               {formatCurrency(amountNeeded)}
                             </div>
                           </div>
@@ -429,10 +427,10 @@ const VipSelection = () => {
                     
                     {/* Lower Level Message */}
                     {isLowerLevel && (
-                      <div className="mt-3 pt-3 border-t border-white/20 bg-gray-500/20 backdrop-blur-sm rounded-lg p-2 md:p-3">
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-binance-dark-border bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg p-2 md:p-3">
                         <div className="text-center">
-                          <div className="text-xs text-gray-300 font-semibold mb-1">Cannot Downgrade</div>
-                          <div className="text-xs text-gray-400">
+                          <div className="text-xs text-gray-600 dark:text-binance-text-secondary font-semibold mb-1">Cannot Downgrade</div>
+                          <div className="text-xs text-gray-500 dark:text-binance-text-tertiary">
                             You cannot downgrade from {currentVip.vipLevel.name} to {vip.name}
                           </div>
                         </div>
@@ -441,17 +439,17 @@ const VipSelection = () => {
                     
                     {/* Balance Info for Unaffordable Levels */}
                     {!canAfford && !isLowerLevel && (
-                      <div className="mt-3 pt-3 border-t border-white/20 bg-blue-500/20 backdrop-blur-sm rounded-lg p-2 md:p-3">
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-binance-dark-border bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg p-2 md:p-3">
                         <div className="flex justify-between items-center text-xs">
                           <div>
-                            <div className="text-gray-300">Your Deposits</div>
-                            <div className="font-bold text-red-400">
+                            <div className="text-gray-600 dark:text-binance-text-secondary">Your Deposits</div>
+                            <div className="font-bold text-gray-900 dark:text-binance-text-primary">
                               {formatCurrency(totalDeposits)}
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-gray-300">Amount Needed</div>
-                            <div className="font-bold text-white">
+                            <div className="text-gray-600 dark:text-binance-text-secondary">Amount Needed</div>
+                            <div className="font-bold text-binance-yellow">
                               {formatCurrency(amountNeeded)}
                             </div>
                           </div>
@@ -465,12 +463,12 @@ const VipSelection = () => {
           }) : (
             <div className="col-span-full text-center py-8 md:py-12">
               <div className="text-4xl md:text-6xl mb-3 md:mb-4">💎</div>
-              <h3 className="text-lg md:text-xl font-semibold text-white mb-2">No VIP Levels Available</h3>
-              <p className="text-gray-300 text-sm md:text-base">VIP levels are currently being configured.</p>
+              <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-binance-text-primary mb-2">No VIP Levels Available</h3>
+              <p className="text-gray-600 dark:text-binance-text-secondary text-sm md:text-base">VIP levels are currently being configured.</p>
               <div className="mt-4">
-                <Button onClick={() => refetchVipLevels()} className="bg-blue-600 hover:bg-blue-700 text-white">
+                <button onClick={() => refetchVipLevels()} className="btn-primary">
                   Refresh VIP Levels
-                </Button>
+                </button>
               </div>
             </div>
           )}
@@ -479,23 +477,23 @@ const VipSelection = () => {
         {/* Bicycle Comparison Section */}
         <div className="mt-12 mb-8">
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-white mb-2">🚲 Bicycle Progression</h2>
-            <p className="text-gray-300">See how bicycle quality improves with VIP levels</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-binance-text-primary mb-2">🚲 Bicycle Progression</h2>
+            <p className="text-gray-600 dark:text-binance-text-secondary">See how bicycle quality improves with VIP levels</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl mx-auto">
             {vipLevels?.data?.data?.slice(0, 6).map((vip, index) => (
-              <div key={vip.id} className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+              <div key={vip.id} className="bg-white dark:bg-binance-dark-secondary rounded-lg p-4 border border-gray-200 dark:border-binance-dark-border">
                 <div className="flex items-center mb-3">
                   <span className="text-2xl mr-2">🚲</span>
                   <div>
-                    <div className="font-semibold text-white">{vip.name}</div>
-                    <div className="text-sm text-blue-300">{vip.bicycleModel}</div>
+                    <div className="font-semibold text-gray-900 dark:text-binance-text-primary">{vip.name}</div>
+                    <div className="text-sm text-binance-yellow">{vip.bicycleModel}</div>
                   </div>
                 </div>
-                <div className="text-xs text-gray-300 space-y-1">
-                  <div><span className="text-blue-300">Color:</span> {vip.bicycleColor}</div>
-                  <div className="text-xs text-gray-400 line-clamp-2">{vip.bicycleFeatures}</div>
+                <div className="text-xs text-gray-600 dark:text-binance-text-secondary space-y-1">
+                  <div><span className="text-binance-yellow">Color:</span> {vip.bicycleColor}</div>
+                  <div className="text-xs text-gray-500 dark:text-binance-text-tertiary line-clamp-2">{vip.bicycleFeatures}</div>
                 </div>
               </div>
             ))}
@@ -504,45 +502,42 @@ const VipSelection = () => {
 
         {/* Skip VIP Option */}
         <div className="text-center space-y-4">
-          <Button 
-            variant="outline" 
+          <button 
             onClick={() => navigate('/dashboard')}
-            className="px-6 md:px-8 py-2 md:py-3 text-sm md:text-base"
+            className="btn-secondary px-6 md:px-8 py-2 md:py-3 text-sm md:text-base"
           >
             Skip for Now
-          </Button>
-          
-
+          </button>
         </div>
       </div>
 
       {/* Confirmation Modal */}
       {selectedVip && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-4 md:p-6 max-w-md w-full">
-            <h3 className="text-lg md:text-xl font-bold mb-3 md:mb-4">Confirm VIP Purchase</h3>
+          <div className="bg-white dark:bg-binance-dark-secondary rounded-lg p-4 md:p-6 max-w-md w-full border border-gray-200 dark:border-binance-dark-border">
+            <h3 className="text-lg md:text-xl font-bold mb-3 md:mb-4 text-gray-900 dark:text-binance-text-primary">Confirm VIP Purchase</h3>
             <div className="space-y-2 md:space-y-3 mb-4 md:mb-6">
               <div className="flex justify-between text-sm md:text-base">
-                <span>VIP Level:</span>
-                <span className="font-semibold">{selectedVip.name}</span>
+                <span className="text-gray-600 dark:text-binance-text-secondary">VIP Level:</span>
+                <span className="font-semibold text-gray-900 dark:text-binance-text-primary">{selectedVip.name}</span>
               </div>
               
               {selectedVip.isUpgrade && (
                 <>
-                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                    <div className="text-sm font-semibold text-green-800 mb-2">VIP Upgrade</div>
+                  <div className="bg-gray-50 dark:bg-binance-dark-tertiary p-3 rounded-lg border border-gray-200 dark:border-binance-dark-border">
+                    <div className="text-sm font-semibold text-gray-900 dark:text-binance-text-primary mb-2">VIP Upgrade</div>
                     <div className="space-y-1 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Current VIP:</span>
-                        <span className="font-semibold text-green-700">{formatCurrency(selectedVip.currentVipAmount)}</span>
+                        <span className="text-gray-600 dark:text-binance-text-secondary">Current VIP:</span>
+                        <span className="font-semibold text-binance-green">{formatCurrency(selectedVip.currentVipAmount)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Upgrade Cost:</span>
-                        <span className="font-semibold text-green-700">{formatCurrency(selectedVip.paymentAmount)}</span>
+                        <span className="text-gray-600 dark:text-binance-text-secondary">Upgrade Cost:</span>
+                        <span className="font-semibold text-binance-green">{formatCurrency(selectedVip.paymentAmount)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">New Total:</span>
-                        <span className="font-semibold text-green-700">{formatCurrency(selectedVip.amount)}</span>
+                        <span className="text-gray-600 dark:text-binance-text-secondary">New Total:</span>
+                        <span className="font-semibold text-binance-green">{formatCurrency(selectedVip.amount)}</span>
                       </div>
                     </div>
                   </div>
@@ -550,34 +545,34 @@ const VipSelection = () => {
               )}
               
               <div className="flex justify-between text-sm md:text-base">
-                <span>{selectedVip.isUpgrade ? 'Upgrade Cost:' : 'Cost:'}</span>
-                <span className="font-semibold">{formatCurrency(selectedVip.isUpgrade ? selectedVip.paymentAmount : selectedVip.amount)}</span>
+                <span className="text-gray-600 dark:text-binance-text-secondary">{selectedVip.isUpgrade ? 'Upgrade Cost:' : 'Cost:'}</span>
+                <span className="font-semibold text-gray-900 dark:text-binance-text-primary">{formatCurrency(selectedVip.isUpgrade ? selectedVip.paymentAmount : selectedVip.amount)}</span>
               </div>
               <div className="flex justify-between text-sm md:text-base">
-                <span>Daily Earning:</span>
-                <span className="font-semibold text-green-600">{formatCurrency(selectedVip.dailyEarning)}</span>
+                <span className="text-gray-600 dark:text-binance-text-secondary">Daily Earning:</span>
+                <span className="font-semibold text-binance-green">{formatCurrency(selectedVip.dailyEarning)}</span>
               </div>
               
               {/* Bicycle Information */}
               {selectedVip.bicycleModel && (
                 <>
-                  <div className="border-t pt-3 mt-3">
+                  <div className="border-t border-gray-200 dark:border-binance-dark-border pt-3 mt-3">
                     <div className="flex items-center mb-3">
                       <span className="text-2xl mr-2">🚲</span>
-                      <span className="font-semibold text-blue-600">Included Bicycle</span>
+                      <span className="font-semibold text-gray-900 dark:text-binance-text-primary">Included Bicycle</span>
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span>Model:</span>
-                        <span className="font-semibold text-blue-600">{selectedVip.bicycleModel}</span>
+                        <span className="text-gray-600 dark:text-binance-text-secondary">Model:</span>
+                        <span className="font-semibold text-binance-yellow">{selectedVip.bicycleModel}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span>Color:</span>
-                        <span className="font-semibold">{selectedVip.bicycleColor}</span>
+                        <span className="text-gray-600 dark:text-binance-text-secondary">Color:</span>
+                        <span className="font-semibold text-gray-900 dark:text-binance-text-primary">{selectedVip.bicycleColor}</span>
                       </div>
-                      <div className="bg-blue-50 p-3 rounded-lg">
-                        <div className="text-xs text-gray-600 mb-1">Features:</div>
-                        <div className="text-sm text-blue-800">{selectedVip.bicycleFeatures}</div>
+                      <div className="bg-gray-50 dark:bg-binance-dark-tertiary p-3 rounded-lg border border-gray-200 dark:border-binance-dark-border">
+                        <div className="text-xs text-gray-600 dark:text-binance-text-secondary mb-1">Features:</div>
+                        <div className="text-sm text-gray-900 dark:text-binance-text-primary">{selectedVip.bicycleFeatures}</div>
                       </div>
                     </div>
                   </div>
@@ -585,27 +580,26 @@ const VipSelection = () => {
               )}
               
               <div className="flex justify-between text-sm md:text-base">
-                <span>Your Balance After:</span>
-                <span className="font-semibold">
+                <span className="text-gray-600 dark:text-binance-text-secondary">Your Balance After:</span>
+                <span className="font-semibold text-gray-900 dark:text-binance-text-primary">
                   {formatCurrency((walletStats?.data?.data?.balance || 0) - (selectedVip.isUpgrade ? selectedVip.paymentAmount : selectedVip.amount))}
                 </span>
               </div>
             </div>
             <div className="flex space-x-2 md:space-x-3">
-              <Button 
-                variant="outline" 
+              <button 
                 onClick={() => setSelectedVip(null)}
-                className="flex-1 text-sm md:text-base"
+                className="flex-1 text-sm md:text-base btn-secondary"
               >
                 Cancel
-              </Button>
-              <Button 
+              </button>
+              <button 
                 onClick={confirmJoinVip}
                 disabled={joinVipMutation.isLoading}
-                className="flex-1 text-sm md:text-base"
+                className="flex-1 text-sm md:text-base btn-primary"
               >
                 {joinVipMutation.isLoading ? 'Processing...' : (selectedVip.isUpgrade ? 'Confirm Upgrade' : 'Confirm Purchase')}
-              </Button>
+              </button>
             </div>
           </div>
         </div>

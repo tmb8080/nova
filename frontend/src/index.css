@@ -14,28 +14,235 @@
       sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    @apply bg-white dark:bg-binance-dark text-gray-900 dark:text-binance-text-primary transition-colors duration-200;
   }
 
   code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
       monospace;
   }
+
+  /* Dark mode transitions */
+  * {
+    @apply transition-colors duration-200;
+  }
+
+  /* Binance-style scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-binance-dark-secondary;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-binance-dark-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-binance-yellow;
+  }
 }
 
 @layer components {
+  /* Binance-style buttons */
   .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors;
+    @apply bg-binance-yellow hover:bg-binance-yellow-dark text-binance-dark font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl;
   }
   
   .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md transition-colors;
+    @apply bg-binance-dark-secondary hover:bg-binance-dark-tertiary text-binance-text-primary font-medium py-3 px-6 rounded-lg border border-binance-dark-border transition-all duration-200;
+  }
+
+  .btn-success {
+    @apply bg-binance-green hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200;
+  }
+
+  .btn-danger {
+    @apply bg-binance-red hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200;
   }
   
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+    @apply w-full px-4 py-3 border border-gray-300 dark:border-binance-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-binance-yellow focus:border-binance-yellow bg-white dark:bg-binance-dark-secondary text-gray-900 dark:text-binance-text-primary transition-all duration-200;
+  }
+
+  .binance-input {
+    @apply w-full px-4 py-3 border border-binance-dark-border rounded-lg bg-binance-dark-secondary text-binance-text-primary placeholder-binance-text-tertiary focus:outline-none focus:ring-2 focus:ring-binance-yellow focus:border-binance-yellow transition-all duration-200;
   }
   
+  /* Binance-style cards */
   .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200;
+    @apply bg-white dark:bg-binance-dark-secondary rounded-xl shadow-lg border border-gray-200 dark:border-binance-dark-border transition-all duration-200;
+  }
+
+  .binance-card {
+    @apply bg-binance-dark-secondary border-binance-dark-border text-binance-text-primary rounded-xl shadow-lg;
+  }
+
+  .binance-card-header {
+    @apply bg-binance-dark-tertiary border-b border-binance-dark-border p-6 rounded-t-xl;
+  }
+
+  .binance-card-content {
+    @apply p-6;
+  }
+
+  /* Binance-style form elements */
+  .form-input {
+    @apply bg-white dark:bg-binance-dark-secondary border-gray-300 dark:border-binance-dark-border text-gray-900 dark:text-binance-text-primary placeholder-gray-500 dark:placeholder-binance-text-tertiary;
+  }
+
+  .form-label {
+    @apply text-gray-700 dark:text-binance-text-primary font-medium;
+  }
+
+  .binance-form-group {
+    @apply space-y-2;
+  }
+
+  .binance-form-label {
+    @apply text-sm font-medium text-gray-700 dark:text-binance-text-primary;
+  }
+
+  /* Binance-style content sections */
+  .binance-section {
+    @apply bg-white dark:bg-binance-dark-secondary border border-gray-200 dark:border-binance-dark-border rounded-xl p-6 shadow-lg;
+  }
+
+  .binance-section-header {
+    @apply border-b border-gray-200 dark:border-binance-dark-border pb-4 mb-6;
+  }
+
+  .binance-section-title {
+    @apply text-lg font-semibold text-gray-900 dark:text-binance-text-primary;
+  }
+
+  .binance-section-subtitle {
+    @apply text-sm text-gray-600 dark:text-binance-text-secondary mt-1;
+  }
+
+  /* Binance-style stats cards */
+  .binance-stat-card {
+    @apply bg-white dark:bg-binance-dark-secondary border border-gray-200 dark:border-binance-dark-border rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200;
+  }
+
+  .binance-stat-value {
+    @apply text-2xl font-bold text-gray-900 dark:text-binance-text-primary;
+  }
+
+  .binance-stat-label {
+    @apply text-sm text-gray-600 dark:text-binance-text-secondary mt-1;
+  }
+
+  .binance-stat-change {
+    @apply text-sm font-medium;
+  }
+
+  .binance-stat-change.positive {
+    @apply text-binance-green;
+  }
+
+  .binance-stat-change.negative {
+    @apply text-binance-red;
+  }
+
+  /* Binance-style tables */
+  .binance-table {
+    @apply w-full bg-binance-dark-secondary border border-binance-dark-border rounded-xl overflow-hidden;
+  }
+
+  .binance-table-header {
+    @apply bg-binance-dark-tertiary border-b border-binance-dark-border;
+  }
+
+  .binance-table-header th {
+    @apply px-6 py-4 text-left text-sm font-medium text-binance-text-primary;
+  }
+
+  .binance-table-body tr {
+    @apply border-b border-binance-dark-border hover:bg-binance-dark-tertiary transition-colors duration-200;
+  }
+
+  .binance-table-body td {
+    @apply px-6 py-4 text-sm text-binance-text-primary;
+  }
+
+  /* Binance-style lists */
+  .binance-list {
+    @apply space-y-2;
+  }
+
+  .binance-list-item {
+    @apply bg-white dark:bg-binance-dark-secondary border border-gray-200 dark:border-binance-dark-border rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-binance-dark-tertiary transition-colors duration-200;
+  }
+
+  /* Binance-style badges */
+  .binance-badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .binance-badge.success {
+    @apply bg-binance-green/20 text-binance-green border border-binance-green/30;
+  }
+
+  .binance-badge.warning {
+    @apply bg-binance-yellow/20 text-binance-yellow border border-binance-yellow/30;
+  }
+
+  .binance-badge.error {
+    @apply bg-binance-red/20 text-binance-red border border-binance-red/30;
+  }
+
+  .binance-badge.info {
+    @apply bg-blue-500/20 text-blue-400 border border-blue-500/30;
+  }
+
+  /* Button variants */
+  .btn-outline {
+    @apply border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700;
+  }
+
+  .btn-ghost {
+    @apply text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800;
+  }
+
+  /* Modal and overlay */
+  .modal-overlay {
+    @apply bg-black/50 dark:bg-black/70;
+  }
+
+  .modal-content {
+    @apply bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700;
+  }
+
+  /* Table styles */
+  .table-header {
+    @apply bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300;
+  }
+
+  .table-row {
+    @apply border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800;
+  }
+
+  /* Badge styles */
+  .badge {
+    @apply px-2 py-1 text-xs font-medium rounded-full;
+  }
+
+  .badge-success {
+    @apply bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300;
+  }
+
+  .badge-warning {
+    @apply bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300;
+  }
+
+  .badge-error {
+    @apply bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300;
+  }
+
+  .badge-info {
+    @apply bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300;
   }
 }

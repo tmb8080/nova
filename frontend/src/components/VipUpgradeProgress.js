@@ -13,58 +13,60 @@ const VipUpgradeProgress = ({ vipLevels, currentVip, totalDeposits, onUpgradeCli
 
   if (!upgradeInfo.hasNextLevel) {
     return (
-      <Card className="backdrop-blur-xl bg-white/10 border border-green-500/30">
-        <CardHeader className="text-center">
-          <CardTitle className="text-green-400 flex items-center justify-center gap-2">
+      <div className="bg-white dark:bg-binance-dark-secondary rounded-lg p-6 border border-gray-200 dark:border-binance-dark-border">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-binance-green rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">🏆</span>
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-binance-text-primary mb-2">
             Maximum VIP Level Achieved!
-          </CardTitle>
-          <CardDescription className="text-green-200">
+          </h3>
+          <p className="text-gray-600 dark:text-binance-text-secondary mb-4">
             Congratulations! You have reached the highest VIP level available.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-center">
-          <div className="bg-green-500/20 rounded-lg p-4">
-            <div className="text-3xl font-bold text-green-400 mb-2">
+          </p>
+          <div className="bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg p-4">
+            <div className="text-2xl font-bold text-binance-green mb-2">
               {currentVip?.vipLevel?.name || 'VIP'}
             </div>
-            <div className="text-green-200">
+            <div className="text-gray-600 dark:text-binance-text-secondary">
               You're earning maximum daily returns!
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   const { nextLevel, upgradeCost, fullVipCost, amountNeededForFullVip, canAfford, missingAmount, progressPercentage } = upgradeInfo;
 
   return (
-    <Card className="backdrop-blur-xl bg-white/10 border border-blue-500/30">
-      <CardHeader>
-        <CardTitle className="text-blue-400 flex items-center gap-2">
-          <span className="text-xl">🚀</span>
+    <div className="bg-white dark:bg-binance-dark-secondary rounded-lg p-6 border border-gray-200 dark:border-binance-dark-border">
+      <div className="mb-6">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-binance-text-primary flex items-center gap-2 mb-2">
+          <div className="w-8 h-8 bg-binance-yellow rounded-lg flex items-center justify-center">
+            <span className="text-sm">🚀</span>
+          </div>
           Next VIP Level
-        </CardTitle>
-        <CardDescription className="text-blue-200">
+        </h3>
+        <p className="text-gray-600 dark:text-binance-text-secondary">
           Upgrade to {nextLevel.name} to increase your daily earnings
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </p>
+      </div>
+      <div className="space-y-4">
         {/* Next Level Info */}
-        <div className={`bg-gradient-to-r ${getVipColor(nextLevel.amount)} bg-opacity-20 rounded-lg p-4 border border-blue-400/30`}>
+        <div className="bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg p-4 border border-gray-200 dark:border-binance-dark-border">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-lg font-bold text-white">{nextLevel.name}</div>
-            <div className="text-2xl font-bold text-white">{formatCurrency(nextLevel.amount)}</div>
+            <div className="text-lg font-bold text-gray-900 dark:text-binance-text-primary">{nextLevel.name}</div>
+            <div className="text-xl font-bold text-binance-yellow">{formatCurrency(nextLevel.amount)}</div>
           </div>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <div className="text-gray-300">Daily Earning</div>
-              <div className="font-bold text-green-400">{formatCurrency(nextLevel.dailyEarning)}</div>
+              <div className="text-gray-600 dark:text-binance-text-secondary">Daily Earning</div>
+              <div className="font-bold text-binance-green">{formatCurrency(nextLevel.dailyEarning)}</div>
             </div>
             <div>
-              <div className="text-gray-300">Monthly Earning</div>
-              <div className="font-bold text-green-400">{formatCurrency(nextLevel.dailyEarning * 30)}</div>
+              <div className="text-gray-600 dark:text-binance-text-secondary">Monthly Earning</div>
+              <div className="font-bold text-binance-green">{formatCurrency(nextLevel.dailyEarning * 30)}</div>
             </div>
           </div>
         </div>
@@ -72,15 +74,15 @@ const VipUpgradeProgress = ({ vipLevels, currentVip, totalDeposits, onUpgradeCli
         {/* Upgrade Progress */}
         <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-300">Upgrade Progress</span>
-            <span className="text-sm font-semibold text-white">{progressPercentage.toFixed(1)}%</span>
+            <span className="text-sm text-gray-600 dark:text-binance-text-secondary">Upgrade Progress</span>
+            <span className="text-sm font-semibold text-gray-900 dark:text-binance-text-primary">{progressPercentage.toFixed(1)}%</span>
           </div>
           
           {/* Progress Bar */}
-          <div className="w-full bg-gray-700 rounded-full h-3">
+          <div className="w-full bg-gray-200 dark:bg-binance-dark-border rounded-full h-2">
             <div 
-              className={`h-3 rounded-full transition-all duration-500 ${
-                canAfford ? 'bg-gradient-to-r from-green-500 to-green-400' : 'bg-gradient-to-r from-blue-500 to-blue-400'
+              className={`h-2 rounded-full transition-all duration-500 ${
+                canAfford ? 'bg-binance-green' : 'bg-binance-yellow'
               }`}
               style={{ width: `${progressPercentage}%` }}
             ></div>
@@ -89,37 +91,41 @@ const VipUpgradeProgress = ({ vipLevels, currentVip, totalDeposits, onUpgradeCli
           {/* Progress Details */}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <div className="text-gray-300">Your Deposits</div>
-              <div className="font-bold text-white">{formatCurrency(totalDeposits)}</div>
+              <div className="text-gray-600 dark:text-binance-text-secondary">Your Deposits</div>
+              <div className="font-bold text-gray-900 dark:text-binance-text-primary">{formatCurrency(totalDeposits)}</div>
             </div>
             <div>
-              <div className="text-gray-300">VIP Level Cost</div>
-              <div className="font-bold text-white">{formatCurrency(fullVipCost)}</div>
+              <div className="text-gray-600 dark:text-binance-text-secondary">VIP Level Cost</div>
+              <div className="font-bold text-gray-900 dark:text-binance-text-primary">{formatCurrency(fullVipCost)}</div>
             </div>
           </div>
 
           {/* Missing Amount */}
           {!canAfford && (
-            <div className="bg-red-500/20 border border-red-400/30 rounded-lg p-3">
+            <div className="bg-gray-50 dark:bg-binance-dark-tertiary border border-gray-200 dark:border-binance-dark-border rounded-lg p-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-red-300 text-sm">Amount Needed</div>
-                  <div className="font-bold text-red-400">{formatCurrency(amountNeededForFullVip)}</div>
+                  <div className="text-gray-600 dark:text-binance-text-secondary text-sm">Amount Needed</div>
+                  <div className="font-bold text-binance-yellow">{formatCurrency(amountNeededForFullVip)}</div>
                 </div>
-                <div className="text-4xl">💰</div>
+                <div className="w-8 h-8 bg-binance-yellow rounded-full flex items-center justify-center">
+                  <span className="text-sm">💰</span>
+                </div>
               </div>
             </div>
           )}
 
           {/* Success Message */}
           {canAfford && (
-            <div className="bg-green-500/20 border border-green-400/30 rounded-lg p-3">
+            <div className="bg-gray-50 dark:bg-binance-dark-tertiary border border-gray-200 dark:border-binance-dark-border rounded-lg p-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-green-300 text-sm">Ready to Upgrade!</div>
-                  <div className="font-bold text-green-400">You have sufficient deposits</div>
+                  <div className="text-gray-600 dark:text-binance-text-secondary text-sm">Ready to Upgrade!</div>
+                  <div className="font-bold text-binance-green">You have sufficient deposits</div>
                 </div>
-                <div className="text-4xl">✅</div>
+                <div className="w-8 h-8 bg-binance-green rounded-full flex items-center justify-center">
+                  <span className="text-sm">✅</span>
+                </div>
               </div>
             </div>
           )}
@@ -127,30 +133,28 @@ const VipUpgradeProgress = ({ vipLevels, currentVip, totalDeposits, onUpgradeCli
 
         {/* Action Buttons */}
         {showUpgradeButton && (
-          <div className="flex gap-3 pt-2">
+          <div className="pt-4">
             {canAfford ? (
-              <Button 
+              <button 
                 onClick={() => onUpgradeClick && onUpgradeClick(nextLevel)}
-                className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
+                className="w-full btn-primary flex items-center justify-center"
               >
                 <span className="mr-2">🚀</span>
                 Upgrade to {nextLevel.name}
-              </Button>
+              </button>
             ) : (
-              <Button 
-                asChild
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+              <Link 
+                to="/vip-selection"
+                className="w-full btn-secondary flex items-center justify-center"
               >
-                <Link to="/vip-selection">
-                  <span className="mr-2">💳</span>
-                  Deposit & Upgrade
-                </Link>
-              </Button>
+                <span className="mr-2">💳</span>
+                Deposit & Upgrade
+              </Link>
             )}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

@@ -312,83 +312,115 @@ async function createOrUpdateVipLevels() {
     const vipLevels = [
       { 
         name: 'Starter', 
-        amount: 30, 
-        dailyEarning: 2,
+        amount: 10, 
+        dailyEarning: 1.00,
         bicycleModel: 'City Cruiser Basic',
         bicycleColor: 'Blue',
         bicycleFeatures: 'Comfortable seat, basic gears, city tires'
       },
       { 
         name: 'Bronze', 
-        amount: 180, 
-        dailyEarning: 10,
+        amount: 50, 
+        dailyEarning: 5.00,
         bicycleModel: 'Mountain Explorer',
         bicycleColor: 'Green',
         bicycleFeatures: 'Shock absorbers, 21-speed gears, off-road tires'
       },
       { 
         name: 'Silver', 
-        amount: 400, 
-        dailyEarning: 24,
+        amount: 100, 
+        dailyEarning: 10.00,
         bicycleModel: 'Road Racer Pro',
         bicycleColor: 'Red',
         bicycleFeatures: 'Lightweight frame, racing gears, performance tires'
       },
       { 
         name: 'Gold', 
-        amount: 1000, 
-        dailyEarning: 50,
+        amount: 150, 
+        dailyEarning: 16.50,
         bicycleModel: 'Electric Commuter',
         bicycleColor: 'Black',
         bicycleFeatures: 'Electric motor, battery pack, LED lights, GPS tracker'
       },
       { 
         name: 'Platinum', 
-        amount: 1500, 
-        dailyEarning: 65,
+        amount: 250, 
+        dailyEarning: 27.50,
         bicycleModel: 'Hybrid Adventure',
         bicycleColor: 'Silver',
         bicycleFeatures: 'Electric assist, suspension, cargo rack, smartphone holder'
       },
       { 
         name: 'Diamond', 
-        amount: 2000, 
-        dailyEarning: 75,
+        amount: 300, 
+        dailyEarning: 33.00,
         bicycleModel: 'Carbon Fiber Elite',
         bicycleColor: 'Carbon Black',
         bicycleFeatures: 'Carbon fiber frame, wireless shifting, power meter, premium components'
       },
       { 
         name: 'Elite', 
-        amount: 5000, 
-        dailyEarning: 200,
+        amount: 500, 
+        dailyEarning: 55.00,
         bicycleModel: 'Smart E-Bike Premium',
         bicycleColor: 'Titanium',
         bicycleFeatures: 'AI navigation, solar charging, biometric sensors, premium leather seat'
       },
       { 
         name: 'Master', 
-        amount: 6000, 
-        dailyEarning: 250,
+        amount: 650, 
+        dailyEarning: 74.75,
         bicycleModel: 'Custom Performance',
         bicycleColor: 'Custom Paint',
         bicycleFeatures: 'Handcrafted frame, premium components, custom paint job, professional fitting'
       },
       { 
         name: 'Legend', 
-        amount: 12000, 
-        dailyEarning: 500,
+        amount: 900, 
+        dailyEarning: 108.00,
         bicycleModel: 'Luxury Touring',
         bicycleColor: 'Gold Plated',
         bicycleFeatures: 'Luxury materials, built-in entertainment, climate control, concierge service'
       },
       { 
         name: 'Supreme', 
-        amount: 25000, 
-        dailyEarning: 800,
+        amount: 1000, 
+        dailyEarning: 120.00,
         bicycleModel: 'Ultimate Dream Bike',
         bicycleColor: 'Diamond Encrusted',
         bicycleFeatures: 'Exclusive design, rare materials, lifetime warranty, personal bike concierge'
+      },
+      { 
+        name: 'Ultimate', 
+        amount: 1500, 
+        dailyEarning: 187.50,
+        bicycleModel: 'Premium Elite',
+        bicycleColor: 'Platinum',
+        bicycleFeatures: 'Premium materials, advanced technology, exclusive design, VIP service'
+      },
+      { 
+        name: 'Mega', 
+        amount: 10000, 
+        dailyEarning: 1250.00,
+        bicycleModel: 'Mega Elite',
+        bicycleColor: 'Chrome',
+        bicycleFeatures: 'Mega features, premium components, exclusive access, personal concierge'
+      },
+      { 
+        name: 'Giga', 
+        amount: 50000, 
+        dailyEarning: 6500.00,
+        bicycleModel: 'Giga Elite',
+        bicycleColor: 'Gold',
+        bicycleFeatures: 'Giga features, luxury materials, exclusive design, premium service'
+      },
+      { 
+        name: 'Tera', 
+        amount: 200000, 
+        dailyEarning: 26000.00,
+        bicycleModel: 'Tera Elite',
+        bicycleColor: 'Diamond',
+        bicycleFeatures: 'Tera features, ultimate luxury, exclusive access, personal butler service'
       }
     ];
 

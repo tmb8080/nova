@@ -1,10 +1,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import ThemeToggle from '../ui/ThemeToggle.js';
 
 const DesktopNav = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { isDarkMode } = useTheme();
 
   const isActive = (path) => {
     return location.pathname === path;
@@ -16,6 +19,11 @@ const DesktopNav = () => {
     const tabParam = urlParams.get('tab');
     if (tab === 'dashboard' && !tabParam) return true;
     return tabParam === tab;
+  };
+
+  const handleNavigation = () => {
+    // Scroll to top when navigating
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Admin navigation items
@@ -124,32 +132,24 @@ const DesktopNav = () => {
   return (
     <nav className={`hidden md:block fixed top-0 left-0 right-0 z-50 ${
       isAdminPanel 
-        ? 'bg-slate-800/95 backdrop-blur-sm border-b border-white/20' 
-        : 'bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm'
+        ? 'bg-binance-dark/95 backdrop-blur-md border-b border-binance-dark-border' 
+        : 'bg-white/95 dark:bg-binance-dark/95 backdrop-blur-md border-b border-gray-200 dark:border-binance-dark-border shadow-lg'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo and Brand */}
           <div className="flex items-center space-x-4">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-              isAdminPanel 
-                ? 'bg-gradient-to-br from-red-500 to-pink-600' 
-                : 'bg-gradient-to-br from-blue-500 to-purple-600'
-            }`}>
-              {isAdminPanel ? (
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                </svg>
-              )}
+            <div className="flex items-center">
+              <img 
+                src={isDarkMode ? "/navalogowhite.png" : "/novalogo.png"} 
+                alt="NovaStaking Logo" 
+                className="h-12 w-auto"
+              />
             </div>
             <h1 className={`text-xl font-bold ${
-              isAdminPanel ? 'text-white' : 'text-gray-900'
+              isAdminPanel ? 'text-binance-text-primary' : 'text-gray-900 dark:text-binance-text-primary'
             }`}>
-              {isAdminPanel ? 'Admin Panel' : ''}
+              {isAdminPanel ? 'Admin Panel' : 'NovaStaking'}
             </h1>
           </div>
 
@@ -164,19 +164,20 @@ const DesktopNav = () => {
                 <Link
                   key={item.path}
                   to={item.path}
+                  onClick={handleNavigation}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isAdminPanel
                       ? isItemActive
-                        ? 'bg-white/20 text-white shadow-lg'
-                        : 'text-gray-300 hover:bg-white/15 hover:text-white'
+                        ? 'bg-binance-yellow text-binance-dark shadow-lg'
+                        : 'text-binance-text-secondary hover:bg-binance-dark-tertiary hover:text-binance-text-primary'
                       : isItemActive
-                        ? 'bg-blue-50 text-blue-600 shadow-sm'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        ? 'bg-binance-yellow text-binance-dark shadow-lg'
+                        : 'text-gray-600 dark:text-binance-text-secondary hover:bg-gray-50 dark:hover:bg-binance-dark-tertiary hover:text-gray-900 dark:hover:text-binance-text-primary'
                   }`}
                 >
                   <span className={isAdminPanel
-                    ? isItemActive ? 'text-blue-400' : 'text-gray-300'
-                    : isItemActive ? 'text-blue-600' : 'text-gray-500'
+                    ? isItemActive ? 'text-accent-400' : 'text-gray-300'
+                    : isItemActive ? 'text-accent-600' : 'text-gray-500 dark:text-gray-400'
                   }>
                     {item.icon}
                   </span>
@@ -188,8 +189,9 @@ const DesktopNav = () => {
 
           {/* User Menu */}
           <div className="flex items-center space-x-4">
+            <ThemeToggle size="sm" />
             <div className={`text-sm ${
-              isAdminPanel ? 'text-gray-300' : 'text-gray-600'
+              isAdminPanel ? 'text-gray-300' : 'text-gray-600 dark:text-gray-300'
             }`}>
               Welcome, {user?.fullName || user?.username}
             </div>
@@ -198,7 +200,7 @@ const DesktopNav = () => {
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 isAdminPanel
                   ? 'bg-red-500 hover:bg-red-600 text-white'
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
               }`}
             >
               Logout

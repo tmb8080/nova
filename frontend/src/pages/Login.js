@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
+import ThemeToggle from '../components/ui/ThemeToggle.js';
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isLoading } = useAuth();
+  const { isDarkMode } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
 
   const {
@@ -28,16 +31,25 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 px-4 pb-20 md:pb-0">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-binance-dark px-4 pb-20 md:pb-0">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Trinity Metro Bike</h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-2">Your crypto growth platform</p>
+          <div className="flex justify-center mb-4">
+            <img 
+              src={isDarkMode ? "/navalogowhite.png" : "/novalogo.png"} 
+              alt="NovaStaking Logo" 
+              className="h-24 w-auto"
+            />
+          </div>
+          <p className="text-gray-600 dark:text-binance-text-secondary mt-2">Your crypto growth platform</p>
+          <div className="flex justify-center mt-4">
+            <ThemeToggle size="sm" />
+          </div>
         </div>
 
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <Card className="bg-white dark:bg-binance-dark-secondary border-gray-200 dark:border-binance-dark-border shadow-xl">
           <CardHeader>
-            <CardTitle className="text-gray-900 dark:text-white">Welcome Back</CardTitle>
+            <CardTitle className="text-gray-900 dark:text-binance-text-primary">Welcome Back</CardTitle>
             <CardDescription className="text-gray-600 dark:text-gray-300">
               Sign in to your account to continue
             </CardDescription>
@@ -56,13 +68,13 @@ const Login = () => {
                   })}
                 />
                 <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center space-x-1 text-accent-600">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                     <span>Email</span>
                   </div>
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center space-x-1 text-accent-600">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>

@@ -9,7 +9,7 @@ const HelpButton = () => {
   return (
     <button
       onClick={handleHelpClick}
-      className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-50 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-3 shadow-lg transition-all duration-200 hover:scale-110 hover:shadow-xl"
+      className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-50 bg-accent-500 hover:bg-accent-600 text-white rounded-full p-3 shadow-lg dark:shadow-dark-medium transition-all duration-200 hover:scale-110 hover:shadow-xl"
       title="Get Help from Trinity Customer Care"
       aria-label="Contact Trinity Customer Care on Telegram"
     >

@@ -177,21 +177,29 @@ const InvitedFriendsList = ({ referralStats }) => {
 
       {/* Commission Info */}
       <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl p-4 border border-yellow-400/30 mt-6">
-        <div className="flex items-center space-x-2 mb-2">
+        <div className="flex items-center space-x-2 mb-3">
           <span className="text-2xl">💰</span>
           <div className="text-yellow-300 font-medium">Commission Structure</div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-            <span className="text-gray-300">Direct Referrals (Level 1):</span>
-            <span className="text-yellow-300 font-medium">5% commission</span>
+            <span className="text-gray-300">Level 1 (Direct):</span>
+            <span className="text-yellow-300 font-medium">10% commission</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-            <span className="text-gray-300">Indirect Referrals (Level 2):</span>
-            <span className="text-yellow-300 font-medium">3% commission</span>
+            <span className="text-gray-300">Level 2 (Indirect):</span>
+            <span className="text-yellow-300 font-medium">5% commission</span>
           </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+            <span className="text-gray-300">Level 3 (Third):</span>
+            <span className="text-yellow-300 font-medium">2% commission</span>
+          </div>
+        </div>
+        <div className="mt-3 text-xs text-gray-400 text-center">
+          Earn commissions when your referrals join VIP levels
         </div>
       </div>
     </div>

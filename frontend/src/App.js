@@ -3,10 +3,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 // Import components
 import Layout from './components/layout/Layout';
 import HelpButton from './components/ui/HelpButton';
+import Logo from './components/ui/Logo';
 
 // Import pages
 import Login from './pages/Login';
@@ -37,8 +39,12 @@ const ProtectedRoute = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-binance-dark">
+        <div className="mb-8">
+          <Logo className="h-28 w-auto" />
+        </div>
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-accent-500"></div>
+        <p className="mt-4 text-gray-600 text-lg">Loading...</p>
       </div>
     );
   }
@@ -56,8 +62,12 @@ const PublicRoute = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-binance-dark">
+        <div className="mb-8">
+          <Logo className="h-28 w-auto" />
+        </div>
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-accent-500"></div>
+        <p className="mt-4 text-gray-600 text-lg">Loading...</p>
       </div>
     );
   }
@@ -72,9 +82,10 @@ const PublicRoute = ({ children }) => {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router>
-          <div className="App">
+      <ThemeProvider>
+        <AuthProvider>
+          <Router>
+            <div className="App">
             <Routes>
               {/* Public routes */}
               <Route
@@ -248,13 +259,16 @@ function App() {
                 path="*"
                 element={
                   <>
-                    <div className="min-h-screen flex items-center justify-center">
+                    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-binance-dark">
                       <div className="text-center">
+                        <div className="mb-8">
+                          <Logo className="h-32 w-auto mx-auto" />
+                        </div>
                         <h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
                         <p className="text-gray-600 mb-4">Page not found</p>
                         <a
                           href="/dashboard"
-                          className="text-blue-600 hover:text-blue-500 font-medium"
+                          className="text-accent-600 hover:text-accent-500 font-medium"
                         >
                           Go to Dashboard
                         </a>
@@ -294,6 +308,7 @@ function App() {
           </div>
         </Router>
       </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

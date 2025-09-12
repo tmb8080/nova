@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Configure axios defaults
-const API_BASE_URL ="https://bambe.shop/api";
+const API_BASE_URL ="http://localhost:5000/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -212,6 +212,12 @@ export const getCompanyWalletAddresses = async () => {
     console.error('Error fetching company wallet addresses:', error);
     throw error;
   }
+};
+
+// Members API
+export const membersAPI = {
+  getPublicList: (params = {}) => api.get('/members/public', { params }),
+  getStats: () => api.get('/members/stats'),
 };
 
 export default api;
