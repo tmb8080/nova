@@ -350,10 +350,10 @@ const AdminPanel = () => {
     // Get the expected wallet address for the network
     const getWalletAddressForNetwork = (network) => {
       const addresses = {
-        'BEP20': '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09',
-        'TRC20': 'TUF38LTyPaqfdanHBpGMs5Xid6heLcxxpK',
-        'POLYGON': '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09',
-        'ERC20': '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09'
+        'BEP20': '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0',
+        'TRC20': 'TMWN4rYSzCHmhPe6xhhGhB5pcbHHMFUXth',
+        'POLYGON': '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0',
+        'ERC20': '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0'
       };
       return addresses[network] || addresses['BEP20'];
     };

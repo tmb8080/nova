@@ -24,10 +24,10 @@ const ManualDeposit = ({ onClose, onSuccess }) => {
 
   // Fallback addresses if API fails
   const fallbackAddresses = {
-    TRC20: { address: 'TUF38LTyPaqfdanHBpGMs5Xid6heLcxxpK', name: 'TRC20-USDT', fee: 1, minAmount: 30, supportedTokens: ['USDT'] },
-    BEP20: { address: '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09', name: 'BEP20-USDT', fee: 0.5, minAmount: 30, supportedTokens: ['USDT', 'USDC'] },
-    ERC20: { address: '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09', name: 'ERC20-USDT', fee: 5, minAmount: 30, supportedTokens: ['USDT', 'USDC'] },
-    POLYGON: { address: '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09', name: 'POL-USDT', fee: 0.1, minAmount: 30, supportedTokens: ['USDT', 'USDC'] }
+    TRC20: { address: 'TMWN4rYSzCHmhPe6xhhGhB5pcbHHMFUXth', name: 'TRC20-USDT', fee: 1, minAmount: 30, supportedTokens: ['USDT'] },
+    BEP20: { address: '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0', name: 'BEP20-USDT', fee: 0.5, minAmount: 30, supportedTokens: ['USDT', 'USDC'] },
+    ERC20: { address: '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0', name: 'ERC20-USDT', fee: 5, minAmount: 30, supportedTokens: ['USDT', 'USDC'] },
+    POLYGON: { address: '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0', name: 'POL-USDT', fee: 0.1, minAmount: 30, supportedTokens: ['USDT', 'USDC'] }
   };
 
   // Use API data or fallback

@@ -16,6 +16,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import VerifyEmail from './pages/VerifyEmail';
 import Deposit from './pages/Deposit';
+import NovaStakingLanding from './pages/NovaStakingLanding';
 
 import VipSelection from './pages/VipSelection';
 import Profile from './pages/Profile';
@@ -88,6 +89,14 @@ function App() {
             <div className="App">
             <Routes>
               {/* Public routes */}
+              <Route
+                path="/"
+                element={<NovaStakingLanding />}
+              />
+              <Route
+                path="/nova-staking"
+                element={<NovaStakingLanding />}
+              />
               <Route
                 path="/login"
                 element={
@@ -251,8 +260,6 @@ function App() {
                 }
               />
 
-              {/* Default redirect */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               
               {/* 404 page */}
               <Route

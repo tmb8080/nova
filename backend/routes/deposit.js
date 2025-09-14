@@ -20,10 +20,10 @@ const prisma = new PrismaClient();
 // Helper function to get company wallet addresses
 const getCompanyAddresses = () => {
   const addresses = {
-    BSC: process.env.BSC_WALLET_ADDRESS || "0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09",
-    TRON: process.env.TRON_WALLET_ADDRESS || "TUF38LTyPaqfdanHBpGMs5Xid6heLcxxpK",
-    POLYGON: process.env.POLYGON_WALLET_ADDRESS || "0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09",
-    ETHEREUM: process.env.ETH_WALLET_ADDRESS || "0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09"
+    BSC: process.env.BSC_WALLET_ADDRESS || "0xF7c518394f7ceA4c98060ba166Fbd21928A206a0",
+    TRON: process.env.TRON_WALLET_ADDRESS || "TMWN4rYSzCHmhPe6xhhGhB5pcbHHMFUXth",
+    POLYGON: process.env.POLYGON_WALLET_ADDRESS || "0xF7c518394f7ceA4c98060ba166Fbd21928A206a0",
+    ETHEREUM: process.env.ETH_WALLET_ADDRESS || "0xF7c518394f7ceA4c98060ba166Fbd21928A206a0"
   };
   
   console.log('🔧 Company addresses loaded:', {
@@ -72,7 +72,17 @@ const verifyTransactionBeforeDeposit = async (transactionHash, network, expected
     
     // Get company addresses
     const companyAddresses = getCompanyAddresses();
-    const expectedAddress = companyAddresses[foundNetwork];
+    
+    // Map network names to company address keys
+    const networkToAddressKey = {
+      'Ethereum': 'ETHEREUM',
+      'BSC': 'BSC',
+      'TRON': 'TRON',
+      'Polygon': 'POLYGON'
+    };
+    
+    const addressKey = networkToAddressKey[foundNetwork] || foundNetwork;
+    const expectedAddress = companyAddresses[addressKey];
     
     console.log(`🔍 Address verification for ${foundNetwork}:`, {
       foundNetwork: foundNetwork,
@@ -107,25 +117,52 @@ const verifyTransactionBeforeDeposit = async (transactionHash, network, expected
       };
     }
     
+    // Check if this is a contract interaction with token transfers
+    let actualRecipientAddress = transactionDetails.details.recipientAddress;
+    let actualAmount = parseFloat(transactionDetails.details.amount);
+    let tokenSymbol = 'ETH';
+    
+    if (transactionDetails.details.tokenTransfers && transactionDetails.details.tokenTransfers.length > 0) {
+      console.log(`🔍 Found ${transactionDetails.details.tokenTransfers.length} token transfers, analyzing for matching recipient...`);
+      
+      // Look for token transfers to our company address
+      const matchingTransfer = transactionDetails.details.tokenTransfers.find(transfer => 
+        transfer.to.toLowerCase() === finalExpectedAddress.toLowerCase()
+      );
+      
+      if (matchingTransfer) {
+        actualRecipientAddress = matchingTransfer.to;
+        actualAmount = matchingTransfer.amount;
+        tokenSymbol = matchingTransfer.tokenSymbol;
+        console.log(`✅ Found matching token transfer: ${actualAmount} ${tokenSymbol} to ${actualRecipientAddress}`);
+      } else {
+        console.log(`⚠️ No token transfer found to our company address ${finalExpectedAddress}`);
+        console.log(`Available transfers:`, transactionDetails.details.tokenTransfers.map(t => ({
+          to: t.to,
+          amount: t.amount,
+          token: t.tokenSymbol
+        })));
+      }
+    }
+    
     // Verify recipient address
-    const recipientAddress = transactionDetails.details.recipientAddress;
-    if (!recipientAddress || recipientAddress.toLowerCase() !== finalExpectedAddress.toLowerCase()) {
+    if (!actualRecipientAddress || actualRecipientAddress.toLowerCase() !== finalExpectedAddress.toLowerCase()) {
       return {
         isValid: false,
         error: `Transaction recipient does not match our ${foundNetwork} wallet address`,
         details: {
           expected: finalExpectedAddress,
-          received: recipientAddress,
+          received: actualRecipientAddress,
           foundOnNetwork: foundNetwork,
-          requestedNetwork: network
+          requestedNetwork: network,
+          tokenTransfers: transactionDetails.details.tokenTransfers || []
         }
       };
     }
     
     // Verify amount (allow small difference for decimals)
-    const transactionAmount = parseFloat(transactionDetails.details.amount);
     const depositAmount = parseFloat(expectedAmount);
-    const difference = Math.abs(transactionAmount - depositAmount);
+    const difference = Math.abs(actualAmount - depositAmount);
     
     if (difference > 0.01) {
       return {
@@ -133,10 +170,11 @@ const verifyTransactionBeforeDeposit = async (transactionHash, network, expected
         error: `Transaction amount does not match deposit amount`,
         details: {
           expected: depositAmount,
-          received: transactionAmount,
+          received: actualAmount,
           difference: difference,
           foundOnNetwork: foundNetwork,
-          requestedNetwork: network
+          requestedNetwork: network,
+          tokenSymbol: tokenSymbol
         }
       };
     }
@@ -157,6 +195,9 @@ const verifyTransactionBeforeDeposit = async (transactionHash, network, expected
       error: null,
       details: {
         ...transactionDetails.details,
+        recipientAddress: actualRecipientAddress,
+        amount: actualAmount.toString(),
+        tokenSymbol: tokenSymbol,
         foundOnNetwork: foundNetwork,
         requestedNetwork: network,
         networkMatches: networkMatches,
@@ -339,7 +380,7 @@ router.get('/usdt/addresses', authenticateToken, async (req, res) => {
     const addresses = {
       TRC20: process.env.USDT_TRC20_ADDRESS || 'TJwzxqg5FbGRibyMRArrnSo828WppqvQjd',
       BEP20: process.env.USDT_BEP20_ADDRESS || '0x1016f7DAF8b1816C0979992Ab3c8C8D8D8D8D8D8D',
-      ERC20: process.env.USDT_ERC20_ADDRESS || '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09',
+      ERC20: process.env.USDT_ERC20_ADDRESS || '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0',
       POLYGON: process.env.USDT_POLYGON_ADDRESS || '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'
     };
 
@@ -362,10 +403,10 @@ router.get('/company-addresses', authenticateToken, async (req, res) => {
   try {
     // Get company wallet addresses from environment variables
     const addresses = {
-      TRC20: process.env.TRON_WALLET_ADDRESS || 'TUF38LTyPaqfdanHBpGMs5Xid6heLcxxpK',
-      BEP20: process.env.BSC_WALLET_ADDRESS || '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09',
-      ERC20: process.env.ETH_WALLET_ADDRESS || '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09',
-      POLYGON: process.env.POLYGON_WALLET_ADDRESS || '0x9d78BbBF2808fc88De78cd5c9021A01f897DAb09'
+      TRC20: process.env.TRON_WALLET_ADDRESS || 'TMWN4rYSzCHmhPe6xhhGhB5pcbHHMFUXth',
+      BEP20: process.env.BSC_WALLET_ADDRESS || '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0',
+      ERC20: process.env.ETH_WALLET_ADDRESS || '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0',
+      POLYGON: process.env.POLYGON_WALLET_ADDRESS || '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0'
     };
 
     // Add network information and fees
@@ -454,7 +495,17 @@ router.post('/auto-fill-transaction', [
 
     // Get company addresses
     const companyAddresses = getCompanyAddresses();
-    const expectedAddress = companyAddresses[foundNetwork];
+    
+    // Map network names to company address keys
+    const networkToAddressKey = {
+      'Ethereum': 'ETHEREUM',
+      'BSC': 'BSC',
+      'TRON': 'TRON',
+      'Polygon': 'POLYGON'
+    };
+    
+    const addressKey = networkToAddressKey[foundNetwork] || foundNetwork;
+    const expectedAddress = companyAddresses[addressKey];
 
     // Map verification network names back to deposit network names
     const reverseNetworkMapping = {
@@ -466,13 +517,40 @@ router.post('/auto-fill-transaction', [
 
     const suggestedNetwork = reverseNetworkMapping[foundNetwork] || foundNetwork;
 
+    // Check if this is a contract interaction with token transfers
+    let actualRecipientAddress = transactionDetails.details.recipientAddress;
+    let actualAmount = parseFloat(transactionDetails.details.amount);
+    let tokenSymbol = 'ETH';
+    
+    if (transactionDetails.details.tokenTransfers && transactionDetails.details.tokenTransfers.length > 0) {
+      console.log(`🔍 Found ${transactionDetails.details.tokenTransfers.length} token transfers, analyzing for matching recipient...`);
+      
+      // Look for token transfers to our company address
+      const matchingTransfer = transactionDetails.details.tokenTransfers.find(transfer => 
+        transfer.to.toLowerCase() === expectedAddress.toLowerCase()
+      );
+      
+      if (matchingTransfer) {
+        actualRecipientAddress = matchingTransfer.to;
+        actualAmount = matchingTransfer.amount;
+        tokenSymbol = matchingTransfer.tokenSymbol;
+        console.log(`✅ Found matching token transfer: ${actualAmount} ${tokenSymbol} to ${actualRecipientAddress}`);
+      } else {
+        console.log(`⚠️ No token transfer found to our company address ${expectedAddress}`);
+        console.log(`Available transfers:`, transactionDetails.details.tokenTransfers.map(t => ({
+          to: t.to,
+          amount: t.amount,
+          token: t.tokenSymbol
+        })));
+      }
+    }
+
     // Check if recipient matches our address
-    const recipientAddress = transactionDetails.details.recipientAddress;
-    const isRecipientMatching = recipientAddress && expectedAddress && 
-      recipientAddress.toLowerCase() === expectedAddress.toLowerCase();
+    const isRecipientMatching = actualRecipientAddress && expectedAddress && 
+      actualRecipientAddress.toLowerCase() === expectedAddress.toLowerCase();
 
     // Get transaction amount
-    const transactionAmount = parseFloat(transactionDetails.details.amount);
+    const transactionAmount = actualAmount;
 
     res.json({
       success: true,
@@ -482,20 +560,22 @@ router.post('/auto-fill-transaction', [
         transactionHash: transactionHash,
         foundOnNetwork: foundNetwork,
         suggestedNetwork: suggestedNetwork,
-        suggestedAmount: transactionAmount,
-        recipientAddress: recipientAddress,
+        suggestedAmount: actualAmount, // Use enhanced amount
+        recipientAddress: actualRecipientAddress, // Use enhanced recipient
         senderAddress: transactionDetails.details.senderAddress,
         blockNumber: transactionDetails.details.blockNumber,
         isConfirmed: transactionDetails.details.isConfirmed,
-        isTokenTransfer: transactionDetails.details.isTokenTransfer,
+        isTokenTransfer: transactionDetails.details.tokenTransfers && transactionDetails.details.tokenTransfers.length > 0,
+        tokenSymbol: tokenSymbol,
         isRecipientMatching: isRecipientMatching,
         expectedCompanyAddress: expectedAddress,
         companyAddresses: companyAddresses,
+        tokenTransfers: transactionDetails.details.tokenTransfers || [],
         verificationStatus: {
           networkFound: true,
           recipientMatches: isRecipientMatching,
-          amountAvailable: !isNaN(transactionAmount),
-          canAutoFill: isRecipientMatching && !isNaN(transactionAmount)
+          amountAvailable: !isNaN(actualAmount),
+          canAutoFill: isRecipientMatching && !isNaN(actualAmount)
         }
       }
     });
@@ -536,6 +616,61 @@ router.post('/transaction-details', [
 
     // Get company addresses for reference
     const companyAddresses = getCompanyAddresses();
+    
+    // Enhanced processing for found transactions
+    let enhancedResults = crossNetworkResult.results;
+    
+    if (crossNetworkResult.found && crossNetworkResult.foundOnNetwork) {
+      const foundNetwork = crossNetworkResult.foundOnNetwork;
+      const transactionDetails = crossNetworkResult.results.find(
+        result => result.network === foundNetwork && result.found
+      );
+      
+      if (transactionDetails && transactionDetails.details) {
+        // Map network names to company address keys
+        const networkToAddressKey = {
+          'Ethereum': 'ETHEREUM',
+          'BSC': 'BSC',
+          'TRON': 'TRON',
+          'Polygon': 'POLYGON'
+        };
+        
+        const addressKey = networkToAddressKey[foundNetwork] || foundNetwork;
+        const expectedAddress = companyAddresses[addressKey];
+        
+        // Check if this is a contract interaction with token transfers
+        let actualRecipientAddress = transactionDetails.details.recipientAddress;
+        let actualAmount = parseFloat(transactionDetails.details.amount);
+        let tokenSymbol = 'ETH';
+        
+        if (transactionDetails.details.tokenTransfers && transactionDetails.details.tokenTransfers.length > 0) {
+          console.log(`🔍 Found ${transactionDetails.details.tokenTransfers.length} token transfers, analyzing for matching recipient...`);
+          
+          // Look for token transfers to our company address
+          const matchingTransfer = transactionDetails.details.tokenTransfers.find(transfer => 
+            expectedAddress && transfer.to.toLowerCase() === expectedAddress.toLowerCase()
+          );
+          
+          if (matchingTransfer) {
+            actualRecipientAddress = matchingTransfer.to;
+            actualAmount = matchingTransfer.amount;
+            tokenSymbol = matchingTransfer.tokenSymbol;
+            console.log(`✅ Found matching token transfer: ${actualAmount} ${tokenSymbol} to ${actualRecipientAddress}`);
+          }
+        }
+        
+        // Update the transaction details with enhanced data
+        transactionDetails.details.recipientAddress = actualRecipientAddress;
+        transactionDetails.details.amount = actualAmount.toString();
+        transactionDetails.details.tokenSymbol = tokenSymbol;
+        transactionDetails.details.enhancedRecipientAddress = actualRecipientAddress;
+        transactionDetails.details.enhancedAmount = actualAmount;
+        transactionDetails.details.enhancedTokenSymbol = tokenSymbol;
+        transactionDetails.details.expectedCompanyAddress = expectedAddress;
+        transactionDetails.details.isRecipientMatching = expectedAddress && 
+          actualRecipientAddress.toLowerCase() === expectedAddress.toLowerCase();
+      }
+    }
 
     res.json({
       success: true,
@@ -545,7 +680,7 @@ router.post('/transaction-details', [
         found: crossNetworkResult.found,
         foundOnNetwork: crossNetworkResult.foundOnNetwork,
         totalNetworksChecked: crossNetworkResult.totalNetworksChecked,
-        results: crossNetworkResult.results,
+        results: enhancedResults,
         companyAddresses: companyAddresses,
         debug: {
           foundNetwork: crossNetworkResult.foundOnNetwork,
