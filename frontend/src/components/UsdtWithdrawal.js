@@ -29,11 +29,11 @@ const UsdtWithdrawal = ({ onClose }) => {
   const withdrawalMethods = [
     { key: 'TRC20-USDT', network: 'TRC20', currency: 'USDT', name: 'TRC20-USDT', color: 'bg-purple-500', fee: 1, processingTime: '1-5 minutes' },
     { key: 'BEP20-USDT', network: 'BEP20', currency: 'USDT', name: 'BEP20-USDT', color: 'bg-yellow-500', fee: 0.5, processingTime: '5-15 minutes' },
-    { key: 'BEP20-USDC', network: 'BEP20', currency: 'USDC', name: 'BEP20-USDC', color: 'bg-blue-500', fee: 0.5, processingTime: '5-15 minutes' },
+    { key: 'BEP20-USDC', network: 'BEP20', currency: 'USDC', name: 'BEP20-USDC', color: 'bg-blue-500', fee: 0, processingTime: '5-15 minutes' },
     { key: 'ERC20-USDT', network: 'ERC20', currency: 'USDT', name: 'ERC20-USDT', color: 'bg-purple-600', fee: 5, processingTime: '10-30 minutes' },
-    { key: 'ERC20-USDC', network: 'ERC20', currency: 'USDC', name: 'ERC20-USDC', color: 'bg-blue-600', fee: 5, processingTime: '10-30 minutes' },
+    { key: 'ERC20-USDC', network: 'ERC20', currency: 'USDC', name: 'ERC20-USDC', color: 'bg-blue-600', fee: 0, processingTime: '10-30 minutes' },
     { key: 'POL-USDT', network: 'POLYGON', currency: 'USDT', name: 'POL-USDT', color: 'bg-purple-700', fee: 0.1, processingTime: '2-5 minutes' },
-    { key: 'POL-USDC', network: 'POLYGON', currency: 'USDC', name: 'POL-USDC', color: 'bg-blue-700', fee: 0.1, processingTime: '2-5 minutes' }
+    { key: 'POL-USDC', network: 'POLYGON', currency: 'USDC', name: 'POL-USDC', color: 'bg-blue-700', fee: 0, processingTime: '2-5 minutes' }
   ];
 
   // Get selected method data
