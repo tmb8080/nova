@@ -1,9 +1,11 @@
 import React from 'react';
 
 const InvitedFriendsList = ({ referralStats }) => {
-  console.log('🔍 InvitedFriendsList - referralStats:', referralStats);
-  console.log('🔍 InvitedFriendsList - directReferralList:', referralStats?.data?.directReferralList);
-  console.log('🔍 InvitedFriendsList - indirectReferralList:', referralStats?.data?.indirectReferralList);
+  // Axios shape is { data: { success, data: {...} } }
+  const payload = referralStats?.data?.data || referralStats?.data || {};
+  console.log('🔍 InvitedFriendsList - payload:', payload);
+  console.log('🔍 InvitedFriendsList - directReferralList:', payload?.directReferralList);
+  console.log('🔍 InvitedFriendsList - indirectReferralList:', payload?.indirectReferralList);
   
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -54,8 +56,8 @@ const InvitedFriendsList = ({ referralStats }) => {
     return icons[vipLevel.name?.toUpperCase()] || '👤';
   };
 
-  const directReferrals = referralStats?.data?.directReferralList || [];
-  const indirectReferrals = referralStats?.data?.indirectReferralList || [];
+  const directReferrals = payload?.directReferralList || [];
+  const indirectReferrals = payload?.indirectReferralList || [];
   const allReferrals = [...directReferrals, ...indirectReferrals];
 
   console.log('🔍 InvitedFriendsList - directReferrals:', directReferrals);
