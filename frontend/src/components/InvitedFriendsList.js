@@ -85,13 +85,6 @@ const InvitedFriendsList = ({ referralStats }) => {
 
   return (
     <div className="space-y-4">
-      {/* Test message - remove this after debugging */}
-      <div className="bg-blue-500/20 p-4 rounded-lg border border-blue-500/30 mb-4">
-        <div className="text-blue-300 font-medium">🔍 Debug: Component is rendering</div>
-        <div className="text-blue-200 text-sm">Direct referrals: {directReferrals.length}</div>
-        <div className="text-blue-200 text-sm">Indirect referrals: {indirectReferrals.length}</div>
-        <div className="text-blue-200 text-sm">Total referrals: {allReferrals.length}</div>
-      </div>
       {/* Statistics Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl p-4 border border-blue-400/30">
