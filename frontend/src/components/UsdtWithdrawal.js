@@ -18,7 +18,7 @@ const UsdtWithdrawal = ({ onClose }) => {
     retryDelay: 1000,
   });
 
-  const minWithdrawalAmount = 10; // Default minimum
+  const minWithdrawalAmount = 2; // Default minimum
   const walletBalance = walletStats?.data?.data?.balance || walletStats?.data?.balance || 0;
 
   // Check if user is authenticated

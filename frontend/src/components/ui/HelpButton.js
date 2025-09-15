@@ -3,15 +3,15 @@ import React from 'react';
 const HelpButton = () => {
   const handleHelpClick = () => {
     // Open Telegram link in a new tab
-    window.open('https://t.me/Trinitycustomercare', '_blank');
+    window.open('https://t.me/novastaking', '_blank');
   };
 
   return (
     <button
       onClick={handleHelpClick}
       className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-50 bg-accent-500 hover:bg-accent-600 text-white rounded-full p-3 shadow-lg dark:shadow-dark-medium transition-all duration-200 hover:scale-110 hover:shadow-xl"
-      title="Get Help from Trinity Customer Care"
-      aria-label="Contact Trinity Customer Care on Telegram"
+      title="Contact Nova Staking on Telegram"
+      aria-label="Contact Nova Staking on Telegram"
     >
       {/* Telegram Icon */}
       <svg

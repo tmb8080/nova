@@ -34,6 +34,7 @@ const Dashboard = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [videoSrc, setVideoSrc] = useState('/intornova.mov');
 
   // Fetch wallet stats
   const { data: walletStats, isLoading: walletLoading } = useQuery({
@@ -103,6 +104,19 @@ const Dashboard = () => {
       videoElement.muted = isVideoMuted;
     }
   }, [isVideoMuted]);
+
+  // Choose best video source based on browser support
+  useEffect(() => {
+    const video = document.createElement('video');
+    const supportsMov = !!video.canPlayType && video.canPlayType('video/quicktime');
+    const supportsMp4 = !!video.canPlayType && video.canPlayType('video/mp4');
+
+    if (!supportsMov && supportsMp4) {
+      setVideoSrc('/introduction.mp4');
+    } else {
+      setVideoSrc('/intornova.mov');
+    }
+  }, []);
 
   // Video protection and autoplay
   useEffect(() => {
@@ -457,10 +471,19 @@ const Dashboard = () => {
                   }}
                   onError={(e) => {
                     console.log('Video error:', e.target.error);
+                    // Fallback to MP4 if MOV fails
+                    if (videoSrc !== '/introduction.mp4') {
+                      setVideoSrc('/introduction.mp4');
+                      const v = e.target;
+                      setTimeout(() => {
+                        v.load();
+                        v.play().catch(() => {});
+                      }, 0);
+                    }
                   }}
                   style={{ WebkitUserSelect: 'none', userSelect: 'none', pointerEvents: 'none' }}
+                  src={videoSrc}
                 >
-                  <source src="/introduction.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
                 

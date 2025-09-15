@@ -307,12 +307,12 @@ const Deposit = () => {
   });
 
   const predefinedAmounts = [
-    { amount: 30, currency: 'USDT', usd: 30 },
+    { amount: 10, currency: 'USDT', usd: 10 },
+    { amount: 25, currency: 'USDT', usd: 25 },
     { amount: 50, currency: 'USDT', usd: 50 },
     { amount: 100, currency: 'USDT', usd: 100 },
-    { amount: 200, currency: 'USDT', usd: 200 },
+    { amount: 250, currency: 'USDT', usd: 250 },
     { amount: 500, currency: 'USDT', usd: 500 },
-    { amount: 1000, currency: 'USDT', usd: 1000 },
   ];
 
   // Dynamic networks based on user addresses
@@ -748,14 +748,14 @@ const Deposit = () => {
                       <Input
                         type="number"
                         step="any"
-                        min="0"
+                        min="0.000001"
                         placeholder={`Enter amount in ${watchedCurrency}`}
                         error={errors.amount?.message}
                         {...register('amount', {
                           required: 'Amount is required',
                           min: {
-                            value: depositMethod === 'direct' ? 30 : 0.0001,
-                            message: `Minimum deposit amount is ${depositMethod === 'direct' ? '30 USDT' : '0.0001'}`
+                            value: 0.000001,
+                            message: 'Amount must be greater than 0'
                           }
                         })}
                       />

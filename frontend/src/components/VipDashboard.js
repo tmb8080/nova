@@ -78,8 +78,8 @@ const VipDashboard = () => {
 
   const handleWithdrawEarnings = () => {
     const amount = parseFloat(withdrawAmount);
-    if (amount < 10) {
-      toast.error('Minimum withdrawal amount is $10');
+    if (amount < 2) {
+      toast.error('Minimum withdrawal amount is $2');
       return;
     }
     withdrawEarningsMutation.mutate(amount);
@@ -316,7 +316,7 @@ const VipDashboard = () => {
         <CardHeader>
           <CardTitle>Daily Earnings</CardTitle>
           <CardDescription>
-            Withdraw your earned income to your main balance (minimum $10)
+            Withdraw your earned income to your main balance (minimum $2)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -334,7 +334,7 @@ const VipDashboard = () => {
               </div>
             </div>
 
-            {todayEarnings >= 10 ? (
+            {todayEarnings >= 2 ? (
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -344,15 +344,15 @@ const VipDashboard = () => {
                     type="number"
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
-                    placeholder="Enter amount (min $10)"
-                    min="10"
+                    placeholder="Enter amount (min $2)"
+                    min="2"
                     max={todayEarnings}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <Button 
                   onClick={handleWithdrawEarnings}
-                  disabled={withdrawEarningsMutation.isLoading || !withdrawAmount || parseFloat(withdrawAmount) < 10}
+                  disabled={withdrawEarningsMutation.isLoading || !withdrawAmount || parseFloat(withdrawAmount) < 2}
                   className="w-full"
                 >
                   {withdrawEarningsMutation.isLoading ? 'Processing...' : 'Withdraw to Main Balance'}
@@ -361,7 +361,7 @@ const VipDashboard = () => {
             ) : (
               <div className="text-center py-4">
                 <p className="text-gray-600">
-                  Minimum $10 earnings required for withdrawal
+                  Minimum $2 earnings required for withdrawal
                 </p>
               </div>
             )}

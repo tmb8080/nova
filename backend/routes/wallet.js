@@ -106,10 +106,10 @@ router.post('/withdraw-earnings', authenticateToken, async (req, res) => {
     const userId = req.user.id;
 
     // Validate amount
-    if (!amount || amount < 10) {
+    if (!amount || amount < 2) {
       return res.status(400).json({
         success: false,
-        message: 'Minimum withdrawal amount is $10'
+        message: 'Minimum withdrawal amount is $2'
       });
     }
 

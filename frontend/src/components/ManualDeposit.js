@@ -24,10 +24,10 @@ const ManualDeposit = ({ onClose, onSuccess }) => {
 
   // Fallback addresses if API fails
   const fallbackAddresses = {
-    TRC20: { address: 'TMWN4rYSzCHmhPe6xhhGhB5pcbHHMFUXth', name: 'TRC20-USDT', fee: 1, minAmount: 30, supportedTokens: ['USDT'] },
-    BEP20: { address: '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0', name: 'BEP20-USDT', fee: 0.5, minAmount: 30, supportedTokens: ['USDT', 'USDC'] },
-    ERC20: { address: '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0', name: 'ERC20-USDT', fee: 5, minAmount: 30, supportedTokens: ['USDT', 'USDC'] },
-    POLYGON: { address: '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0', name: 'POL-USDT', fee: 0.1, minAmount: 30, supportedTokens: ['USDT', 'USDC'] }
+    TRC20: { address: 'TMWN4rYSzCHmhPe6xhhGhB5pcbHHMFUXth', name: 'TRC20-USDT', fee: 1, minAmount: 0.000001, supportedTokens: ['USDT'] },
+    BEP20: { address: '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0', name: 'BEP20-USDT', fee: 0.5, minAmount: 0.000001, supportedTokens: ['USDT', 'USDC'] },
+    ERC20: { address: '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0', name: 'ERC20-USDT', fee: 5, minAmount: 0.000001, supportedTokens: ['USDT', 'USDC'] },
+    POLYGON: { address: '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0', name: 'POL-USDT', fee: 0.1, minAmount: 0.000001, supportedTokens: ['USDT', 'USDC'] }
   };
 
   // Use API data or fallback
@@ -107,8 +107,8 @@ const ManualDeposit = ({ onClose, onSuccess }) => {
   });
 
   const handleDeposit = async () => {
-    if (!depositAmount || parseFloat(depositAmount) < 30) {
-      toast.error('Please enter a valid amount (minimum 30 USDT)');
+    if (!depositAmount || parseFloat(depositAmount) <= 0) {
+      toast.error('Please enter a valid amount greater than 0');
       return;
     }
 
@@ -279,13 +279,13 @@ const ManualDeposit = ({ onClose, onSuccess }) => {
               type="number"
               value={depositAmount}
               onChange={(e) => setDepositAmount(e.target.value)}
-              placeholder="Minimum 30 USDT"
-              min="30"
+              placeholder={`Enter amount in ${selectedMethodData?.currency}`}
+              min="0.000001"
               step="0.01"
               className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <p className="text-xs text-gray-400 mt-1">
-              Minimum deposit: 30 {selectedMethodData?.currency}
+              Any positive amount is accepted. Network fees may apply.
             </p>
           </div>
 
@@ -321,7 +321,7 @@ const ManualDeposit = ({ onClose, onSuccess }) => {
           <div className="mt-6 space-y-3">
             <Button
               onClick={handleDeposit}
-              disabled={createDepositMutation.isLoading || !depositAmount || !transactionHash.trim() || parseFloat(depositAmount) < 30}
+              disabled={createDepositMutation.isLoading || !depositAmount || !transactionHash.trim() || parseFloat(depositAmount) <= 0}
               className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {createDepositMutation.isLoading ? 'Creating Deposit...' : 'Create Deposit Request'}
