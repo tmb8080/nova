@@ -154,6 +154,9 @@ const InvitedFriendsList = ({ referralStats }) => {
                     <div className="text-xs text-gray-500">
                       Balance: {formatCurrency(friend.wallet?.balance || 0)}
                     </div>
+                    <div className="text-xs text-yellow-300">
+                      Your bonus from this user: {formatCurrency(friend.referralBonusFromUser || 0)}
+                    </div>
                   </div>
                 </div>
                 

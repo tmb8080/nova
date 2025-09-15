@@ -86,6 +86,24 @@ router.get('/stats', authenticateToken, async (req, res) => {
       }
     });
 
+    // Compute total bonus earned from each referred user (all levels credited to this user)
+    const bonusesByUser = await prisma.referralBonus.groupBy({
+      by: ['referredId'],
+      where: { referrerId: userId },
+      _sum: { bonusAmount: true }
+    });
+    const referredIdToTotalBonus = new Map(
+      bonusesByUser.map(b => [b.referredId, parseFloat(b._sum.bonusAmount || 0)])
+    );
+
+    // Attach totals to direct and indirect lists
+    const attachTotals = (arr) => arr.map(u => ({
+      ...u,
+      referralBonusFromUser: referredIdToTotalBonus.get(u.id) || 0
+    }));
+    const directWithTotals = attachTotals(directReferrals);
+    const indirectWithTotals = attachTotals(indirectReferrals);
+
     // Get referral link
     const referralLink = generateReferralLink(
       process.env.FRONTEND_URL || 'http://novastaking.store',
@@ -105,8 +123,8 @@ router.get('/stats', authenticateToken, async (req, res) => {
         level1Bonuses: referralStats.level1Bonuses,
         level2Bonuses: referralStats.level2Bonuses,
         // Detailed referral lists
-        directReferralList: directReferrals,
-        indirectReferralList: indirectReferrals,
+        directReferralList: directWithTotals,
+        indirectReferralList: indirectWithTotals,
         recentBonuses: recentBonuses,
         // VIP Commission rates (only triggered when users join VIP levels)
         level1Rate: 10, // 10% for direct referrals
