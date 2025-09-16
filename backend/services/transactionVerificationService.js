@@ -8,6 +8,12 @@ class TransactionVerificationService {
       polygonscan: process.env.POLYGONSCAN_API_KEY,
       tron: process.env.TRON_API_KEY || null
     };
+    this.rpcUrls = {
+      alchemyEth: process.env.ALCHEMY_ETH_URL || null,
+      infuraEth: process.env.INFURA_ETH_URL || null,
+      polygonRpc: process.env.POLYGON_RPC_URL || 'https://polygon-rpc.com/',
+      bscRpc: process.env.BSC_RPC_URL || null,
+    };
   }
 
   /**
@@ -375,8 +381,14 @@ class TransactionVerificationService {
    * Verify Ethereum transaction
    */
   async verifyEthereumTransaction(transactionHash, expectedAddress, expectedAmount) {
-    // Try multiple Ethereum API endpoints for better reliability
+    // Try multiple Ethereum API endpoints for better reliability (prefer dedicated RPCs first)
     const endpoints = [
+      {
+        name: 'Cloudflare',
+        url: 'https://cloudflare-eth.com',
+        method: 'POST',
+        data: { jsonrpc: '2.0', method: 'eth_getTransactionByHash', params: [transactionHash], id: 1 }
+      },
       {
         name: 'Etherscan',
         url: 'https://api.etherscan.io/api',
@@ -396,28 +408,28 @@ class TransactionVerificationService {
           txhash: transactionHash
         }
       },
-      {
+      ...(this.rpcUrls.alchemyEth ? [{
+        name: 'Alchemy',
+        url: this.rpcUrls.alchemyEth,
+        method: 'POST',
+        data: { jsonrpc: '2.0', method: 'eth_getTransactionByHash', params: [transactionHash], id: 1 }
+      }] : [{
         name: 'Alchemy',
         url: 'https://eth-mainnet.g.alchemy.com/v2/demo',
         method: 'POST',
-        data: {
-          jsonrpc: '2.0',
-          method: 'eth_getTransactionByHash',
-          params: [transactionHash],
-          id: 1
-        }
-      },
-      {
+        data: { jsonrpc: '2.0', method: 'eth_getTransactionByHash', params: [transactionHash], id: 1 }
+      }]),
+      ...(this.rpcUrls.infuraEth ? [{
+        name: 'Infura',
+        url: this.rpcUrls.infuraEth,
+        method: 'POST',
+        data: { jsonrpc: '2.0', method: 'eth_getTransactionByHash', params: [transactionHash], id: 1 }
+      }] : [{
         name: 'Infura',
         url: 'https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
         method: 'POST',
-        data: {
-          jsonrpc: '2.0',
-          method: 'eth_getTransactionByHash',
-          params: [transactionHash],
-          id: 1
-        }
-      }
+        data: { jsonrpc: '2.0', method: 'eth_getTransactionByHash', params: [transactionHash], id: 1 }
+      }])
     ];
 
     for (const endpoint of endpoints) {
@@ -445,6 +457,7 @@ class TransactionVerificationService {
           if (response.data.error || (response.data.status === "0" && response.data.message === "NOTOK")) {
             if (response.data.error?.message?.includes('API key') || 
                 response.data.result?.includes('Invalid API Key') ||
+                response.data.result?.includes('Free API access is not available') ||
                 response.data.status === "0") {
               console.log(`⚠️ ${endpoint.name} API key issue, trying next endpoint`);
               continue;
@@ -1060,8 +1073,14 @@ class TransactionVerificationService {
    * Get Ethereum transaction info (without validation)
    */
   async getEthereumTransactionInfo(transactionHash) {
-    // Try multiple Ethereum API endpoints for better reliability
+    // Try multiple Ethereum API endpoints for better reliability (prefer dedicated RPCs first)
     const endpoints = [
+      {
+        name: 'Cloudflare',
+        url: 'https://cloudflare-eth.com',
+        method: 'POST',
+        data: { jsonrpc: '2.0', method: 'eth_getTransactionByHash', params: [transactionHash], id: 1 }
+      },
       {
         name: 'Etherscan',
         url: 'https://api.etherscan.io/api',
@@ -1081,28 +1100,28 @@ class TransactionVerificationService {
           txhash: transactionHash
         }
       },
-      {
+      ...(this.rpcUrls.alchemyEth ? [{
+        name: 'Alchemy',
+        url: this.rpcUrls.alchemyEth,
+        method: 'POST',
+        data: { jsonrpc: '2.0', method: 'eth_getTransactionByHash', params: [transactionHash], id: 1 }
+      }] : [{
         name: 'Alchemy',
         url: 'https://eth-mainnet.g.alchemy.com/v2/demo',
         method: 'POST',
-        data: {
-          jsonrpc: '2.0',
-          method: 'eth_getTransactionByHash',
-          params: [transactionHash],
-          id: 1
-        }
-      },
-      {
+        data: { jsonrpc: '2.0', method: 'eth_getTransactionByHash', params: [transactionHash], id: 1 }
+      }]),
+      ...(this.rpcUrls.infuraEth ? [{
+        name: 'Infura',
+        url: this.rpcUrls.infuraEth,
+        method: 'POST',
+        data: { jsonrpc: '2.0', method: 'eth_getTransactionByHash', params: [transactionHash], id: 1 }
+      }] : [{
         name: 'Infura',
         url: 'https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
         method: 'POST',
-        data: {
-          jsonrpc: '2.0',
-          method: 'eth_getTransactionByHash',
-          params: [transactionHash],
-          id: 1
-        }
-      }
+        data: { jsonrpc: '2.0', method: 'eth_getTransactionByHash', params: [transactionHash], id: 1 }
+      }])
     ];
 
     for (const endpoint of endpoints) {
