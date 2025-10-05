@@ -11,6 +11,7 @@ import UsdtDeposit from '../components/UsdtDeposit';
 import MemberList from '../components/MemberList';
 import WelcomeModal from '../components/ui/WelcomeModal';
 import WelcomeBanner from '../components/ui/WelcomeBanner';
+import CountdownTimer from '../components/ui/CountdownTimer';
 import { toast } from 'react-hot-toast';
 import { calculateNextVipUpgrade } from '../utils/vipCalculations';
 import {

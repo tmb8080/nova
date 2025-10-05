@@ -19,9 +19,9 @@ const prisma = new PrismaClient();
 // Request withdrawal
 router.post('/request', [
   body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be greater than 0.01'),
-  body('currency').isIn(['BTC', 'ETH', 'USDT', 'USDC', 'USDT_USDC']).withMessage('Invalid currency'),
+  body('currency').isIn(['BTC', 'USDT', 'USDC', 'USDT_USDC']).withMessage('Invalid currency'),
   body('walletAddress').notEmpty().withMessage('Wallet address is required'),
-  body('network').optional().isIn(['TRC20', 'BEP20', 'ERC20', 'POLYGON', 'ARBITRUM', 'OPTIMISM']).withMessage('Invalid network')
+  body('network').optional().isIn(['BEP20', 'POLYGON', 'ARBITRUM', 'OPTIMISM']).withMessage('Invalid network')
 ], authenticateToken, async (req, res) => {
   try {
     const errors = validationResult(req);

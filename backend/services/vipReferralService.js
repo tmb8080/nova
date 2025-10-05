@@ -37,9 +37,19 @@ const processVipReferralBonus = async (userId, vipLevelId, vipAmount) => {
 
     const results = [];
 
-    // Process Level 1 (Direct) Referral - 10%
-    const level1ReferrerId = vipUser.referredBy;
-    const level1BonusRate = 10; // 10%
+  // Load referral bonus level rates from admin settings (fallbacks: 10%, 5%, 2%)
+  const adminSettings = await prisma.adminSettings.findFirst();
+  const level1RateDecimal = parseFloat(adminSettings?.referralBonusLevel1Rate ?? 0.10);
+  const level2RateDecimal = parseFloat(adminSettings?.referralBonusLevel2Rate ?? 0.05);
+  const level3RateDecimal = parseFloat(adminSettings?.referralBonusLevel3Rate ?? 0.02);
+
+  // Convert to percentage values for existing calculatePercentage function
+  const level1BonusRate = level1RateDecimal * 100;
+  const level2BonusRate = level2RateDecimal * 100;
+  const level3BonusRate = level3RateDecimal * 100;
+
+  // Process Level 1 (Direct) Referral
+  const level1ReferrerId = vipUser.referredBy;
     const level1BonusAmount = calculatePercentage(vipAmount, level1BonusRate);
 
     console.log(`Processing Level 1 bonus: ${level1BonusAmount} for referrer ${level1ReferrerId}`);
@@ -59,7 +69,7 @@ const processVipReferralBonus = async (userId, vipLevelId, vipAmount) => {
       results.push(level1Result);
     }
 
-    // Process Level 2 (Indirect) Referral - 5%
+    // Process Level 2 (Indirect) Referral
     if (level1ReferrerId) {
       const level1Referrer = await prisma.user.findUnique({
         where: { id: level1ReferrerId },
@@ -68,7 +78,6 @@ const processVipReferralBonus = async (userId, vipLevelId, vipAmount) => {
 
       if (level1Referrer && level1Referrer.referredBy) {
         const level2ReferrerId = level1Referrer.referredBy;
-        const level2BonusRate = 5; // 5%
         const level2BonusAmount = calculatePercentage(vipAmount, level2BonusRate);
 
         console.log(`Processing Level 2 bonus: ${level2BonusAmount} for referrer ${level2ReferrerId}`);
@@ -88,7 +97,7 @@ const processVipReferralBonus = async (userId, vipLevelId, vipAmount) => {
           results.push(level2Result);
         }
 
-        // Process Level 3 (Third Level) Referral - 2%
+        // Process Level 3 (Third Level) Referral
         const level2Referrer = await prisma.user.findUnique({
           where: { id: level2ReferrerId },
           select: { referredBy: true }
@@ -96,7 +105,6 @@ const processVipReferralBonus = async (userId, vipLevelId, vipAmount) => {
 
         if (level2Referrer && level2Referrer.referredBy) {
           const level3ReferrerId = level2Referrer.referredBy;
-          const level3BonusRate = 2; // 2%
           const level3BonusAmount = calculatePercentage(vipAmount, level3BonusRate);
 
           console.log(`Processing Level 3 bonus: ${level3BonusAmount} for referrer ${level3ReferrerId}`);

@@ -323,8 +323,6 @@ const Deposit = () => {
         const networkConfig = {
           'BSC': { name: 'BSC (BEP20)', description: 'Binance Smart Chain', fee: '~$0.5' },
           'POLYGON': { name: 'Polygon', description: 'Polygon Network', fee: '~$0.01' },
-          'ETHEREUM': { name: 'Ethereum (ERC20)', description: 'Ethereum Mainnet', fee: '~$10-50' },
-          'TRON': { name: 'TRON (TRC20)', description: 'TRON Network', fee: '~$1' }
         };
         
         const config = networkConfig[network] || { 
@@ -343,11 +341,9 @@ const Deposit = () => {
         };
       });
     } else {
-      // Fallback to default networks
+      // Fallback to default networks (TRON and Ethereum removed)
       return [
         { code: 'BEP20', name: 'BSC (BEP20)', description: 'Binance Smart Chain', fee: '~$0.5' },
-        { code: 'TRC20', name: 'TRON (TRC20)', description: 'TRON Network', fee: '~$1' },
-        { code: 'ERC20', name: 'Ethereum (ERC20)', description: 'Ethereum Mainnet', fee: '~$10-50' },
         { code: 'POLYGON', name: 'Polygon', description: 'Polygon Network', fee: '~$0.01' },
       ];
     }
@@ -356,7 +352,6 @@ const Deposit = () => {
   const currencies = [
     { code: 'USDT', name: 'Tether USD', icon: '₮', method: 'direct' },
     { code: 'BTC', name: 'Bitcoin', icon: '₿', method: 'coinbase' },
-    { code: 'ETH', name: 'Ethereum', icon: 'Ξ', method: 'coinbase' },
   ];
 
   const onSubmit = async (data) => {
@@ -384,9 +379,7 @@ const Deposit = () => {
         // Use the network where the transaction was actually found
         const actualNetwork = verificationResult.data.foundOnNetwork;
         const networkMapping = {
-          'TRON': 'TRC20',
           'BSC': 'BEP20',
-          'ETHEREUM': 'ERC20',
           'POLYGON': 'POLYGON'
         };
         
@@ -1103,7 +1096,7 @@ const Deposit = () => {
                       <ul className="text-yellow-700 space-y-1 text-xs">
                         <li>• Minimum USDT deposit: 30 USDT</li>
                         <li>• Always double-check the wallet address</li>
-                        <li>• Use the correct network (BEP20, TRC20, etc.)</li>
+                        <li>• Use the correct network (BEP20, POLYGON, etc.)</li>
                         <li>• Manual verification required - submit transaction hash after sending</li>
                         <li>• Automatic detection is disabled</li>
                         {companyAddresses?.data && Object.keys(companyAddresses.data).length > 0 && (
@@ -1116,8 +1109,6 @@ const Deposit = () => {
                       <h4 className="font-medium text-blue-800 mb-2">Network Fees:</h4>
                       <ul className="text-blue-700 space-y-1 text-xs">
                         <li>• BEP20 (BSC): ~$0.5 - Recommended</li>
-                        <li>• TRC20 (TRON): ~$1 - Fast</li>
-                        <li>• ERC20 (Ethereum): ~$10-50 - Expensive</li>
                         <li>• Polygon: ~$0.01 - Very cheap</li>
                       </ul>
                     </div>

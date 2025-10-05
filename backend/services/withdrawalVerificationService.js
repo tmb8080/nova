@@ -145,16 +145,7 @@ const validateUsdtAddress = async (address, network) => {
 
   try {
     switch (network) {
-      case 'TRC20':
-        // TRON address validation (starts with T, 34 characters)
-        if (!/^T[A-Za-z1-9]{33}$/.test(address)) {
-          validationResult.message = 'Invalid TRC20 address format';
-          return validationResult;
-        }
-        break;
-
       case 'BEP20':
-      case 'ERC20':
       case 'POLYGON':
         // Ethereum-style address validation (0x followed by 40 hex characters)
         if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
@@ -281,11 +272,8 @@ const validateUsdcAddress = async (address, network) => {
 const validateAddressOnBlockchain = async (address, network) => {
   try {
     switch (network) {
-      case 'TRC20':
-        return await validateTronAddress(address);
       case 'BEP20':
         return await validateBscAddress(address);
-      case 'ERC20':
       case 'POLYGON':
         return await validateEthereumAddressOnChain(address, network);
       default:
@@ -297,21 +285,6 @@ const validateAddressOnBlockchain = async (address, network) => {
   }
 };
 
-// Validate TRON address
-const validateTronAddress = async (address) => {
-  try {
-    const response = await axios.get(`https://api.trongrid.io/v1/accounts/${address}`);
-    
-    if (response.data.success === true) {
-      return { valid: true, message: 'TRON address validated' };
-    } else {
-      return { valid: false, message: 'Invalid TRON address' };
-    }
-  } catch (error) {
-    console.error('Error validating TRON address:', error);
-    return { valid: false, message: 'TRON address validation failed' };
-  }
-};
 
 // Validate BSC address
 const validateBscAddress = async (address) => {

@@ -44,20 +44,6 @@ const UserWalletAddresses = () => {
         currency: 'USDT/USDC',
         color: 'bg-purple-600',
         icon: '🟣'
-      },
-      'ETHEREUM': {
-        name: 'Ethereum ERC20',
-        description: 'Ethereum Mainnet',
-        currency: 'USDT/USDC',
-        color: 'bg-purple-500',
-        icon: '🔷'
-      },
-      'TRON': {
-        name: 'Tron TRC20',
-        description: 'Tron Network',
-        currency: 'USDT',
-        color: 'bg-blue-500',
-        icon: '🔵'
       }
     };
     
@@ -137,8 +123,6 @@ const UserWalletAddresses = () => {
             <option value="ALL">All Networks</option>
             <option value="BSC">BSC</option>
             <option value="POLYGON">Polygon</option>
-            <option value="ETHEREUM">Ethereum</option>
-            <option value="TRON">Tron</option>
           </select>
         </div>
       </div>

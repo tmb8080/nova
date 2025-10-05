@@ -59,9 +59,7 @@ const CompanyWalletDashboard = () => {
   const getNetworkColor = (network) => {
     const colors = {
       'BSC': 'bg-yellow-500',
-      'POLYGON': 'bg-purple-600',
-      'ETHEREUM': 'bg-purple-500',
-      'TRON': 'bg-blue-500'
+      'POLYGON': 'bg-purple-600'
     };
     return colors[network] || 'bg-gray-500';
   };
@@ -182,8 +180,6 @@ const CompanyWalletDashboard = () => {
                 <option value="ALL">All Networks</option>
                 <option value="BSC">BSC</option>
                 <option value="POLYGON">Polygon</option>
-                <option value="ETHEREUM">Ethereum</option>
-                <option value="TRON">Tron</option>
               </select>
               
               <select

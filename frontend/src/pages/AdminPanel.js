@@ -11,6 +11,8 @@ import MobileBottomNav from '../components/MobileBottomNav';
 import DesktopNav from '../components/layout/DesktopNav';
 import toast from 'react-hot-toast';
 import Card from '../components/ui/Card';
+import AdminVipManager from '../components/AdminVipManager';
+import AdminVipMembersList from '../components/AdminVipMembersList';
 
 const AdminPanel = () => {
   const { user, logout } = useAuth();
@@ -43,7 +45,7 @@ const AdminPanel = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const tabParam = urlParams.get('tab');
-    if (tabParam && ['dashboard', 'deposits', 'withdrawals', 'withdrawal-history', 'users', 'settings'].includes(tabParam)) {
+    if (tabParam && ['dashboard', 'deposits', 'withdrawals', 'withdrawal-history', 'users', 'settings', 'vips'].includes(tabParam)) {
       setActiveTab(tabParam);
     } else if (location.pathname === '/admin' && !location.search) {
       // If we're on /admin without any search params, set to dashboard
@@ -97,6 +99,32 @@ const AdminPanel = () => {
     },
     enabled: !!user?.isAdmin, // Only run if user is admin
   });
+
+  // Admin settings form state (so inputs reflect real data when opened)
+  const [adminSettingsForm, setAdminSettingsForm] = useState({
+    minDepositAmount: 30,
+    minWithdrawalAmount: 10,
+    referralBonusLevel1RatePercent: 10, // display as percent
+    referralBonusLevel2RatePercent: 5,
+    referralBonusLevel3RatePercent: 2,
+    isDepositEnabled: true,
+    isWithdrawalEnabled: true,
+  });
+
+  useEffect(() => {
+    if (settings) {
+      setAdminSettingsForm((prev) => ({
+        ...prev,
+        minDepositAmount: parseFloat(settings.minDepositAmount ?? 30),
+        minWithdrawalAmount: parseFloat(settings.minWithdrawalAmount ?? 10),
+        referralBonusLevel1RatePercent: parseFloat(((settings.referralBonusLevel1Rate ?? 0.10) * 100).toFixed(2)),
+        referralBonusLevel2RatePercent: parseFloat(((settings.referralBonusLevel2Rate ?? 0.05) * 100).toFixed(2)),
+        referralBonusLevel3RatePercent: parseFloat(((settings.referralBonusLevel3Rate ?? 0.02) * 100).toFixed(2)),
+        isDepositEnabled: !!settings.isDepositEnabled,
+        isWithdrawalEnabled: !!settings.isWithdrawalEnabled,
+      }));
+    }
+  }, [settings]);
 
   // Fetch company wallet addresses
   const { data: addressesData, isLoading: addressesLoading } = useQuery({
@@ -350,10 +378,8 @@ const AdminPanel = () => {
     // Get the expected wallet address for the network
     const getWalletAddressForNetwork = (network) => {
       const addresses = {
-        'BEP20': '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0',
-        'TRC20': 'TMWN4rYSzCHmhPe6xhhGhB5pcbHHMFUXth',
-        'POLYGON': '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0',
-        'ERC20': '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0'
+        'BEP20': '0xabF028e289096E3B2b6D71D9c7F1fB2650Ad3AC1',
+        'POLYGON': '0xabF028e289096E3B2b6D71D9c7F1fB2650Ad3AC1'
       };
       return addresses[network] || addresses['BEP20'];
     };
@@ -411,13 +437,9 @@ const AdminPanel = () => {
   const getNetworkIcon = (network) => {
     const icons = {
       'BSC': '🟡',
-      'Ethereum': '🔵',
       'Polygon': '🟣',
-      'TRON': '🔴',
       'BEP20': '🟡',
-      'ERC20': '🔵',
-      'POLYGON': '🟣',
-      'TRC20': '🔴'
+      'POLYGON': '🟣'
     };
     return icons[network] || '🌐';
   };
@@ -425,13 +447,9 @@ const AdminPanel = () => {
   const getNetworkColor = (network) => {
     const colors = {
       'BSC': 'text-yellow-400',
-      'Ethereum': 'text-blue-400',
       'Polygon': 'text-purple-400',
-      'TRON': 'text-red-400',
       'BEP20': 'text-yellow-400',
-      'ERC20': 'text-blue-400',
-      'POLYGON': 'text-purple-400',
-      'TRC20': 'text-red-400'
+      'POLYGON': 'text-purple-400'
     };
     return colors[network] || 'text-gray-400';
   };
@@ -459,12 +477,8 @@ const AdminPanel = () => {
     const networkMap = {
       'BSC': 'BSC',
       'BEP20': 'BSC',
-      'Ethereum': 'ETHEREUM',
-      'ERC20': 'ETHEREUM',
       'Polygon': 'POLYGON',
-      'POLYGON': 'POLYGON',
-      'TRON': 'TRON',
-      'TRC20': 'TRON'
+      'POLYGON': 'POLYGON'
     };
     
     const mappedNetwork = networkMap[network];
@@ -503,6 +517,8 @@ const AdminPanel = () => {
     { id: 'withdrawal-history', label: 'Withdrawal History', icon: '📋' },
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'settings', label: 'Settings', icon: '⚙️' },
+    { id: 'vips', label: 'VIPs', icon: '⭐' },
+    { id: 'vip-members', label: 'VIP Members', icon: '👑' },
   ];
 
   return (
@@ -514,8 +530,8 @@ const AdminPanel = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Admin Panel</h1>
-          <p className="text-gray-300">Manage users, deposits, withdrawals, and system settings</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Admin Panel</h1>
+          <p className="text-gray-700 dark:text-gray-300">Manage users, deposits, withdrawals, and system settings</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Button
               onClick={() => setShowTransactionChecker(true)}
@@ -534,8 +550,8 @@ const AdminPanel = () => {
                 onClick={() => handleTabChange(tab.id)}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   activeTab === tab.id
-                    ? 'bg-white/20 text-white shadow-lg'
-                    : 'bg-white/10 text-gray-300 hover:bg-white/15 hover:text-white'
+                    ? 'bg-gray-100 text-gray-900 shadow-sm dark:bg-white/20 dark:text-white dark:shadow-lg'
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/15 dark:hover:text-white'
                 }`}
               >
                 <span>{tab.icon}</span>
@@ -547,7 +563,7 @@ const AdminPanel = () => {
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-white">System Overview</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">System Overview</h2>
               <Button
                 onClick={() => {
                   queryClient.invalidateQueries(['adminStats']);
@@ -574,30 +590,30 @@ const AdminPanel = () => {
                <div className="space-y-6">
                  {/* Main Stats Grid */}
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                   <div className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
-                     <div className="text-gray-300 text-sm">Total Users</div>
-                     <div className="text-2xl font-bold text-white">{stats?.totalUsers || 0}</div>
+                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
+                     <div className="text-gray-700 dark:text-gray-300 text-sm">Total Users</div>
+                     <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats?.totalUsers || 0}</div>
                      <div className="text-xs text-gray-400 mt-1">
                        {stats?.activeUsers || 0} active • {stats?.todayUsers || 0} today
                      </div>
                    </div>
-                   <div className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
-                     <div className="text-gray-300 text-sm">Total Deposits</div>
-                     <div className="text-2xl font-bold text-white">{formatCurrency(stats?.totalDeposits || 0)}</div>
+                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
+                     <div className="text-gray-700 dark:text-gray-300 text-sm">Total Deposits</div>
+                     <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(stats?.totalDeposits || 0)}</div>
                      <div className="text-xs text-gray-400 mt-1">
                        {stats?.depositCount || 0} transactions • {formatCurrency(stats?.todayDeposits || 0)} today
                      </div>
                    </div>
-                   <div className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
-                     <div className="text-gray-300 text-sm">Pending Withdrawals</div>
+                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
+                     <div className="text-gray-700 dark:text-gray-300 text-sm">Pending Withdrawals</div>
                      <div className="text-2xl font-bold text-yellow-400">{formatCurrency(stats?.pendingWithdrawals || 0)}</div>
                      <div className="text-xs text-gray-400 mt-1">
                        {stats?.pendingWithdrawalCount || 0} requests
                      </div>
                    </div>
-                   <div className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
-                     <div className="text-gray-300 text-sm">System Balance</div>
-                     <div className="text-2xl font-bold text-green-400">{formatCurrency(stats?.systemBalance || 0)}</div>
+                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
+                     <div className="text-gray-700 dark:text-gray-300 text-sm">System Balance</div>
+                     <div className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(stats?.systemBalance || 0)}</div>
                      <div className="text-xs text-gray-400 mt-1">
                        Net position
                      </div>
@@ -606,56 +622,56 @@ const AdminPanel = () => {
 
                  {/* Detailed Stats Grid */}
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   <div className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
-                     <div className="text-gray-300 text-sm">VIP Users</div>
-                     <div className="text-xl font-bold text-purple-400">{stats?.vipUsers || 0}</div>
+                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
+                     <div className="text-gray-700 dark:text-gray-300 text-sm">VIP Users</div>
+                     <div className="text-xl font-bold text-purple-600 dark:text-purple-400">{stats?.vipUsers || 0}</div>
                      <div className="text-xs text-gray-400 mt-1">Active VIP members</div>
                    </div>
-                   <div className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
-                     <div className="text-gray-300 text-sm">VIP Task Earnings</div>
-                     <div className="text-xl font-bold text-blue-400">{formatCurrency(stats?.totalEarnings || 0)}</div>
+                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
+                     <div className="text-gray-700 dark:text-gray-300 text-sm">VIP Task Earnings</div>
+                     <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{formatCurrency(stats?.totalEarnings || 0)}</div>
                      <div className="text-xs text-gray-400 mt-1">From VIP tasks only</div>
                    </div>
-                   <div className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
-                     <div className="text-gray-300 text-sm">Referral Bonuses</div>
-                     <div className="text-xl font-bold text-emerald-400">{formatCurrency(stats?.totalReferralBonus || 0)}</div>
+                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
+                     <div className="text-gray-700 dark:text-gray-300 text-sm">Referral Bonuses</div>
+                     <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(stats?.totalReferralBonus || 0)}</div>
                      <div className="text-xs text-gray-400 mt-1">Total paid</div>
                    </div>
                  </div>
 
                  {/* Transaction Summary */}
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                   <div className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
-                     <div className="text-gray-300 text-sm mb-4">Deposit Summary</div>
+                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
+                     <div className="text-gray-700 dark:text-gray-300 text-sm mb-4">Deposit Summary</div>
                      <div className="space-y-2">
                        <div className="flex justify-between">
-                         <span className="text-gray-400 text-sm">Confirmed:</span>
-                         <span className="text-white font-medium">{formatCurrency(stats?.confirmedDeposits || 0)}</span>
+                         <span className="text-gray-500 dark:text-gray-400 text-sm">Confirmed:</span>
+                         <span className="text-gray-900 dark:text-white font-medium">{formatCurrency(stats?.confirmedDeposits || 0)}</span>
                        </div>
                        <div className="flex justify-between">
-                         <span className="text-gray-400 text-sm">Pending:</span>
+                         <span className="text-gray-500 dark:text-gray-400 text-sm">Pending:</span>
                          <span className="text-yellow-400 font-medium">{formatCurrency(stats?.pendingDeposits || 0)}</span>
                        </div>
                        <div className="flex justify-between">
-                         <span className="text-gray-400 text-sm">Today:</span>
-                         <span className="text-green-400 font-medium">{formatCurrency(stats?.todayDeposits || 0)}</span>
+                         <span className="text-gray-500 dark:text-gray-400 text-sm">Today:</span>
+                         <span className="text-green-600 dark:text-green-400 font-medium">{formatCurrency(stats?.todayDeposits || 0)}</span>
                        </div>
                      </div>
                    </div>
-                   <div className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
-                     <div className="text-gray-300 text-sm mb-4">Withdrawal Summary</div>
+                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
+                     <div className="text-gray-700 dark:text-gray-300 text-sm mb-4">Withdrawal Summary</div>
                      <div className="space-y-2">
                        <div className="flex justify-between">
-                         <span className="text-gray-400 text-sm">Completed:</span>
-                         <span className="text-white font-medium">{formatCurrency(stats?.completedWithdrawals || 0)}</span>
+                         <span className="text-gray-500 dark:text-gray-400 text-sm">Completed:</span>
+                         <span className="text-gray-900 dark:text-white font-medium">{formatCurrency(stats?.completedWithdrawals || 0)}</span>
                        </div>
                        <div className="flex justify-between">
-                         <span className="text-gray-400 text-sm">Pending:</span>
+                         <span className="text-gray-500 dark:text-gray-400 text-sm">Pending:</span>
                          <span className="text-yellow-400 font-medium">{formatCurrency(stats?.pendingWithdrawals || 0)}</span>
                        </div>
                        <div className="flex justify-between">
-                         <span className="text-gray-400 text-sm">Today:</span>
-                         <span className="text-red-400 font-medium">{formatCurrency(stats?.todayWithdrawals || 0)}</span>
+                         <span className="text-gray-500 dark:text-gray-400 text-sm">Today:</span>
+                         <span className="text-red-600 dark:text-red-400 font-medium">{formatCurrency(stats?.todayWithdrawals || 0)}</span>
                        </div>
                      </div>
                    </div>
@@ -901,14 +917,17 @@ const AdminPanel = () => {
               <div className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
                 <form onSubmit={(e) => {
                   e.preventDefault();
-                  const formData = new FormData(e.target);
-                  const settings = {
-                    minDepositAmount: parseFloat(formData.get('minDepositAmount')),
-                    minWithdrawalAmount: parseFloat(formData.get('minWithdrawalAmount')),
-                    isDepositEnabled: formData.get('isDepositEnabled') === 'on',
-                    isWithdrawalEnabled: formData.get('isWithdrawalEnabled') === 'on',
+                  const payload = {
+                    minDepositAmount: parseFloat(adminSettingsForm.minDepositAmount),
+                    minWithdrawalAmount: parseFloat(adminSettingsForm.minWithdrawalAmount),
+                    // send decimals expected by backend (0-1)
+                    referralBonusLevel1Rate: parseFloat(adminSettingsForm.referralBonusLevel1RatePercent) / 100,
+                    referralBonusLevel2Rate: parseFloat(adminSettingsForm.referralBonusLevel2RatePercent) / 100,
+                    referralBonusLevel3Rate: parseFloat(adminSettingsForm.referralBonusLevel3RatePercent) / 100,
+                    isDepositEnabled: !!adminSettingsForm.isDepositEnabled,
+                    isWithdrawalEnabled: !!adminSettingsForm.isWithdrawalEnabled,
                   };
-                  updateSettingsMutation.mutate(settings);
+                  updateSettingsMutation.mutate(payload);
                 }}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -918,7 +937,8 @@ const AdminPanel = () => {
                       <input
                         type="number"
                         name="minDepositAmount"
-                        defaultValue={settings?.data?.minDepositAmount || 30}
+                        value={adminSettingsForm.minDepositAmount}
+                        onChange={(e) => setAdminSettingsForm(prev => ({ ...prev, minDepositAmount: e.target.value }))}
                         step="0.01"
                         className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
@@ -930,7 +950,50 @@ const AdminPanel = () => {
                       <input
                         type="number"
                         name="minWithdrawalAmount"
-                        defaultValue={settings?.data?.minWithdrawalAmount || 10}
+                        value={adminSettingsForm.minWithdrawalAmount}
+                        onChange={(e) => setAdminSettingsForm(prev => ({ ...prev, minWithdrawalAmount: e.target.value }))}
+                        step="0.01"
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Referral Level 1 Bonus (%)
+                      </label>
+                      <input
+                        type="number"
+                        name="referralBonusLevel1Rate"
+                        value={adminSettingsForm.referralBonusLevel1RatePercent}
+                        onChange={(e) => setAdminSettingsForm(prev => ({ ...prev, referralBonusLevel1RatePercent: e.target.value }))}
+                        min="0"
+                        step="0.01"
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Referral Level 2 Bonus (%)
+                      </label>
+                      <input
+                        type="number"
+                        name="referralBonusLevel2Rate"
+                        value={adminSettingsForm.referralBonusLevel2RatePercent}
+                        onChange={(e) => setAdminSettingsForm(prev => ({ ...prev, referralBonusLevel2RatePercent: e.target.value }))}
+                        min="0"
+                        step="0.01"
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Referral Level 3 Bonus (%)
+                      </label>
+                      <input
+                        type="number"
+                        name="referralBonusLevel3Rate"
+                        value={adminSettingsForm.referralBonusLevel3RatePercent}
+                        onChange={(e) => setAdminSettingsForm(prev => ({ ...prev, referralBonusLevel3RatePercent: e.target.value }))}
+                        min="0"
                         step="0.01"
                         className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
@@ -940,7 +1003,8 @@ const AdminPanel = () => {
                         <input
                           type="checkbox"
                           name="isDepositEnabled"
-                          defaultChecked={settings?.data?.isDepositEnabled}
+                          checked={adminSettingsForm.isDepositEnabled}
+                          onChange={(e) => setAdminSettingsForm(prev => ({ ...prev, isDepositEnabled: e.target.checked }))}
                           className="mr-2"
                         />
                         <span className="text-sm text-gray-300">Enable Deposits</span>
@@ -951,7 +1015,8 @@ const AdminPanel = () => {
                         <input
                           type="checkbox"
                           name="isWithdrawalEnabled"
-                          defaultChecked={settings?.data?.isWithdrawalEnabled}
+                          checked={adminSettingsForm.isWithdrawalEnabled}
+                          onChange={(e) => setAdminSettingsForm(prev => ({ ...prev, isWithdrawalEnabled: e.target.checked }))}
                           className="mr-2"
                         />
                         <span className="text-sm text-gray-300">Enable Withdrawals</span>
@@ -970,6 +1035,17 @@ const AdminPanel = () => {
                 </form>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'vips' && (
+          <div className="space-y-6">
+            <AdminVipManager />
+          </div>
+        )}
+        {activeTab === 'vip-members' && (
+          <div className="space-y-6">
+            <AdminVipMembersList />
           </div>
         )}
       </div>
@@ -1078,10 +1154,7 @@ const AdminPanel = () => {
                         className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         <option value="">Select network</option>
-                        <option value="TRC20">TRC20</option>
-                        <option value="ERC20">ERC20</option>
                         <option value="BTC">BTC</option>
-                        <option value="ETH">ETH</option>
                       </select>
                     </div>
 

@@ -257,9 +257,7 @@ const EnhancedDepositModal = ({ isOpen, onClose, onSuccess }) => {
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="BEP20">BEP20 (BSC)</option>
-                <option value="ERC20">ERC20 (Ethereum)</option>
                 <option value="POLYGON">POLYGON</option>
-                <option value="TRC20">TRC20 (TRON)</option>
               </select>
             </div>
 

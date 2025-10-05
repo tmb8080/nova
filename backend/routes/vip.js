@@ -7,7 +7,97 @@ const { processVipReferralBonus } = require('../services/vipReferralService');
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Get all VIP levels
+// Public endpoint: Get all VIP levels (for landing page)
+router.get('/public/levels', async (req, res) => {
+  try {
+    const vipLevels = await prisma.vipLevel.findMany({
+      where: { isActive: true },
+      orderBy: { amount: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        amount: true,
+        dailyEarning: true,
+        bicycleModel: true,
+        bicycleColor: true,
+        bicycleFeatures: true
+      }
+    });
+
+    // Convert Decimal values to numbers for frontend compatibility
+    const formattedVipLevels = vipLevels.map(level => ({
+      ...level,
+      amount: parseFloat(level.amount),
+      dailyEarning: parseFloat(level.dailyEarning)
+    }));
+
+    res.json({
+      success: true,
+      data: formattedVipLevels
+    });
+  } catch (error) {
+    console.error('Error fetching public VIP levels:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch VIP levels'
+    });
+  }
+});
+
+// Public endpoint: Get referral bonus rates (for landing page)
+router.get('/public/referral-rates', async (req, res) => {
+  try {
+    const adminSettings = await prisma.adminSettings.findFirst({
+      select: {
+        referralBonusLevel1Rate: true,
+        referralBonusLevel2Rate: true,
+        referralBonusLevel3Rate: true
+      }
+    });
+
+    // Default rates if no settings found or rates are null
+    const defaultRates = {
+      level1Rate: 0.10, // 10%
+      level2Rate: 0.05, // 5%
+      level3Rate: 0.02  // 2%
+    };
+
+    let finalRates = defaultRates;
+
+    if (adminSettings) {
+      // Safely parse rates, fallback to defaults if null/undefined/NaN
+      const level1 = adminSettings.referralBonusLevel1Rate;
+      const level2 = adminSettings.referralBonusLevel2Rate;
+      const level3 = adminSettings.referralBonusLevel3Rate;
+
+      finalRates = {
+        level1Rate: (level1 !== null && level1 !== undefined) ? parseFloat(level1) : defaultRates.level1Rate,
+        level2Rate: (level2 !== null && level2 !== undefined) ? parseFloat(level2) : defaultRates.level2Rate,
+        level3Rate: (level3 !== null && level3 !== undefined) ? parseFloat(level3) : defaultRates.level3Rate
+      };
+
+      // Double check for NaN values and replace with defaults
+      if (isNaN(finalRates.level1Rate)) finalRates.level1Rate = defaultRates.level1Rate;
+      if (isNaN(finalRates.level2Rate)) finalRates.level2Rate = defaultRates.level2Rate;
+      if (isNaN(finalRates.level3Rate)) finalRates.level3Rate = defaultRates.level3Rate;
+    }
+
+    console.log('Referral rates being sent:', finalRates);
+
+    res.json({
+      success: true,
+      data: finalRates
+    });
+  } catch (error) {
+    console.error('Error fetching public referral rates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch referral rates'
+    });
+  }
+});
+
+// Get all VIP levels (authenticated)
 router.get('/levels', authenticateToken, async (req, res) => {
   try {
     const vipLevels = await prisma.vipLevel.findMany({

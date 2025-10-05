@@ -26,17 +26,9 @@ class TransactionVerificationService {
       let verificationResult;
       
       switch (network.toUpperCase()) {
-        case 'TRC20':
-        case 'TRON':
-          verificationResult = await this.verifyTronTransaction(transactionHash, expectedAddress, expectedAmount);
-          break;
         case 'BEP20':
         case 'BSC':
           verificationResult = await this.verifyBSCTransaction(transactionHash, expectedAddress, expectedAmount);
-          break;
-        case 'ERC20':
-        case 'ETHEREUM':
-          verificationResult = await this.verifyEthereumTransaction(transactionHash, expectedAddress, expectedAmount);
           break;
         case 'POLYGON':
           verificationResult = await this.verifyPolygonTransaction(transactionHash, expectedAddress, expectedAmount);
@@ -77,17 +69,9 @@ class TransactionVerificationService {
       let blockchainInfo;
       
       switch (network.toUpperCase()) {
-        case 'TRC20':
-        case 'TRON':
-          blockchainInfo = await this.getTronTransactionInfo(transactionHash);
-          break;
         case 'BEP20':
         case 'BSC':
           blockchainInfo = await this.getBSCTransactionInfo(transactionHash);
-          break;
-        case 'ERC20':
-        case 'ETHEREUM':
-          blockchainInfo = await this.getEthereumTransactionInfo(transactionHash);
           break;
         case 'POLYGON':
           blockchainInfo = await this.getPolygonTransactionInfo(transactionHash);
@@ -130,9 +114,7 @@ class TransactionVerificationService {
       
       const networks = [
         { name: 'BSC', method: 'getBSCTransactionInfo' },
-        { name: 'Ethereum', method: 'getEthereumTransactionInfo' },
-        { name: 'Polygon', method: 'getPolygonTransactionInfo' },
-        { name: 'TRON', method: 'getTronTransactionInfo' }
+        { name: 'Polygon', method: 'getPolygonTransactionInfo' }
       ];
 
       const results = [];
@@ -393,9 +375,9 @@ class TransactionVerificationService {
         name: 'Etherscan',
         url: 'https://api.etherscan.io/api',
         params: {
-          module: 'proxy',
-          action: 'eth_getTransactionByHash',
-          txhash: transactionHash,
+      module: 'proxy',
+      action: 'eth_getTransactionByHash',
+      txhash: transactionHash,
           apikey: this.apiKeys.etherscan || 'YourApiKeyToken'
         }
       },
@@ -467,7 +449,7 @@ class TransactionVerificationService {
           tx = response.data.result;
         } else {
           // Handle RPC response format (Alchemy, Infura)
-          if (response.data.error) {
+    if (response.data.error) {
             throw new Error(`${endpoint.name} RPC error: ${response.data.error.message}`);
           }
           tx = response.data.result;
@@ -476,20 +458,20 @@ class TransactionVerificationService {
         if (!tx || !tx.hash || tx.hash === '0x') {
           console.log(`🔍 No transaction found on ${endpoint.name}`);
           continue;
-        }
+    }
 
-        // Verify recipient address
-        const recipientAddress = tx.to;
-        const isRecipientValid = recipientAddress && 
-          recipientAddress.toLowerCase() === expectedAddress.toLowerCase();
+    // Verify recipient address
+    const recipientAddress = tx.to;
+    const isRecipientValid = recipientAddress && 
+      recipientAddress.toLowerCase() === expectedAddress.toLowerCase();
 
-        // Verify amount (value field in wei)
-        const actualAmountWei = tx.value;
-        const expectedAmountWei = this.convertToWei(expectedAmount, 18);
-        const isAmountValid = actualAmountWei === expectedAmountWei;
+    // Verify amount (value field in wei)
+    const actualAmountWei = tx.value;
+    const expectedAmountWei = this.convertToWei(expectedAmount, 18);
+    const isAmountValid = actualAmountWei === expectedAmountWei;
 
-        // Check transaction status
-        const isConfirmed = tx.blockNumber && tx.blockNumber !== '0x0';
+    // Check transaction status
+    const isConfirmed = tx.blockNumber && tx.blockNumber !== '0x0';
 
         // Try to get transaction receipt for token transfer analysis
         let receipt = null;
@@ -591,18 +573,18 @@ class TransactionVerificationService {
         const finalIsAmountValid = Math.abs(actualAmount - expectedAmount) < 0.01; // Allow small tolerance
         
         console.log(`✅ Ethereum transaction verified via ${endpoint.name}!`);
-        return {
+    return {
           isValid: finalIsRecipientValid && finalIsAmountValid && isConfirmed,
-          error: null,
-          details: {
+      error: null,
+      details: {
             recipientAddress: actualRecipientAddress,
             actualAmount: actualAmount,
-            expectedAmount,
+        expectedAmount,
             isRecipientValid: finalIsRecipientValid,
             isAmountValid: finalIsAmountValid,
-            isConfirmed,
-            blockNumber: tx.blockNumber,
-            gasUsed: tx.gas,
+        isConfirmed,
+        blockNumber: tx.blockNumber,
+        gasUsed: tx.gas,
             network: 'Ethereum',
             verifiedVia: endpoint.name,
             tokenTransfers: tokenTransfers,
@@ -1085,9 +1067,9 @@ class TransactionVerificationService {
         name: 'Etherscan',
         url: 'https://api.etherscan.io/api',
         params: {
-          module: 'proxy',
-          action: 'eth_getTransactionByHash',
-          txhash: transactionHash,
+      module: 'proxy',
+      action: 'eth_getTransactionByHash',
+      txhash: transactionHash,
           apikey: this.apiKeys.etherscan || 'YourApiKeyToken'
         }
       },
@@ -1149,10 +1131,10 @@ class TransactionVerificationService {
         let tx;
         if (endpoint.name === 'Etherscan' || endpoint.name === 'Etherscan Public') {
           // Handle Etherscan response format
-          if (response.data.error || (response.data.status === "0" && response.data.message === "NOTOK")) {
-            if (response.data.error?.message?.includes('API key') || 
-                response.data.result?.includes('Invalid API Key') ||
-                response.data.status === "0") {
+      if (response.data.error || (response.data.status === "0" && response.data.message === "NOTOK")) {
+        if (response.data.error?.message?.includes('API key') || 
+            response.data.result?.includes('Invalid API Key') ||
+            response.data.status === "0") {
               console.log(`⚠️ ${endpoint.name} API key issue, trying next endpoint`);
               continue;
             }
@@ -1168,14 +1150,14 @@ class TransactionVerificationService {
         }
         
         console.log(`🔍 ${endpoint.name} transaction data:`, tx);
-        
-        if (!tx || !tx.hash || tx.hash === '0x') {
+          
+          if (!tx || !tx.hash || tx.hash === '0x') {
           console.log(`🔍 No transaction found on ${endpoint.name}`);
           continue;
-        }
+          }
 
-        // Validate that this is actually a transaction (not just a response)
-        if (!tx.to || !tx.from || !tx.value) {
+          // Validate that this is actually a transaction (not just a response)
+          if (!tx.to || !tx.from || !tx.value) {
           console.log(`🔍 Invalid transaction data on ${endpoint.name} - to: ${tx.to}, from: ${tx.from}, value: ${tx.value}`);
           continue;
         }
@@ -1267,20 +1249,20 @@ class TransactionVerificationService {
           }
         } catch (receiptError) {
           console.log(`⚠️ Could not get transaction receipt: ${receiptError.message}`);
-        }
-        
-        return {
-          exists: true,
-          error: null,
-          details: {
-            recipientAddress: tx.to,
-            senderAddress: tx.from,
-            amount: this.convertFromWei(tx.value, 18),
-            blockNumber: tx.blockNumber,
-            gasUsed: tx.gas,
-            gasPrice: tx.gasPrice,
-            network: 'Ethereum',
-            isConfirmed: tx.blockNumber && tx.blockNumber !== '0x0',
+      }
+
+      return {
+        exists: true,
+        error: null,
+        details: {
+          recipientAddress: tx.to,
+          senderAddress: tx.from,
+          amount: this.convertFromWei(tx.value, 18),
+          blockNumber: tx.blockNumber,
+          gasUsed: tx.gas,
+          gasPrice: tx.gasPrice,
+          network: 'Ethereum',
+          isConfirmed: tx.blockNumber && tx.blockNumber !== '0x0',
             timestamp: tx.timestamp || null,
             foundVia: endpoint.name,
             tokenTransfers: tokenTransfers,
@@ -1289,7 +1271,7 @@ class TransactionVerificationService {
           }
         };
 
-      } catch (error) {
+    } catch (error) {
         console.log(`❌ ${endpoint.name} API failed: ${error.message}`);
         continue;
       }

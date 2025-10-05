@@ -83,14 +83,8 @@ const verifyTransactionOnBlockchain = async (transactionHash, network, systemAdd
     let transactionDetails;
 
     switch (network) {
-      case 'TRC20':
-        transactionDetails = await verifyTronTransaction(transactionHash, systemAddresses, expectedAmount);
-        break;
       case 'BEP20':
         transactionDetails = await verifyBscTransaction(transactionHash, systemAddresses, expectedAmount);
-        break;
-      case 'ERC20':
-        transactionDetails = await verifyEthereumTransaction(transactionHash, systemAddresses, expectedAmount);
         break;
       case 'POLYGON':
         transactionDetails = await verifyPolygonTransaction(transactionHash, systemAddresses, expectedAmount);
@@ -448,9 +442,7 @@ const getSystemWalletAddresses = async (network) => {
     // First try to get addresses from user wallet addresses (which now contain company addresses)
     const userAddresses = await prisma.userWalletAddress.findMany({
       where: {
-        network: network === 'TRC20' ? 'TRON' : 
-                network === 'BEP20' ? 'BSC' : 
-                network === 'ERC20' ? 'ETHEREUM' : 
+        network: network === 'BEP20' ? 'BSC' : 
                 network === 'POLYGON' ? 'POLYGON' : network,
         isActive: true
       },
@@ -464,9 +456,7 @@ const getSystemWalletAddresses = async (network) => {
 
     // Fallback to environment variables if no user addresses found
     const addresses = {
-      'TRC20': process.env.TRON_WALLET_ADDRESS ? [process.env.TRON_WALLET_ADDRESS] : [],
       'BEP20': process.env.BSC_WALLET_ADDRESS ? [process.env.BSC_WALLET_ADDRESS] : [],
-      'ERC20': process.env.ETH_WALLET_ADDRESS ? [process.env.ETH_WALLET_ADDRESS] : [],
       'POLYGON': process.env.POLYGON_WALLET_ADDRESS ? [process.env.POLYGON_WALLET_ADDRESS] : []
     };
 
@@ -475,9 +465,7 @@ const getSystemWalletAddresses = async (network) => {
     console.error('Error getting system wallet addresses:', error);
     // Fallback to environment variables on error
     const addresses = {
-      'TRC20': process.env.TRON_WALLET_ADDRESS ? [process.env.TRON_WALLET_ADDRESS] : [],
       'BEP20': process.env.BSC_WALLET_ADDRESS ? [process.env.BSC_WALLET_ADDRESS] : [],
-      'ERC20': process.env.ETH_WALLET_ADDRESS ? [process.env.ETH_WALLET_ADDRESS] : [],
       'POLYGON': process.env.POLYGON_WALLET_ADDRESS ? [process.env.POLYGON_WALLET_ADDRESS] : []
     };
 
@@ -490,19 +478,15 @@ const getTokenContractAddresses = async () => {
   try {
     const contracts = {
       'USDT': {
-        'TRC20': process.env.USDT_TRC20_CONTRACT || 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
         'BEP20': process.env.USDT_BEP20_CONTRACT || '0x55d398326f99059fF775485246999027B3197955',
-        'ERC20': process.env.USDT_ERC20_CONTRACT || '0xdAC17F958D2ee523a2206206994597C13D831ec7',
         'POLYGON': process.env.USDT_POLYGON_CONTRACT || '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'
       },
       'USDC': {
         'BEP20': process.env.USDC_BEP20_CONTRACT || '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
-        'ERC20': process.env.USDC_ERC20_CONTRACT || '0xA0b86a33E6441b8C4C8C8C8C8C8C8C8C8C8C8C8C',
         'POLYGON': process.env.USDC_POLYGON_CONTRACT || '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'
       },
       'BUSD': {
-        'BEP20': process.env.BUSD_BEP20_CONTRACT || '0x55d398326f99059fF775485246999027B3197955',
-        'ERC20': process.env.BUSD_ERC20_CONTRACT || '0x4Fabb145d64652a948d72533023f6E7A623C7C53'
+        'BEP20': process.env.BUSD_BEP20_CONTRACT || '0x55d398326f99059fF775485246999027B3197955'
       }
     };
 

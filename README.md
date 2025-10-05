@@ -144,7 +144,7 @@ The platform includes a comprehensive task system that rewards users for various
    # Server
    PORT=5000
    NODE_ENV="development"
-   FRONTEND_URL="http://novastaking.store"
+   FRONTEND_URL="http://localhost:3000"
    
    # Coinbase Commerce
    COINBASE_COMMERCE_API_KEY="your-coinbase-api-key"
@@ -201,8 +201,8 @@ The platform includes a comprehensive task system that rewards users for various
    ```
 
 The application will be available at:
-- Frontend: http://novastaking.store
-- Backend API: https://umuhuza.store
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:5000
 
 ## 🔧 Configuration
 

@@ -112,13 +112,9 @@ const AutomaticDepositPage = () => {
   const getNetworkIcon = (network) => {
     const icons = {
       'BSC': '🟡',
-      'Ethereum': '🔵',
       'Polygon': '🟣',
-      'TRON': '🔴',
       'BEP20': '🟡',
-      'ERC20': '🔵',
-      'POLYGON': '🟣',
-      'TRC20': '🔴'
+      'POLYGON': '🟣'
     };
     return icons[network] || '🌐';
   };
@@ -126,13 +122,9 @@ const AutomaticDepositPage = () => {
   const getNetworkColor = (network) => {
     const colors = {
       'BSC': 'text-yellow-400',
-      'Ethereum': 'text-blue-400',
       'Polygon': 'text-purple-400',
-      'TRON': 'text-red-400',
       'BEP20': 'text-yellow-400',
-      'ERC20': 'text-blue-400',
-      'POLYGON': 'text-purple-400',
-      'TRC20': 'text-red-400'
+      'POLYGON': 'text-purple-400'
     };
     return colors[network] || 'text-gray-400';
   };
@@ -403,16 +395,8 @@ const AutomaticDepositPage = () => {
                     <span className="text-sm">BSC (BEP20)</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-lg">🔵</span>
-                    <span className="text-sm">Ethereum (ERC20)</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
                     <span className="text-lg">🟣</span>
                     <span className="text-sm">Polygon</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">🔴</span>
-                    <span className="text-sm">TRON (TRC20)</span>
                   </div>
                 </div>
               </CardContent>

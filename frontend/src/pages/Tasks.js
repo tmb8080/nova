@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { taskAPI } from '../services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import CountdownTimer from '../components/ui/CountdownTimer';
 import toast from 'react-hot-toast';
 
 const Tasks = () => {
@@ -112,7 +113,7 @@ const Tasks = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-binance-text-primary">NovaStaking</h1>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-binance-text-primary">MotoImvestment</h1>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-binance-green rounded-full animate-pulse"></div>
@@ -217,6 +218,76 @@ const Tasks = () => {
                     </div>
                   </div>
                 </div>
+              ) : earningStatus?.data?.data?.isWeekend ? (
+                <div className="text-center py-8 sm:py-16">
+                  <div className="relative mb-8 sm:mb-12">
+                    <div className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 bg-gray-100 dark:bg-binance-dark-tertiary rounded-full flex items-center justify-center mx-auto shadow-lg border border-gray-200 dark:border-binance-dark-border">
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 bg-orange-500 rounded-full flex items-center justify-center">
+                        <svg className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-binance-text-primary mb-4 sm:mb-6">Weekend Restriction 🚫</h3>
+                  <p className="text-gray-600 dark:text-binance-text-secondary mb-8 sm:mb-12 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto leading-relaxed px-4">
+                    {earningStatus?.data?.data?.message || `Daily tasks are not available on ${earningStatus?.data?.data?.dayName || 'weekends'}. Please try again on weekdays (Monday to Friday).`}
+                  </p>
+                  
+                  <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-6 max-w-md mx-auto">
+                    <div className="flex items-center justify-center space-x-2 mb-2">
+                      <span className="text-orange-600 dark:text-orange-400 text-lg">📅</span>
+                      <span className="text-orange-600 dark:text-orange-400 font-semibold">Weekend Notice</span>
+                    </div>
+                    <div className="text-orange-600 dark:text-orange-400 text-sm">
+                      Daily tasks are only available Monday through Friday
+                    </div>
+                  </div>
+                </div>
+              ) : earningStatus?.data?.data?.cooldownRemaining ? (
+                <div className="text-center py-8 sm:py-16">
+                  <div className="relative mb-8 sm:mb-12">
+                    <div className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 bg-gray-100 dark:bg-binance-dark-tertiary rounded-full flex items-center justify-center mx-auto shadow-lg border border-gray-200 dark:border-binance-dark-border">
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 bg-yellow-500 rounded-full flex items-center justify-center">
+                        <svg className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-binance-text-primary mb-4 sm:mb-6">Task Completed! 🎉</h3>
+                  <p className="text-gray-600 dark:text-binance-text-secondary mb-8 sm:mb-12 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto leading-relaxed px-4">
+                    {earningStatus?.data?.data?.message || 'Great job! You have completed your daily task. You can start a new task once the cooldown period is over.'}
+                  </p>
+                  
+                  {/* Countdown Timer */}
+                  <div className="mb-8 sm:mb-12">
+                    <CountdownTimer
+                      targetTime={new Date(Date.now() + earningStatus.data.data.cooldownRemaining.hours * 60 * 60 * 1000)}
+                      size="xl"
+                      className="text-center"
+                      onComplete={() => {
+                        queryClient.invalidateQueries(['earningStatus']);
+                        toast.success('🎉 Ready to start your next daily task!');
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6 max-w-md mx-auto">
+                    <div className="flex items-center justify-center space-x-2 mb-2">
+                      <span className="text-green-600 dark:text-green-400 text-lg">💰</span>
+                      <span className="text-green-600 dark:text-green-400 font-semibold">Last Earnings</span>
+                    </div>
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      +{formatCurrency(earningStatus.data.data.lastEarnings || 0)}
+                    </div>
+                    <div className="text-sm text-green-600 dark:text-green-400 mt-1">
+                      Successfully deposited to your wallet
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <div className="text-center py-8 sm:py-16">
                   <div className="relative mb-8 sm:mb-12">
@@ -268,6 +339,8 @@ const Tasks = () => {
                         className={`p-6 rounded-lg border transition-all duration-200 ${
                           task.status === 'IN_PROGRESS' 
                             ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' 
+                            : task.status === 'WEEKEND_RESTRICTED'
+                            ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'
                             : 'bg-gray-50 dark:bg-binance-dark-tertiary border-gray-200 dark:border-binance-dark-border'
                         }`}
                       >
@@ -284,9 +357,17 @@ const Tasks = () => {
                               VIP Level Based
                             </div>
                             <div className={`text-xs font-medium ${
-                              task.status === 'IN_PROGRESS' ? 'text-blue-600 dark:text-blue-400' : 'text-binance-green'
+                              task.status === 'IN_PROGRESS' 
+                                ? 'text-blue-600 dark:text-blue-400' 
+                                : task.status === 'WEEKEND_RESTRICTED'
+                                ? 'text-orange-600 dark:text-orange-400'
+                                : 'text-binance-green'
                             }`}>
-                              {task.status === 'IN_PROGRESS' ? 'ACTIVE' : 'READY'}
+                              {task.status === 'IN_PROGRESS' 
+                                ? 'ACTIVE' 
+                                : task.status === 'WEEKEND_RESTRICTED'
+                                ? 'WEEKEND RESTRICTED'
+                                : 'READY'}
                             </div>
                           </div>
                         </div>
@@ -310,6 +391,11 @@ const Tasks = () => {
                             {task.status === 'IN_PROGRESS' && (
                               <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs">
                                 ⏳ In Progress
+                              </span>
+                            )}
+                            {task.status === 'WEEKEND_RESTRICTED' && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-xs">
+                                🚫 Weekend Restricted
                               </span>
                             )}
                           </div>
@@ -379,9 +465,26 @@ const Tasks = () => {
               <div className="text-gray-600 dark:text-binance-text-secondary text-sm">Added to your wallet</div>
             </div>
             
-            <div className="text-gray-600 dark:text-binance-text-secondary text-sm mb-6">
-              Your next daily task will be available in 24 hours
+            {earningStatus?.data?.data?.cooldownRemaining && (
+              <div className="mb-6">
+                <div className="text-gray-600 dark:text-binance-text-secondary text-sm mb-3">
+                  Your next daily task will be available in:
+                </div>
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                  <CountdownTimer
+                    targetTime={new Date(Date.now() + earningStatus.data.data.cooldownRemaining.hours * 60 * 60 * 1000)}
+                    size="large"
+                    className="text-center"
+                    showLabel={false}
+                    onComplete={() => {
+                      queryClient.invalidateQueries(['earningStatus']);
+                      toast.success('🎉 Ready to start your next daily task!');
+                      setShowCongratulations(false);
+                    }}
+                  />
+                </div>
             </div>
+            )}
             
             <button
               onClick={() => setShowCongratulations(false)}

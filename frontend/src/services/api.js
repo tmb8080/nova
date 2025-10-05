@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Configure axios defaults
-const API_BASE_URL ="https://umuhuza.store/api";
+const API_BASE_URL ="http://localhost:5000/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -121,6 +121,8 @@ export const adminAPI = {
   getWithdrawalHistory: (params) => api.get('/admin/withdrawals/history', { params }),
   getSettings: () => api.get('/admin/settings'),
   updateSettings: (data) => api.put('/admin/settings', data),
+  getVipMembers: (params) => api.get('/admin/vip-members', { params }),
+  getReferralTree: (userId, depth = 3) => api.get(`/admin/users/${userId}/referral-tree`, { params: { depth } }),
   processWithdrawal: (withdrawalId, action, data) => api.patch(`/admin/withdrawals/${withdrawalId}/process`, { action, ...data }),
   updateWithdrawal: (withdrawalId, data) => api.put(`/admin/withdrawals/${withdrawalId}`, data),
   processDeposit: (depositId, action, data) => api.post(`/admin/deposits/${depositId}/${action}`, data),
@@ -128,6 +130,12 @@ export const adminAPI = {
   checkTransactionBlockchain: (data) => api.post('/admin/check-transaction-blockchain', data),
   checkTransactionAllNetworks: (data) => api.post('/admin/check-transaction-all-networks', data),
   toggleUserStatus: (userId) => api.put(`/admin/users/${userId}/toggle-status`),
+  // VIP management
+  getVipLevels: () => api.get('/admin/vip-levels'),
+  getVipLevel: (id) => api.get(`/admin/vip-levels/${id}`),
+  createVipLevel: (data) => api.post('/admin/vip-levels', data),
+  updateVipLevel: (id, data) => api.put(`/admin/vip-levels/${id}`, data),
+  deleteVipLevel: (id) => api.delete(`/admin/vip-levels/${id}`),
 };
 
 // Company Wallet API
@@ -136,6 +144,12 @@ export const companyWalletAPI = {
   getDetails: () => api.get('/company-wallet/details'),
   getTransactions: (params) => api.get('/company-wallet/transactions', { params }),
   initialize: () => api.post('/company-wallet/initialize'),
+};
+
+// Public API (no authentication required)
+export const publicAPI = {
+  getVipLevels: () => api.get('/vip/public/levels'),
+  getReferralRates: () => api.get('/vip/public/referral-rates')
 };
 
 // Generic API helpers

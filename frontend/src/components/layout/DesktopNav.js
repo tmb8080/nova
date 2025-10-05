@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import ThemeToggle from '../ui/ThemeToggle.js';
+import Logo from '../ui/Logo';
 
 const DesktopNav = () => {
   const location = useLocation();
@@ -34,6 +35,15 @@ const DesktopNav = () => {
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      )
+    },
+    {
+      path: '/admin?tab=vips',
+      label: 'VIPs',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.803 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.803-2.034a1 1 0 00-1.176 0l-2.803 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
         </svg>
       )
     },
@@ -140,16 +150,12 @@ const DesktopNav = () => {
           {/* Logo and Brand */}
           <div className="flex items-center space-x-4">
             <div className="flex items-center">
-              <img 
-                src={isDarkMode ? "/navalogowhite.png" : "/novalogo.png"} 
-                alt="NovaStaking Logo" 
-                className="h-12 w-auto"
-              />
+              <Logo className="h-12 w-12" />
             </div>
             <h1 className={`text-xl font-bold ${
               isAdminPanel ? 'text-binance-text-primary' : 'text-gray-900 dark:text-binance-text-primary'
             }`}>
-              {isAdminPanel ? 'Admin Panel' : 'NovaStaking'}
+              {isAdminPanel ? 'Admin Panel' : 'MotoImvestment'}
             </h1>
           </div>
 

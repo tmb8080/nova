@@ -10,6 +10,7 @@ import DepositHistory from '../components/DepositHistory';
 import WithdrawalHistory from '../components/WithdrawalHistory';
 import WithdrawalHistoryPreview from '../components/WithdrawalHistoryPreview';
 import ChangePassword from '../components/ChangePassword';
+import CountdownTimer from '../components/ui/CountdownTimer';
 import toast from 'react-hot-toast';
 
 const Profile = () => {
@@ -110,7 +111,7 @@ const Profile = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-binance-text-primary">NovaStaking</h1>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-binance-text-primary">MotoImvestment</h1>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-binance-green rounded-full animate-pulse"></div>
@@ -252,15 +253,46 @@ const Profile = () => {
               )}
               
               <div className="mt-4">
+              {/* Cooldown Timer - Show when user is in cooldown */}
+              {earningStatus?.data?.data?.cooldownRemaining && (
+                <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <div className="text-center">
+                    <div className="text-sm font-medium text-yellow-700 dark:text-yellow-400 mb-2">
+                      ⏰ Next Task Available In:
+                    </div>
+                    <CountdownTimer
+                      targetTime={new Date(Date.now() + earningStatus.data.data.cooldownRemaining.hours * 60 * 60 * 1000)}
+                      size="default"
+                      className="text-center"
+                      showLabel={false}
+                      onComplete={() => {
+                        queryClient.invalidateQueries(['earningStatus']);
+                        toast.success('🎉 Ready to start your next daily task!');
+                      }}
+                    />
+                    <div className="text-xs text-yellow-600 dark:text-yellow-500 mt-1">
+                      Last earnings: {formatCurrency(earningStatus.data.data.lastEarnings || 0)}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <button
                   onClick={() => window.location.href = '/tasks'}
                 className={`w-full text-sm py-2 rounded-lg ${
                     earningStatus?.data?.data?.hasActiveSession 
                     ? 'btn-primary'
+                    : earningStatus?.data?.data?.cooldownRemaining
+                    ? 'bg-yellow-500 hover:bg-yellow-600 text-white font-medium'
                     : 'btn-secondary'
                   }`}
                 >
-                  {earningStatus?.data?.data?.hasActiveSession ? '🔄 View Progress' : '🎯 Start Task'}
+                  {earningStatus?.data?.data?.hasActiveSession 
+                    ? '🔄 View Progress' 
+                    : earningStatus?.data?.data?.cooldownRemaining
+                    ? '⏰ View Countdown'
+                    : '🎯 Start Task'
+                  }
               </button>
             </div>
           </div>

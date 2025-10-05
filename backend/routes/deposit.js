@@ -17,20 +17,16 @@ const TransactionVerificationService = require('../services/transactionVerificat
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Helper function to get company wallet addresses
+// Helper function to get company wallet addresses (TRON and Ethereum removed)
 const getCompanyAddresses = () => {
   const addresses = {
-    BSC: process.env.BSC_WALLET_ADDRESS || "0xF7c518394f7ceA4c98060ba166Fbd21928A206a0",
-    TRON: process.env.TRON_WALLET_ADDRESS || "TMWN4rYSzCHmhPe6xhhGhB5pcbHHMFUXth",
-    POLYGON: process.env.POLYGON_WALLET_ADDRESS || "0xF7c518394f7ceA4c98060ba166Fbd21928A206a0",
-    ETHEREUM: process.env.ETH_WALLET_ADDRESS || "0xF7c518394f7ceA4c98060ba166Fbd21928A206a0"
+    BSC: process.env.BSC_WALLET_ADDRESS || "0xabF028e289096E3B2b6D71D9c7F1fB2650Ad3AC1",
+    POLYGON: process.env.POLYGON_WALLET_ADDRESS || "0xabF028e289096E3B2b6D71D9c7F1fB2650Ad3AC1"
   };
   
   console.log('🔧 Company addresses loaded:', {
     BSC: addresses.BSC ? `${addresses.BSC.substring(0, 10)}...` : 'NOT_SET',
-    TRON: addresses.TRON ? `${addresses.TRON.substring(0, 10)}...` : 'NOT_SET',
-    POLYGON: addresses.POLYGON ? `${addresses.POLYGON.substring(0, 10)}...` : 'NOT_SET',
-    ETHEREUM: addresses.ETHEREUM ? `${addresses.ETHEREUM.substring(0, 10)}...` : 'NOT_SET'
+    POLYGON: addresses.POLYGON ? `${addresses.POLYGON.substring(0, 10)}...` : 'NOT_SET'
   });
   
   return addresses;
@@ -218,7 +214,7 @@ const verifyTransactionBeforeDeposit = async (transactionHash, network, expected
 // Create deposit request
 router.post('/create', [
   body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be greater than 0.01'),
-  body('currency').isIn(['BTC', 'ETH', 'USDT']).withMessage('Invalid currency')
+  body('currency').isIn(['BTC', 'USDT']).withMessage('Invalid currency')
 ], authenticateToken, async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -380,7 +376,7 @@ router.get('/usdt/addresses', authenticateToken, async (req, res) => {
     const addresses = {
       TRC20: process.env.USDT_TRC20_ADDRESS || 'TJwzxqg5FbGRibyMRArrnSo828WppqvQjd',
       BEP20: process.env.USDT_BEP20_ADDRESS || '0x1016f7DAF8b1816C0979992Ab3c8C8D8D8D8D8D8D',
-      ERC20: process.env.USDT_ERC20_ADDRESS || '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0',
+      ERC20: process.env.USDT_ERC20_ADDRESS || '0xabF028e289096E3B2b6D71D9c7F1fB2650Ad3AC1',
       POLYGON: process.env.USDT_POLYGON_ADDRESS || '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'
     };
 
@@ -404,9 +400,9 @@ router.get('/company-addresses', authenticateToken, async (req, res) => {
     // Get company wallet addresses from environment variables
     const addresses = {
       TRC20: process.env.TRON_WALLET_ADDRESS || 'TMWN4rYSzCHmhPe6xhhGhB5pcbHHMFUXth',
-      BEP20: process.env.BSC_WALLET_ADDRESS || '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0',
-      ERC20: process.env.ETH_WALLET_ADDRESS || '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0',
-      POLYGON: process.env.POLYGON_WALLET_ADDRESS || '0xF7c518394f7ceA4c98060ba166Fbd21928A206a0'
+      BEP20: process.env.BSC_WALLET_ADDRESS || '0xabF028e289096E3B2b6D71D9c7F1fB2650Ad3AC1',
+      ERC20: process.env.ETH_WALLET_ADDRESS || '0xabF028e289096E3B2b6D71D9c7F1fB2650Ad3AC1',
+      POLYGON: process.env.POLYGON_WALLET_ADDRESS || '0xabF028e289096E3B2b6D71D9c7F1fB2650Ad3AC1'
     };
 
     // Add network information and fees

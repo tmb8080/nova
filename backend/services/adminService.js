@@ -114,10 +114,18 @@ const updateAdminSettings = async (updates) => {
       console.log('✅ Default admin settings created');
     }
 
+    // Normalize referral bonus level rates if client sent percents (e.g., 5 => 0.05)
+    const normalized = { ...updates };
+    ['referralBonusLevel1Rate', 'referralBonusLevel2Rate', 'referralBonusLevel3Rate'].forEach((key) => {
+      if (normalized[key] !== undefined && normalized[key] > 1) {
+        normalized[key] = parseFloat(normalized[key]) / 100;
+      }
+    });
+
     // Update the settings
     const updatedSettings = await prisma.adminSettings.update({
       where: { id: settings.id },
-      data: updates
+      data: normalized
     });
 
     return updatedSettings;
@@ -317,6 +325,7 @@ const getUserManagementData = async (page = 1, limit = 20, search = '') => {
         OR: [
           { fullName: { contains: search, mode: 'insensitive' } },
           { email: { contains: search, mode: 'insensitive' } },
+          { phone: { contains: search, mode: 'insensitive' } },
           { referralCode: { contains: search, mode: 'insensitive' } }
         ]
       })

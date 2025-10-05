@@ -144,10 +144,10 @@ const AdminUserManagement = () => {
         </div>
         
         {/* Search */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full">
           <input
             type="text"
-            placeholder="Search users by name, email, or referral code..."
+            placeholder="Search by name, email, phone, or referral code..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);

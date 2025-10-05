@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import ThemeToggle from '../ui/ThemeToggle.js';
+import Logo from '../ui/Logo';
 
 const MobileNav = () => {
   const location = useLocation();
@@ -149,15 +150,11 @@ const MobileNav = () => {
         <div className="flex items-center justify-between h-16 px-4">
           {/* Logo and Brand */}
           <div className="flex items-center space-x-3">
-            <img 
-              src={isDarkMode ? "/navalogowhite.png" : "/novalogo.png"} 
-              alt="NovaStaking Logo" 
-              className="h-8 w-auto"
-            />
+            <Logo className="h-8 w-8" />
             <h1 className={`text-lg font-bold ${
               isAdminPanel ? 'text-binance-text-primary' : 'text-gray-900 dark:text-binance-text-primary'
             }`}>
-              {isAdminPanel ? 'Admin Panel' : 'NovaStaking'}
+              {isAdminPanel ? 'Admin Panel' : 'MotoImvestment'}
             </h1>
           </div>
 

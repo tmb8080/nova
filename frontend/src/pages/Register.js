@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import ThemeToggle from '../components/ui/ThemeToggle.js';
+import Logo from '../components/ui/Logo';
 import { referralAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -87,11 +88,7 @@ const Register = () => {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <img 
-              src={isDarkMode ? "/navalogowhite.png" : "/novalogo.png"} 
-              alt="NovaStaking Logo" 
-              className="h-24 w-auto"
-            />
+            <Logo className="h-24 w-24" />
           </div>
           <p className="text-gray-600 dark:text-binance-text-secondary mt-2">Join the crypto growth revolution</p>
           <div className="flex justify-center mt-4">

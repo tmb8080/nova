@@ -14,7 +14,11 @@ const {
 const { 
   createOrUpdateVipLevels,
   getAllVipLevels,
-  getVipLevelById
+  getVipLevelById,
+  getAllVipLevelsAdmin,
+  createVipLevel,
+  updateVipLevel,
+  deleteVipLevel
 } = require('../services/vipService');
 const TransactionVerificationService = require('../services/transactionVerificationService');
 
@@ -699,7 +703,9 @@ router.get('/settings', async (req, res) => {
 // Update admin settings (PUT method)
 router.put('/settings', [
   body('dailyGrowthRate').optional().isFloat({ min: 0, max: 1 }).withMessage('Daily growth rate must be between 0 and 1'),
-  body('referralBonusRate').optional().isFloat({ min: 0, max: 1 }).withMessage('Referral bonus rate must be between 0 and 1'),
+  body('referralBonusLevel1Rate').optional().isFloat({ min: 0, max: 1 }).withMessage('Level 1 rate must be between 0 and 1'),
+  body('referralBonusLevel2Rate').optional().isFloat({ min: 0, max: 1 }).withMessage('Level 2 rate must be between 0 and 1'),
+  body('referralBonusLevel3Rate').optional().isFloat({ min: 0, max: 1 }).withMessage('Level 3 rate must be between 0 and 1'),
   body('minDepositAmount').optional().isFloat({ min: 0 }).withMessage('Minimum deposit amount must be positive'),
   body('minWithdrawalAmount').optional().isFloat({ min: 0 }).withMessage('Minimum withdrawal amount must be positive'),
   body('isDepositEnabled').optional().isBoolean().withMessage('Deposit enabled must be boolean'),
@@ -736,7 +742,9 @@ router.put('/settings', [
 // Update admin settings (PATCH method - for frontend compatibility)
 router.patch('/settings', [
   body('dailyGrowthRate').optional().isFloat({ min: 0, max: 1 }).withMessage('Daily growth rate must be between 0 and 1'),
-  body('referralBonusRate').optional().isFloat({ min: 0, max: 1 }).withMessage('Referral bonus rate must be between 0 and 1'),
+  body('referralBonusLevel1Rate').optional().isFloat({ min: 0, max: 1 }).withMessage('Level 1 rate must be between 0 and 1'),
+  body('referralBonusLevel2Rate').optional().isFloat({ min: 0, max: 1 }).withMessage('Level 2 rate must be between 0 and 1'),
+  body('referralBonusLevel3Rate').optional().isFloat({ min: 0, max: 1 }).withMessage('Level 3 rate must be between 0 and 1'),
   body('minDepositAmount').optional().isFloat({ min: 0 }).withMessage('Minimum deposit amount must be positive'),
   body('minWithdrawalAmount').optional().isFloat({ min: 0 }).withMessage('Minimum withdrawal amount must be positive'),
   body('isDepositEnabled').optional().isBoolean().withMessage('Deposit enabled must be boolean'),
@@ -775,7 +783,7 @@ router.patch('/settings', [
 // Get all VIP levels
 router.get('/vip-levels', async (req, res) => {
   try {
-    const vipLevels = await getAllVipLevels();
+    const vipLevels = await getAllVipLevelsAdmin();
     
     res.json({
       success: true,
@@ -822,6 +830,72 @@ router.get('/vip-levels/:id', async (req, res) => {
   }
 });
 
+// Create VIP level
+router.post('/vip-levels', [
+  body('name').isString().isLength({ min: 2, max: 100 }),
+  body('amount').isFloat({ min: 0 }),
+  body('dailyEarning').isFloat({ min: 0 }),
+  body('bicycleModel').optional().isString().isLength({ max: 100 }),
+  body('bicycleColor').optional().isString().isLength({ max: 50 }),
+  body('bicycleFeatures').optional().isString().isLength({ max: 500 }),
+  body('isActive').optional().isBoolean()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+    }
+
+    const created = await createVipLevel(req.body);
+    res.json({ success: true, message: 'VIP level created', data: created });
+  } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'VIP name must be unique' });
+    }
+    console.error('Error creating VIP level:', error);
+    res.status(500).json({ error: 'Failed to create VIP level', message: error.message });
+  }
+});
+
+// Update VIP level
+router.put('/vip-levels/:id', [
+  body('name').optional().isString().isLength({ min: 2, max: 100 }),
+  body('amount').optional().isFloat({ min: 0 }),
+  body('dailyEarning').optional().isFloat({ min: 0 }),
+  body('bicycleModel').optional().isString().isLength({ max: 100 }),
+  body('bicycleColor').optional().isString().isLength({ max: 50 }),
+  body('bicycleFeatures').optional().isString().isLength({ max: 500 }),
+  body('isActive').optional().isBoolean()
+], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+    }
+    const updated = await updateVipLevel(id, req.body);
+    res.json({ success: true, message: 'VIP level updated', data: updated });
+  } catch (error) {
+    console.error('Error updating VIP level:', error);
+    res.status(500).json({ error: 'Failed to update VIP level', message: error.message });
+  }
+});
+
+// Delete VIP level
+router.delete('/vip-levels/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await deleteVipLevel(id);
+    res.json({ success: true, message: 'VIP level deleted', data: deleted });
+  } catch (error) {
+    if (error.code === 'VIP_IN_USE') {
+      return res.status(400).json({ error: 'Cannot delete a VIP level that is assigned to users' });
+    }
+    console.error('Error deleting VIP level:', error);
+    res.status(500).json({ error: 'Failed to delete VIP level', message: error.message });
+  }
+});
+
 // Create or update VIP levels (bulk operation)
 router.post('/vip-levels/seed', async (req, res) => {
   try {
@@ -838,6 +912,75 @@ router.post('/vip-levels/seed', async (req, res) => {
       error: 'Failed to create/update VIP levels',
       message: error.message
     });
+  }
+});
+
+// VIP Members (users who joined VIP)
+router.get('/vip-members', [
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+  query('search').optional().isLength({ max: 100 }).withMessage('Search term too long'),
+  query('levelId').optional().isString().isLength({ min: 1 }).withMessage('Invalid level id'),
+  query('activeOnly').optional().isBoolean().withMessage('activeOnly must be boolean')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    const { search = '', levelId, activeOnly } = req.query;
+
+    const whereClause = {
+      ...(levelId && { vipLevelId: levelId }),
+      ...(activeOnly === 'true' && { isActive: true })
+    };
+
+    const [members, total] = await Promise.all([
+      prisma.userVip.findMany({
+        where: whereClause,
+        include: {
+          user: {
+            select: { id: true, fullName: true, email: true, phone: true, createdAt: true }
+          },
+          vipLevel: true
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.userVip.count({ where: whereClause })
+    ]);
+
+    // Optional search filter on user fields (client-side like) if provided
+    const filtered = search
+      ? members.filter((m) => {
+          const s = search.toLowerCase();
+          return (
+            (m.user.fullName || '').toLowerCase().includes(s) ||
+            (m.user.email || '').toLowerCase().includes(s) ||
+            (m.user.phone || '').toLowerCase().includes(s) ||
+            (m.vipLevel?.name || '').toLowerCase().includes(s)
+          );
+        })
+      : members;
+
+    res.json({
+      success: true,
+      data: filtered,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        itemsPerPage: limit
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching VIP members:', error);
+    res.status(500).json({ error: 'Failed to fetch VIP members', message: error.message });
   }
 });
 

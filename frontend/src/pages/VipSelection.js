@@ -191,7 +191,7 @@ const VipSelection = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-binance-text-primary">NovaStaking</h1>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-binance-text-primary">MotoImvestment</h1>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-binance-green rounded-full animate-pulse"></div>

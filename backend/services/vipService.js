@@ -507,6 +507,88 @@ async function getVipLevelById(id) {
   }
 }
 
+/**
+ * Admin: Get all VIP levels (including inactive)
+ */
+async function getAllVipLevelsAdmin() {
+  try {
+    const vipLevels = await prisma.vipLevel.findMany({
+      orderBy: { amount: 'asc' }
+    });
+    return vipLevels;
+  } catch (error) {
+    console.error('Error getting all VIP levels (admin):', error);
+    throw error;
+  }
+}
+
+/**
+ * Admin: Create VIP level
+ */
+async function createVipLevel(data) {
+  try {
+    const created = await prisma.vipLevel.create({
+      data: {
+        name: data.name,
+        amount: data.amount,
+        dailyEarning: data.dailyEarning,
+        bicycleModel: data.bicycleModel || null,
+        bicycleColor: data.bicycleColor || null,
+        bicycleFeatures: data.bicycleFeatures || null,
+        isActive: data.isActive !== undefined ? data.isActive : true
+      }
+    });
+    return created;
+  } catch (error) {
+    console.error('Error creating VIP level:', error);
+    throw error;
+  }
+}
+
+/**
+ * Admin: Update VIP level
+ */
+async function updateVipLevel(id, updates) {
+  try {
+    const updated = await prisma.vipLevel.update({
+      where: { id },
+      data: {
+        ...(updates.name !== undefined ? { name: updates.name } : {}),
+        ...(updates.amount !== undefined ? { amount: updates.amount } : {}),
+        ...(updates.dailyEarning !== undefined ? { dailyEarning: updates.dailyEarning } : {}),
+        ...(updates.bicycleModel !== undefined ? { bicycleModel: updates.bicycleModel } : {}),
+        ...(updates.bicycleColor !== undefined ? { bicycleColor: updates.bicycleColor } : {}),
+        ...(updates.bicycleFeatures !== undefined ? { bicycleFeatures: updates.bicycleFeatures } : {}),
+        ...(updates.isActive !== undefined ? { isActive: updates.isActive } : {})
+      }
+    });
+    return updated;
+  } catch (error) {
+    console.error('Error updating VIP level:', error);
+    throw error;
+  }
+}
+
+/**
+ * Admin: Delete VIP level
+ */
+async function deleteVipLevel(id) {
+  try {
+    // Ensure not referenced by any user
+    const usageCount = await prisma.userVip.count({ where: { vipLevelId: id } });
+    if (usageCount > 0) {
+      const error = new Error('Cannot delete a VIP level that is assigned to users');
+      error.code = 'VIP_IN_USE';
+      throw error;
+    }
+    const deleted = await prisma.vipLevel.delete({ where: { id } });
+    return deleted;
+  } catch (error) {
+    console.error('Error deleting VIP level:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   processCompletedEarningSessions,
   getUserVipStats,
@@ -514,5 +596,9 @@ module.exports = {
   createOrUpdateVipLevels,
   getAllVipLevels,
   getVipLevelById,
-  completeExpiredEarningSessions
+  completeExpiredEarningSessions,
+  getAllVipLevelsAdmin,
+  createVipLevel,
+  updateVipLevel,
+  deleteVipLevel
 };

@@ -182,6 +182,9 @@ model AdminSettings {
   updatedAt               DateTime @updatedAt
   minUsdtDepositAmount    Decimal  @default(30) @db.Decimal(18, 8)
   minUsdcWithdrawalAmount Decimal  @default(20) @db.Decimal(18, 8)
+  referralBonusLevel1Rate Decimal  @default(0.05) @db.Decimal(5, 4)
+  referralBonusLevel2Rate Decimal  @default(0.02) @db.Decimal(5, 4)
+  referralBonusLevel3Rate Decimal  @default(0.01) @db.Decimal(5, 4)
 
   @@map("admin_settings")
 }

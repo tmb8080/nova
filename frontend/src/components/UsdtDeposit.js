@@ -6,7 +6,7 @@ import { Input } from './ui/Input';
 import { toast } from 'react-hot-toast';
 
 const UsdtDeposit = ({ onClose, vipToJoin }) => {
-  const [selectedMethod, setSelectedMethod] = useState('TRC20-USDT');
+  const [selectedMethod, setSelectedMethod] = useState('BEP20-USDT');
   const [transactionHash, setTransactionHash] = useState('');
   const [amount, setAmount] = useState('');
   const [copiedAddress, setCopiedAddress] = useState(false);
@@ -27,13 +27,10 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
     }
   });
 
-  // Deposit methods
+  // Deposit methods (TRON and Ethereum removed)
   const depositMethods = [
-    { key: 'TRC20-USDT', name: 'TRC20-USDT', network: 'TRC20', currency: 'USDT', color: 'bg-purple-500' },
     { key: 'BEP20-USDT', name: 'BEP20-USDT', network: 'BEP20', currency: 'USDT', color: 'bg-yellow-500' },
     { key: 'BEP20-USDC', name: 'BEP20-USDC', network: 'BEP20', currency: 'USDC', color: 'bg-blue-500' },
-    { key: 'ERC20-USDT', name: 'ERC20-USDT', network: 'ERC20', currency: 'USDT', color: 'bg-purple-600' },
-    { key: 'ERC20-USDC', name: 'ERC20-USDC', network: 'ERC20', currency: 'USDC', color: 'bg-blue-600' },
     { key: 'POL-USDT', name: 'POL-USDT', network: 'POLYGON', currency: 'USDT', color: 'bg-purple-700' },
     { key: 'POL-USDC', name: 'POL-USDC', network: 'POLYGON', currency: 'USDC', color: 'bg-blue-700' }
   ];
@@ -84,14 +81,8 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
     let mappedNetwork = null;
     
     switch (network) {
-      case 'TRC20':
-        mappedNetwork = 'TRON';
-        break;
       case 'BEP20':
         mappedNetwork = 'BSC';
-        break;
-      case 'ERC20':
-        mappedNetwork = 'ETHEREUM';
         break;
       case 'POLYGON':
         mappedNetwork = 'POLYGON';
@@ -207,8 +198,6 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
             if (processedData.suggestedNetwork) {
               const networkMapping = {
                 'BEP20': 'BEP20-USDT',
-                'TRC20': 'TRC20-USDT',
-                'ERC20': 'ERC20-USDT',
                 'POLYGON': 'POL-USDT'
               };
               const mappedMethod = networkMapping[processedData.suggestedNetwork];
@@ -244,8 +233,6 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
             if (processedData.suggestedNetwork) {
               const networkMapping = {
                 'BEP20': 'BEP20-USDT',
-                'TRC20': 'TRC20-USDT',
-                'ERC20': 'ERC20-USDT',
                 'POLYGON': 'POL-USDT'
               };
               const mappedMethod = networkMapping[processedData.suggestedNetwork];

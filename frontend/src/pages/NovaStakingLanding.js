@@ -1,14 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '../components/ui/Button';
 import Logo from '../components/ui/Logo';
 import { useTheme } from '../contexts/ThemeContext';
+import { publicAPI } from '../services/api';
 
-const NovaStakingLanding = () => {
+const MotoImvestmentLanding = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('hero');
   const { theme, isDark, isLight, isSystem, toggleTheme, setSystemMode } = useTheme();
+  
+  // Fetch VIP levels dynamically
+  const { data: vipLevelsData, isLoading: vipLoading, error: vipError } = useQuery({
+    queryKey: ['publicVipLevels'],
+    queryFn: publicAPI.getVipLevels,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  // Fetch referral rates dynamically
+  const { data: referralRatesData, isLoading: referralLoading, error: referralError } = useQuery({
+    queryKey: ['publicReferralRates'],
+    queryFn: publicAPI.getReferralRates,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  });
   
   // Refs for smooth scrolling
   const heroRef = useRef(null);
@@ -79,31 +97,84 @@ const NovaStakingLanding = () => {
     return () => observer.disconnect();
   }, []);
 
-  const earningsData = [
-    { investment: '$10', dailyRate: '10%', dailyEarnings: '$1.00', monthlyEarnings: '$30.00' },
-    { investment: '$50', dailyRate: '10%', dailyEarnings: '$5.00', monthlyEarnings: '$150.00' },
-    { investment: '$100', dailyRate: '10%', dailyEarnings: '$10.00', monthlyEarnings: '$300.00' },
-    { investment: '$150', dailyRate: '11%', dailyEarnings: '$16.50', monthlyEarnings: '$495.00' },
-    { investment: '$250', dailyRate: '11%', dailyEarnings: '$27.50', monthlyEarnings: '$825.00' },
-    { investment: '$300', dailyRate: '11%', dailyEarnings: '$33.00', monthlyEarnings: '$990.00' },
-    { investment: '$500', dailyRate: '11%', dailyEarnings: '$55.00', monthlyEarnings: '$1,650.00' },
-    { investment: '$650', dailyRate: '11.5%', dailyEarnings: '$74.75', monthlyEarnings: '$2,242.50' },
-    { investment: '$900', dailyRate: '12%', dailyEarnings: '$108.00', monthlyEarnings: '$3,240.00' },
-    { investment: '$1,000', dailyRate: '12%', dailyEarnings: '$120.00', monthlyEarnings: '$3,600.00' },
-    { investment: '$1,500', dailyRate: '12.5%', dailyEarnings: '$187.50', monthlyEarnings: '$5,625.00' },
-    { investment: '$10,000', dailyRate: '12.5%', dailyEarnings: '$1,250.00', monthlyEarnings: '$37,500.00' },
-    { investment: '$50,000', dailyRate: '13%', dailyEarnings: '$6,500.00', monthlyEarnings: '$195,000.00' },
-    { investment: '$200,000', dailyRate: '13%', dailyEarnings: '$26,000.00', monthlyEarnings: '$780,000.00' }
+  // Transform VIP levels data into earnings table format
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  };
+
+  const calculateDailyRate = (amount, dailyEarning) => {
+    if (!amount || !dailyEarning) return '0%';
+    const rate = (dailyEarning / amount) * 100;
+    return `${rate.toFixed(1)}%`;
+  };
+
+  const earningsData = (vipLevelsData?.data && Array.isArray(vipLevelsData.data)) ? vipLevelsData.data.map(vip => ({
+    investment: formatCurrency(vip.amount),
+    dailyRate: calculateDailyRate(vip.amount, vip.dailyEarning),
+    dailyEarnings: formatCurrency(vip.dailyEarning),
+    monthlyEarnings: formatCurrency(vip.dailyEarning * 30),
+    vipName: vip.name
+  })) : [
+    // Fallback static data in case API fails
+    { investment: '$10', dailyRate: '10%', dailyEarnings: '$1.00', monthlyEarnings: '$30.00', vipName: 'Starter' },
+    { investment: '$50', dailyRate: '10%', dailyEarnings: '$5.00', monthlyEarnings: '$150.00', vipName: 'Bronze' },
+    { investment: '$100', dailyRate: '10%', dailyEarnings: '$10.00', monthlyEarnings: '$300.00', vipName: 'Silver' },
+    { investment: '$150', dailyRate: '11%', dailyEarnings: '$16.50', monthlyEarnings: '$495.00', vipName: 'Gold' },
+    { investment: '$250', dailyRate: '11%', dailyEarnings: '$27.50', monthlyEarnings: '$825.00', vipName: 'Platinum' },
+    { investment: '$300', dailyRate: '11%', dailyEarnings: '$33.00', monthlyEarnings: '$990.00', vipName: 'Diamond' },
+    { investment: '$500', dailyRate: '11%', dailyEarnings: '$55.00', monthlyEarnings: '$1,650.00', vipName: 'Elite' },
+    { investment: '$650', dailyRate: '11.5%', dailyEarnings: '$74.75', monthlyEarnings: '$2,242.50', vipName: 'Master' },
+    { investment: '$900', dailyRate: '12%', dailyEarnings: '$108.00', monthlyEarnings: '$3,240.00', vipName: 'Legend' },
+    { investment: '$1,000', dailyRate: '12%', dailyEarnings: '$120.00', monthlyEarnings: '$3,600.00', vipName: 'Supreme' },
+    { investment: '$1,500', dailyRate: '12.5%', dailyEarnings: '$187.50', monthlyEarnings: '$5,625.00', vipName: 'Ultimate' },
+    { investment: '$10,000', dailyRate: '12.5%', dailyEarnings: '$1,250.00', monthlyEarnings: '$37,500.00', vipName: 'Mega' },
+    { investment: '$50,000', dailyRate: '13%', dailyEarnings: '$6,500.00', monthlyEarnings: '$195,000.00', vipName: 'Giga' },
+    { investment: '$200,000', dailyRate: '13%', dailyEarnings: '$26,000.00', monthlyEarnings: '$780,000.00', vipName: 'Tera' }
   ];
 
-  const referralData = [
+  // Transform referral rates data into table format
+  const calculateReferralBonus = (investmentAmount, bonusRate) => {
+    return formatCurrency(investmentAmount * bonusRate);
+  };
+
+  const referralData = (referralRatesData?.data && typeof referralRatesData.data === 'object' && 
+                        typeof referralRatesData.data.level1Rate === 'number' && 
+                        !isNaN(referralRatesData.data.level1Rate)) ? [
+    { 
+      level: 'Level 1 (Direct)', 
+      bonus: `${(referralRatesData.data.level1Rate * 100).toFixed(1)}%`, 
+      investment100: calculateReferralBonus(100, referralRatesData.data.level1Rate),
+      investment500: calculateReferralBonus(500, referralRatesData.data.level1Rate),
+      investment1000: calculateReferralBonus(1000, referralRatesData.data.level1Rate)
+    },
+    { 
+      level: 'Level 2', 
+      bonus: `${(referralRatesData.data.level2Rate * 100).toFixed(1)}%`, 
+      investment100: calculateReferralBonus(100, referralRatesData.data.level2Rate),
+      investment500: calculateReferralBonus(500, referralRatesData.data.level2Rate),
+      investment1000: calculateReferralBonus(1000, referralRatesData.data.level2Rate)
+    },
+    { 
+      level: 'Level 3', 
+      bonus: `${(referralRatesData.data.level3Rate * 100).toFixed(1)}%`, 
+      investment100: calculateReferralBonus(100, referralRatesData.data.level3Rate),
+      investment500: calculateReferralBonus(500, referralRatesData.data.level3Rate),
+      investment1000: calculateReferralBonus(1000, referralRatesData.data.level3Rate)
+    }
+  ] : [
+    // Fallback static data in case API fails
     { level: 'Level 1 (Direct)', bonus: '10%', investment100: '$10', investment500: '$50', investment1000: '$100' },
     { level: 'Level 2', bonus: '5%', investment100: '$5', investment500: '$25', investment1000: '$50' },
     { level: 'Level 3', bonus: '2%', investment100: '$2', investment500: '$10', investment1000: '$20' }
   ];
 
   const roadmapData = [
-    { quarter: 'Q1 2025', title: 'Platform Launch & Community Building', items: ['Launch Nova Staking Platform', 'Build initial community', 'Establish partnerships'] },
+    { quarter: 'Q1 2025', title: 'Platform Launch & Community Building', items: ['Launch Moto Imvestment Platform', 'Build initial community', 'Establish partnerships'] },
     { quarter: 'Q2 2025', title: 'Partnerships & User Education', items: ['Strategic partnerships', 'Referral campaigns', 'Educational content'] },
     { quarter: 'Q3 2025', title: 'Mobile App & Global Expansion', items: ['Mobile application', 'Multi-language support', 'Third-party security audits'] },
     { quarter: 'Q4 2025', title: 'Token Integration & Global Reach', items: ['Nova Token integration', 'Exchange listings', 'Global partnerships'] }
@@ -124,7 +195,7 @@ const NovaStakingLanding = () => {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
               <Logo className="h-12 w-auto" />
-              <h1 className={`text-2xl font-bold transition-colors duration-300 ${isDark ? 'text-binance-text-primary' : 'text-gray-900'}`}>Nova Staking</h1>
+              <h1 className={`text-2xl font-bold transition-colors duration-300 ${isDark ? 'text-binance-text-primary' : 'text-gray-900'}`}>Moto Imvestment</h1>
             </div>
             
             {/* Desktop Navigation */}
@@ -236,7 +307,7 @@ const NovaStakingLanding = () => {
         <div className="max-w-7xl mx-auto text-center">
           <div className="mb-8">
             <h1 className={`text-5xl md:text-7xl font-bold mb-6 transition-colors duration-300 ${isDark ? 'text-binance-text-primary' : 'text-gray-900'}`}>
-              Nova Staking
+              Moto Imvestment
             </h1>
             <p className={`text-xl md:text-2xl mb-8 max-w-4xl mx-auto transition-colors duration-300 ${isDark ? 'text-binance-yellow' : 'text-primary-600'}`}>
               The Next-Generation Staking Platform Launching September 2025
@@ -302,7 +373,7 @@ const NovaStakingLanding = () => {
       <section ref={solutionRef} className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className={`text-4xl font-bold mb-6 transition-colors duration-300 ${isDark ? 'text-binance-text-primary' : 'text-gray-900'}`}>Our Solution: Nova Staking</h2>
+            <h2 className={`text-4xl font-bold mb-6 transition-colors duration-300 ${isDark ? 'text-binance-text-primary' : 'text-gray-900'}`}>Our Solution: Moto Imvestment</h2>
             <p className={`text-xl max-w-3xl mx-auto transition-colors duration-300 ${isDark ? 'text-binance-text-secondary' : 'text-gray-600'}`}>
               A transparent and easy-to-use platform where investors can start with $10, 
               earn up to 13% daily, withdraw anytime, and earn through a 3-level referral program.
@@ -338,9 +409,22 @@ const NovaStakingLanding = () => {
           </div>
           
           <div className={`${isDark ? 'bg-binance-dark-secondary border-binance-dark-border' : 'bg-white border-gray-200'} rounded-2xl p-8 border shadow-lg overflow-x-auto transition-all duration-300`}>
+            {vipLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-binance-yellow"></div>
+                <span className={`ml-3 ${isDark ? 'text-binance-text-secondary' : 'text-gray-600'}`}>Loading VIP levels...</span>
+              </div>
+            ) : vipError ? (
+              <div className="text-center py-12">
+                <div className={`text-red-500 mb-2`}>⚠️ Unable to load current VIP levels</div>
+                <div className={`text-sm ${isDark ? 'text-binance-text-secondary' : 'text-gray-600'}`}>Showing example data below</div>
+              </div>
+            ) : null}
+            
             <table className={`w-full transition-colors duration-300 ${isDark ? 'text-binance-text-primary' : 'text-gray-900'}`}>
               <thead>
                 <tr className={`border-b transition-colors duration-300 ${isDark ? 'border-binance-dark-border' : 'border-gray-200'}`}>
+                  <th className="text-left py-4 px-4 font-bold">VIP Level</th>
                   <th className="text-left py-4 px-4 font-bold">Investment Amount</th>
                   <th className="text-left py-4 px-4 font-bold">Daily Profit %</th>
                   <th className="text-left py-4 px-4 font-bold">Daily Earnings</th>
@@ -350,6 +434,7 @@ const NovaStakingLanding = () => {
               <tbody>
                 {earningsData.map((row, index) => (
                   <tr key={index} className={`border-b transition-all duration-300 ${isDark ? 'border-binance-dark-border hover:bg-binance-dark-tertiary' : 'border-gray-200 hover:bg-gray-50'}`}>
+                    <td className={`py-4 px-4 font-bold transition-colors duration-300 ${isDark ? 'text-binance-yellow' : 'text-blue-600'}`}>{row.vipName}</td>
                     <td className={`py-4 px-4 font-semibold transition-colors duration-300 ${isDark ? 'text-binance-green' : 'text-success-600'}`}>{row.investment}</td>
                     <td className={`py-4 px-4 transition-colors duration-300 ${isDark ? 'text-binance-yellow' : 'text-warning-600'}`}>{row.dailyRate}</td>
                     <td className={`py-4 px-4 transition-colors duration-300 ${isDark ? 'text-primary-400' : 'text-primary-600'}`}>{row.dailyEarnings}</td>
@@ -358,6 +443,15 @@ const NovaStakingLanding = () => {
                 ))}
               </tbody>
             </table>
+            
+            {(vipLevelsData?.data && Array.isArray(vipLevelsData.data)) && (
+              <div className={`mt-6 text-center text-sm ${isDark ? 'text-binance-text-secondary' : 'text-gray-600'}`}>
+                <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs">
+                  ✅ Live Data
+                </span>
+                <span className="ml-2">Updated from database in real-time</span>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -368,11 +462,23 @@ const NovaStakingLanding = () => {
           <div className="text-center mb-16">
             <h2 className={`text-4xl font-bold mb-6 transition-colors duration-300 ${isDark ? 'text-binance-text-primary' : 'text-gray-900'}`}>Referral Program</h2>
             <p className={`text-xl max-w-3xl mx-auto transition-colors duration-300 ${isDark ? 'text-binance-text-secondary' : 'text-gray-600'}`}>
-              Nova Staking rewards you for growing our community with a 3-level referral system
+              Moto Imvestment rewards you for growing our community with a 3-level referral system
             </p>
           </div>
           
           <div className={`${isDark ? 'bg-binance-dark-secondary border-binance-dark-border' : 'bg-white border-gray-200'} rounded-2xl p-8 border shadow-lg overflow-x-auto`}>
+            {referralLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-binance-yellow"></div>
+                <span className={`ml-3 ${isDark ? 'text-binance-text-secondary' : 'text-gray-600'}`}>Loading referral rates...</span>
+              </div>
+            ) : referralError ? (
+              <div className="text-center py-12">
+                <div className={`text-red-500 mb-2`}>⚠️ Unable to load current referral rates</div>
+                <div className={`text-sm ${isDark ? 'text-binance-text-secondary' : 'text-gray-600'}`}>Showing example data below</div>
+              </div>
+            ) : null}
+            
             <table className={`w-full ${isDark ? 'text-binance-text-primary' : 'text-gray-900'}`}>
               <thead>
                 <tr className={`border-b ${isDark ? 'border-binance-dark-border' : 'border-gray-200'}`}>
@@ -395,6 +501,17 @@ const NovaStakingLanding = () => {
                 ))}
               </tbody>
             </table>
+            
+            {(referralRatesData?.data && typeof referralRatesData.data === 'object' && 
+              typeof referralRatesData.data.level1Rate === 'number' && 
+              !isNaN(referralRatesData.data.level1Rate)) && (
+              <div className={`mt-6 text-center text-sm ${isDark ? 'text-binance-text-secondary' : 'text-gray-600'}`}>
+                <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs">
+                  ✅ Live Data
+                </span>
+                <span className="ml-2">Referral rates updated from admin settings</span>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -405,7 +522,7 @@ const NovaStakingLanding = () => {
           <div className="text-center mb-16">
             <h2 className={`text-4xl font-bold mb-6 transition-colors duration-300 ${isDark ? 'text-binance-text-primary' : 'text-gray-900'}`}>Technology & Security</h2>
             <p className={`text-xl max-w-3xl mx-auto transition-colors duration-300 ${isDark ? 'text-binance-text-secondary' : 'text-gray-600'}`}>
-              Nova Staking ensures the highest standards of security and transparency
+              Moto Imvestment ensures the highest standards of security and transparency
             </p>
           </div>
           
@@ -550,13 +667,13 @@ const NovaStakingLanding = () => {
             The Future of Accessible Crypto Investments
           </h2>
           <p className={`text-xl mb-8 transition-colors duration-300 ${isDark ? 'text-binance-text-secondary' : 'text-gray-600'}`}>
-            Nova Staking is the future of accessible, transparent, and profitable crypto investments. 
+            Moto Imvestment is the future of accessible, transparent, and profitable crypto investments. 
             With daily returns, flexible withdrawal, and community-driven growth, investors can build wealth with confidence.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">
               <Button variant="success" className="px-8 py-4 text-lg font-bold transform hover:scale-105 transition-all duration-300">
-                Join Nova Staking Today
+                Join Moto Imvestment Today
               </Button>
             </Link>
             <Link to="/login">
@@ -575,7 +692,7 @@ const NovaStakingLanding = () => {
             <div>
               <div className="flex items-center space-x-3 mb-4">
                 <Logo className="h-8 w-auto" />
-                <h3 className={`text-xl font-bold transition-colors duration-300 ${isDark ? 'text-binance-text-primary' : 'text-gray-900'}`}>Nova Staking</h3>
+                <h3 className={`text-xl font-bold transition-colors duration-300 ${isDark ? 'text-binance-text-primary' : 'text-gray-900'}`}>Moto Imvestment</h3>
               </div>
               <p className={`transition-colors duration-300 ${isDark ? 'text-binance-text-secondary' : 'text-gray-600'}`}>
                 The next-generation staking platform for financial freedom.
@@ -605,7 +722,7 @@ const NovaStakingLanding = () => {
             <div>
               <h4 className={`font-bold mb-4 transition-colors duration-300 ${isDark ? 'text-binance-text-primary' : 'text-gray-900'}`}>Community</h4>
               <ul className={`space-y-2 transition-colors duration-300 ${isDark ? 'text-binance-text-secondary' : 'text-gray-600'}`}>
-                <li><a href="https://t.me/novastaking" target="_blank" rel="noopener noreferrer" className={`hover:transition-colors duration-300 ${isDark ? 'hover:text-binance-text-primary' : 'hover:text-gray-900'}`}>Telegram</a></li>
+                <li><a href="https://t.me/MotoImvestment" target="_blank" rel="noopener noreferrer" className={`hover:transition-colors duration-300 ${isDark ? 'hover:text-binance-text-primary' : 'hover:text-gray-900'}`}>Telegram</a></li>
                 <li><a href="#" className={`hover:transition-colors duration-300 ${isDark ? 'hover:text-binance-text-primary' : 'hover:text-gray-900'}`}>Twitter</a></li>
                 <li><a href="#" className={`hover:transition-colors duration-300 ${isDark ? 'hover:text-binance-text-primary' : 'hover:text-gray-900'}`}>Discord</a></li>
                 <li><a href="#" className={`hover:transition-colors duration-300 ${isDark ? 'hover:text-binance-text-primary' : 'hover:text-gray-900'}`}>Medium</a></li>
@@ -614,7 +731,7 @@ const NovaStakingLanding = () => {
           </div>
           
           <div className={`border-t mt-8 pt-8 text-center transition-colors duration-300 ${isDark ? 'border-binance-dark-border text-binance-text-secondary' : 'border-gray-200 text-gray-600'}`}>
-            <p>&copy; 2025 Nova Staking. All rights reserved. Launching September 2025.</p>
+            <p>&copy; 2025 Moto Imvestment. All rights reserved. Launching September 2025.</p>
           </div>
         </div>
       </footer>
@@ -622,4 +739,4 @@ const NovaStakingLanding = () => {
   );
 };
 
-export default NovaStakingLanding;
+export default MotoImvestmentLanding;
