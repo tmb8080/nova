@@ -1,10 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/Card';
-import { Button } from './ui/Button';
-import { calculateNextVipUpgrade, formatCurrency, getVipColor } from '../utils/vipCalculations';
+import { calculateNextVipUpgrade, formatCurrency } from '../utils/vipCalculations';
+import { useTheme } from '../contexts/ThemeContext';
 
-const VipUpgradeProgress = ({ vipLevels, currentVip, totalDeposits, onUpgradeClick, showUpgradeButton = true }) => {
+const VipUpgradeProgress = ({ vipLevels, currentVip, totalDeposits, onUpgradeClick, onDepositClick, showUpgradeButton = true }) => {
+  const { isDark } = useTheme();
   const upgradeInfo = calculateNextVipUpgrade(vipLevels, currentVip, totalDeposits);
 
   if (!upgradeInfo) {
@@ -13,22 +13,22 @@ const VipUpgradeProgress = ({ vipLevels, currentVip, totalDeposits, onUpgradeCli
 
   if (!upgradeInfo.hasNextLevel) {
     return (
-      <div className="bg-white dark:bg-binance-dark-secondary rounded-lg p-6 border border-gray-200 dark:border-binance-dark-border">
+      <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} rounded-xl p-6 border shadow-lg`}>
         <div className="text-center">
-          <div className="w-16 h-16 bg-binance-green rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-coinbase-green rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">🏆</span>
           </div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-binance-text-primary mb-2">
+          <h3 className={`text-lg font-bold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'} mb-2`}>
             Maximum VIP Level Achieved!
           </h3>
-          <p className="text-gray-600 dark:text-binance-text-secondary mb-4">
+          <p className={`${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'} mb-4`}>
             Congratulations! You have reached the highest VIP level available.
           </p>
-          <div className="bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg p-4">
-            <div className="text-2xl font-bold text-binance-green mb-2">
+          <div className={`${isDark ? 'bg-coinbase-dark-tertiary border-coinbase-dark-border' : 'bg-gray-50 border-gray-200'} rounded-lg p-4 border`}>
+            <div className="text-2xl font-bold text-coinbase-green mb-2">
               {currentVip?.vipLevel?.name || 'VIP'}
             </div>
-            <div className="text-gray-600 dark:text-binance-text-secondary">
+            <div className={`${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>
               You're earning maximum daily returns!
             </div>
           </div>
@@ -40,33 +40,33 @@ const VipUpgradeProgress = ({ vipLevels, currentVip, totalDeposits, onUpgradeCli
   const { nextLevel, upgradeCost, fullVipCost, amountNeededForFullVip, canAfford, missingAmount, progressPercentage } = upgradeInfo;
 
   return (
-    <div className="bg-white dark:bg-binance-dark-secondary rounded-lg p-6 border border-gray-200 dark:border-binance-dark-border">
+    <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} rounded-xl p-6 border shadow-lg`}>
       <div className="mb-6">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-binance-text-primary flex items-center gap-2 mb-2">
-          <div className="w-8 h-8 bg-binance-yellow rounded-lg flex items-center justify-center">
+        <h3 className={`text-lg font-bold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'} flex items-center gap-2 mb-2`}>
+          <div className="w-8 h-8 bg-coinbase-blue rounded-lg flex items-center justify-center">
             <span className="text-sm">🚀</span>
           </div>
           Next VIP Level
         </h3>
-        <p className="text-gray-600 dark:text-binance-text-secondary">
+        <p className={`${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>
           Upgrade to {nextLevel.name} to increase your daily earnings
         </p>
       </div>
       <div className="space-y-4">
         {/* Next Level Info */}
-        <div className="bg-gray-50 dark:bg-binance-dark-tertiary rounded-lg p-4 border border-gray-200 dark:border-binance-dark-border">
+        <div className={`${isDark ? 'bg-coinbase-dark-tertiary border-coinbase-dark-border' : 'bg-gray-50 border-gray-200'} rounded-lg p-4 border`}>
           <div className="flex items-center justify-between mb-3">
-            <div className="text-lg font-bold text-gray-900 dark:text-binance-text-primary">{nextLevel.name}</div>
-            <div className="text-xl font-bold text-binance-yellow">{formatCurrency(nextLevel.amount)}</div>
+            <div className={`text-lg font-bold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>{nextLevel.name}</div>
+            <div className="text-xl font-bold text-coinbase-blue">{formatCurrency(nextLevel.amount)}</div>
           </div>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <div className="text-gray-600 dark:text-binance-text-secondary">Daily Earning</div>
-              <div className="font-bold text-binance-green">{formatCurrency(nextLevel.dailyEarning)}</div>
+              <div className={`${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Daily Earning</div>
+              <div className="font-bold text-coinbase-green">{formatCurrency(nextLevel.dailyEarning)}</div>
             </div>
             <div>
-              <div className="text-gray-600 dark:text-binance-text-secondary">Monthly Earning</div>
-              <div className="font-bold text-binance-green">{formatCurrency(nextLevel.dailyEarning * 30)}</div>
+              <div className={`${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Monthly Earning</div>
+              <div className="font-bold text-coinbase-green">{formatCurrency(nextLevel.dailyEarning * 30)}</div>
             </div>
           </div>
         </div>
@@ -74,15 +74,15 @@ const VipUpgradeProgress = ({ vipLevels, currentVip, totalDeposits, onUpgradeCli
         {/* Upgrade Progress */}
         <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600 dark:text-binance-text-secondary">Upgrade Progress</span>
-            <span className="text-sm font-semibold text-gray-900 dark:text-binance-text-primary">{progressPercentage.toFixed(1)}%</span>
+            <span className={`text-sm ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Upgrade Progress</span>
+            <span className={`text-sm font-semibold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>{progressPercentage.toFixed(1)}%</span>
           </div>
           
           {/* Progress Bar */}
-          <div className="w-full bg-gray-200 dark:bg-binance-dark-border rounded-full h-2">
+          <div className={`w-full ${isDark ? 'bg-coinbase-dark-border' : 'bg-gray-200'} rounded-full h-2`}>
             <div 
               className={`h-2 rounded-full transition-all duration-500 ${
-                canAfford ? 'bg-binance-green' : 'bg-binance-yellow'
+                canAfford ? 'bg-coinbase-green' : 'bg-coinbase-blue'
               }`}
               style={{ width: `${progressPercentage}%` }}
             ></div>
@@ -91,24 +91,24 @@ const VipUpgradeProgress = ({ vipLevels, currentVip, totalDeposits, onUpgradeCli
           {/* Progress Details */}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <div className="text-gray-600 dark:text-binance-text-secondary">Your Deposits</div>
-              <div className="font-bold text-gray-900 dark:text-binance-text-primary">{formatCurrency(totalDeposits)}</div>
+              <div className={`${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Your Deposits</div>
+              <div className={`font-bold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>{formatCurrency(totalDeposits)}</div>
             </div>
             <div>
-              <div className="text-gray-600 dark:text-binance-text-secondary">VIP Level Cost</div>
-              <div className="font-bold text-gray-900 dark:text-binance-text-primary">{formatCurrency(fullVipCost)}</div>
+              <div className={`${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>VIP Level Cost</div>
+              <div className={`font-bold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>{formatCurrency(fullVipCost)}</div>
             </div>
           </div>
 
           {/* Missing Amount */}
           {!canAfford && (
-            <div className="bg-gray-50 dark:bg-binance-dark-tertiary border border-gray-200 dark:border-binance-dark-border rounded-lg p-3">
+            <div className={`${isDark ? 'bg-coinbase-dark-tertiary border-coinbase-dark-border' : 'bg-gray-50 border-gray-200'} border rounded-lg p-3`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-gray-600 dark:text-binance-text-secondary text-sm">Amount Needed</div>
-                  <div className="font-bold text-binance-yellow">{formatCurrency(amountNeededForFullVip)}</div>
+                  <div className={`${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'} text-sm`}>Amount Needed</div>
+                  <div className="font-bold text-coinbase-blue">{formatCurrency(amountNeededForFullVip)}</div>
                 </div>
-                <div className="w-8 h-8 bg-binance-yellow rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-coinbase-blue rounded-full flex items-center justify-center">
                   <span className="text-sm">💰</span>
                 </div>
               </div>
@@ -117,13 +117,13 @@ const VipUpgradeProgress = ({ vipLevels, currentVip, totalDeposits, onUpgradeCli
 
           {/* Success Message */}
           {canAfford && (
-            <div className="bg-gray-50 dark:bg-binance-dark-tertiary border border-gray-200 dark:border-binance-dark-border rounded-lg p-3">
+            <div className={`${isDark ? 'bg-coinbase-dark-tertiary border-coinbase-dark-border' : 'bg-gray-50 border-gray-200'} border rounded-lg p-3`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-gray-600 dark:text-binance-text-secondary text-sm">Ready to Upgrade!</div>
-                  <div className="font-bold text-binance-green">You have sufficient deposits</div>
+                  <div className={`${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'} text-sm`}>Ready to Upgrade!</div>
+                  <div className="font-bold text-coinbase-green">You have sufficient deposits</div>
                 </div>
-                <div className="w-8 h-8 bg-binance-green rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-coinbase-green rounded-full flex items-center justify-center">
                   <span className="text-sm">✅</span>
                 </div>
               </div>
@@ -143,13 +143,23 @@ const VipUpgradeProgress = ({ vipLevels, currentVip, totalDeposits, onUpgradeCli
                 Upgrade to {nextLevel.name}
               </button>
             ) : (
-              <Link 
-                to="/vip-selection"
-                className="w-full btn-secondary flex items-center justify-center"
-              >
-                <span className="mr-2">💳</span>
-                Deposit & Upgrade
-              </Link>
+              onDepositClick ? (
+                <button 
+                  onClick={() => onDepositClick(nextLevel)}
+                  className="w-full btn-secondary flex items-center justify-center"
+                >
+                  <span className="mr-2">💳</span>
+                  Deposit & Upgrade
+                </button>
+              ) : (
+                <Link 
+                  to="/vip-selection"
+                  className="w-full btn-secondary flex items-center justify-center"
+                >
+                  <span className="mr-2">💳</span>
+                  Deposit & Upgrade
+                </Link>
+              )
             )}
           </div>
         )}

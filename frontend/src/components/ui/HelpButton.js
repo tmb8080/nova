@@ -3,15 +3,15 @@ import React from 'react';
 const HelpButton = () => {
   const handleHelpClick = () => {
     // Open Telegram link in a new tab
-    window.open('https://t.me/MotoImvestment', '_blank');
+    window.open('https://t.me/Token Rise', '_blank');
   };
 
   return (
     <button
       onClick={handleHelpClick}
       className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-50 bg-accent-500 hover:bg-accent-600 text-white rounded-full p-3 shadow-lg dark:shadow-dark-medium transition-all duration-200 hover:scale-110 hover:shadow-xl"
-      title="Contact Moto Imvestment on Telegram"
-      aria-label="Contact Moto Imvestment on Telegram"
+      title="Contact Token Rise on Telegram"
+      aria-label="Contact Token Rise on Telegram"
     >
       {/* Telegram Icon */}
       <svg

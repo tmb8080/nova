@@ -8,7 +8,7 @@ import Logo from '../ui/Logo';
 const MobileNav = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
-  const { isDarkMode } = useTheme();
+  const { isDark } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const isActive = (path) => {
@@ -144,17 +144,17 @@ const MobileNav = () => {
       {/* Mobile Header */}
       <nav className={`md:hidden fixed top-0 left-0 right-0 z-50 ${
         isAdminPanel 
-          ? 'bg-binance-dark/95 backdrop-blur-md border-b border-binance-dark-border' 
-          : 'bg-white/95 dark:bg-binance-dark/95 backdrop-blur-md border-b border-gray-200 dark:border-binance-dark-border shadow-lg'
+          ? 'bg-coinbase-dark/95 backdrop-blur-md border-b border-coinbase-dark-border' 
+          : 'bg-white/95 dark:bg-coinbase-dark/95 backdrop-blur-md border-b border-gray-200 dark:border-coinbase-dark-border shadow-lg'
       }`}>
         <div className="flex items-center justify-between h-16 px-4">
           {/* Logo and Brand */}
           <div className="flex items-center space-x-3">
             <Logo className="h-8 w-8" />
             <h1 className={`text-lg font-bold ${
-              isAdminPanel ? 'text-binance-text-primary' : 'text-gray-900 dark:text-binance-text-primary'
+              isAdminPanel ? 'text-coinbase-text-primary' : 'text-gray-900 dark:text-coinbase-text-primary'
             }`}>
-              {isAdminPanel ? 'Admin Panel' : 'MotoImvestment'}
+              {isAdminPanel ? 'Admin Panel' : 'Token Rise'}
             </h1>
           </div>
 
@@ -163,8 +163,8 @@ const MobileNav = () => {
             onClick={toggleMenu}
             className={`p-2 rounded-lg transition-all duration-200 ${
               isAdminPanel
-                ? 'text-binance-text-secondary hover:bg-binance-dark-tertiary hover:text-binance-text-primary'
-                : 'text-gray-600 dark:text-binance-text-secondary hover:bg-gray-50 dark:hover:bg-binance-dark-tertiary hover:text-gray-900 dark:hover:text-binance-text-primary'
+                ? 'text-coinbase-text-secondary hover:bg-coinbase-dark-tertiary hover:text-coinbase-text-primary'
+                : 'text-gray-600 dark:text-coinbase-text-secondary hover:bg-gray-50 dark:hover:bg-coinbase-dark-tertiary hover:text-gray-900 dark:hover:text-coinbase-text-primary'
             }`}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -190,32 +190,32 @@ const MobileNav = () => {
           {/* Menu Panel */}
           <div className={`absolute top-16 left-0 right-0 ${
             isAdminPanel 
-              ? 'bg-binance-dark-secondary border-b border-binance-dark-border' 
-              : 'bg-white dark:bg-binance-dark-secondary border-b border-gray-200 dark:border-binance-dark-border'
+              ? 'bg-coinbase-dark-secondary border-b border-coinbase-dark-border' 
+              : 'bg-white dark:bg-coinbase-dark-secondary border-b border-gray-200 dark:border-coinbase-dark-border'
           } shadow-xl`}>
             <div className="px-4 py-6">
               {/* User Info */}
               <div className={`mb-6 p-4 rounded-lg ${
                 isAdminPanel 
-                  ? 'bg-binance-dark-tertiary' 
-                  : 'bg-gray-50 dark:bg-binance-dark-tertiary'
+                  ? 'bg-coinbase-dark-tertiary' 
+                  : 'bg-gray-50 dark:bg-coinbase-dark-tertiary'
               }`}>
                 <div className="flex items-center space-x-3">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    isAdminPanel ? 'bg-binance-yellow' : 'bg-binance-green'
+                    isAdminPanel ? 'bg-coinbase-blue' : 'bg-coinbase-green'
                   }`}>
-                    <svg className="w-5 h-5 text-binance-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
                   <div>
                     <p className={`font-medium ${
-                      isAdminPanel ? 'text-binance-text-primary' : 'text-gray-900 dark:text-binance-text-primary'
+                      isAdminPanel ? 'text-coinbase-text-primary' : 'text-gray-900 dark:text-coinbase-text-primary'
                     }`}>
                       {user?.fullName || user?.username}
                     </p>
                     <p className={`text-sm ${
-                      isAdminPanel ? 'text-binance-text-secondary' : 'text-gray-600 dark:text-binance-text-secondary'
+                      isAdminPanel ? 'text-coinbase-text-secondary' : 'text-gray-600 dark:text-coinbase-text-secondary'
                     }`}>
                       {isAdminPanel ? 'Administrator' : 'User'}
                     </p>
@@ -238,16 +238,16 @@ const MobileNav = () => {
                       className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
                         isAdminPanel
                           ? isItemActive
-                            ? 'bg-binance-yellow text-binance-dark shadow-lg'
-                            : 'text-binance-text-secondary hover:bg-binance-dark-tertiary hover:text-binance-text-primary'
+                            ? 'bg-coinbase-blue text-white shadow-lg'
+                            : 'text-coinbase-text-secondary hover:bg-coinbase-dark-tertiary hover:text-coinbase-text-primary'
                           : isItemActive
-                            ? 'bg-binance-yellow text-binance-dark shadow-lg'
-                            : 'text-gray-600 dark:text-binance-text-secondary hover:bg-gray-50 dark:hover:bg-binance-dark-tertiary hover:text-gray-900 dark:hover:text-binance-text-primary'
+                            ? 'bg-coinbase-blue text-white shadow-lg'
+                            : 'text-gray-600 dark:text-coinbase-text-secondary hover:bg-gray-50 dark:hover:bg-coinbase-dark-tertiary hover:text-gray-900 dark:hover:text-coinbase-text-primary'
                       }`}
                     >
                       <span className={isAdminPanel
-                        ? isItemActive ? 'text-accent-400' : 'text-gray-300'
-                        : isItemActive ? 'text-accent-600' : 'text-gray-500 dark:text-gray-400'
+                        ? isItemActive ? 'text-white' : 'text-coinbase-text-secondary'
+                        : isItemActive ? 'text-white' : 'text-gray-500 dark:text-coinbase-text-secondary'
                       }>
                         {item.icon}
                       </span>
@@ -257,38 +257,38 @@ const MobileNav = () => {
                 })}
               </div>
 
-                             {/* Theme Toggle and Logout */}
-               <div className="space-y-3">
-                 <div className={`flex items-center justify-between p-4 rounded-lg ${
-                   isAdminPanel 
-                     ? 'bg-binance-dark-tertiary' 
-                     : 'bg-gray-50 dark:bg-binance-dark-tertiary'
-                 }`}>
-                   <span className={`text-sm font-medium ${
-                     isAdminPanel ? 'text-binance-text-primary' : 'text-gray-900 dark:text-binance-text-primary'
-                   }`}>
-                     Theme
-                   </span>
-                   <ThemeToggle size="sm" />
-                 </div>
-                 
-                 <button
-                   onClick={() => {
-                     closeMenu();
-                     logout();
-                   }}
-                   className={`w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                     isAdminPanel
-                       ? 'bg-red-500 hover:bg-red-600 text-white'
-                       : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
-                   }`}
-                 >
-                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                   </svg>
-                   <span>Logout</span>
-                 </button>
-               </div>
+              {/* Theme Toggle and Logout */}
+              <div className="space-y-3">
+                <div className={`flex items-center justify-between p-4 rounded-lg ${
+                  isAdminPanel 
+                    ? 'bg-coinbase-dark-tertiary' 
+                    : 'bg-gray-50 dark:bg-coinbase-dark-tertiary'
+                }`}>
+                  <span className={`text-sm font-medium ${
+                    isAdminPanel ? 'text-coinbase-text-primary' : 'text-gray-900 dark:text-coinbase-text-primary'
+                  }`}>
+                    Theme
+                  </span>
+                  <ThemeToggle size="sm" />
+                </div>
+                
+                <button
+                  onClick={() => {
+                    closeMenu();
+                    logout();
+                  }}
+                  className={`w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    isAdminPanel
+                      ? 'bg-coinbase-red hover:bg-coinbase-red/80 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  <span>Logout</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

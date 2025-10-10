@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Logo = ({ className = "h-20 w-20", alt = "MotoImvestment Logo", showCircle = true }) => {
+const Logo = ({ className = "h-20 w-20", alt = "Token Rise Logo", showCircle = true }) => {
   if (!showCircle) {
     return (
       <img 

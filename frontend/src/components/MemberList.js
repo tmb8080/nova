@@ -4,7 +4,7 @@ import { membersAPI } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 
 const MemberList = () => {
-  const { isDarkMode } = useTheme();
+  const { isDark } = useTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sortBy, setSortBy] = useState('earnings');
   const [showStats, setShowStats] = useState(false);
@@ -180,9 +180,9 @@ const MemberList = () => {
   // Error boundary for component - must be after all hooks
   if (componentError) {
     return (
-      <div className="binance-section overflow-hidden shadow-2xl">
-        <div className="binance-section-header bg-gradient-to-r from-binance-green/20 to-binance-yellow/10 px-4 py-3">
-          <h2 className="binance-section-title flex items-center">
+      <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} rounded-xl p-8 border shadow-lg overflow-hidden`}>
+        <div className={`${isDark ? 'bg-gradient-to-r from-coinbase-green/20 to-coinbase-blue/10 border-coinbase-dark-border' : 'bg-gradient-to-r from-green-100 to-blue-100 border-gray-200'} px-4 py-3 border-b`}>
+          <h2 className={`text-xl font-bold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'} flex items-center`}>
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
             </svg>
@@ -190,10 +190,10 @@ const MemberList = () => {
           </h2>
         </div>
         <div className="p-8 text-center">
-          <p className="text-red-500">Something went wrong with the member list.</p>
+          <p className="text-coinbase-red">Something went wrong with the member list.</p>
           <button 
             onClick={() => setComponentError(null)}
-            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="mt-2 px-4 py-2 bg-coinbase-blue hover:bg-coinbase-blue-dark text-white rounded-lg transition-all duration-200"
           >
             Try Again
           </button>
@@ -204,9 +204,9 @@ const MemberList = () => {
 
   if (membersLoading) {
     return (
-      <div className="binance-section overflow-hidden shadow-2xl">
-        <div className="binance-section-header bg-gradient-to-r from-binance-green/20 to-binance-yellow/10 px-4 py-3">
-          <h2 className="binance-section-title flex items-center">
+      <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} rounded-xl p-8 border shadow-lg overflow-hidden`}>
+        <div className={`${isDark ? 'bg-gradient-to-r from-coinbase-green/20 to-coinbase-blue/10 border-coinbase-dark-border' : 'bg-gradient-to-r from-green-100 to-blue-100 border-gray-200'} px-4 py-3 border-b`}>
+          <h2 className={`text-xl font-bold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'} flex items-center`}>
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
             </svg>
@@ -214,8 +214,8 @@ const MemberList = () => {
           </h2>
         </div>
         <div className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-binance-green mx-auto"></div>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Loading members...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-coinbase-blue mx-auto"></div>
+          <p className={`${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'} mt-2`}>Loading members...</p>
         </div>
       </div>
     );
@@ -223,9 +223,9 @@ const MemberList = () => {
 
   if (membersError) {
     return (
-      <div className="binance-section overflow-hidden shadow-2xl">
-        <div className="binance-section-header bg-gradient-to-r from-binance-green/20 to-binance-yellow/10 px-4 py-3">
-          <h2 className="binance-section-title flex items-center">
+      <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} rounded-xl p-8 border shadow-lg overflow-hidden`}>
+        <div className={`${isDark ? 'bg-gradient-to-r from-coinbase-green/20 to-coinbase-blue/10 border-coinbase-dark-border' : 'bg-gradient-to-r from-green-100 to-blue-100 border-gray-200'} px-4 py-3 border-b`}>
+          <h2 className={`text-xl font-bold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'} flex items-center`}>
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
             </svg>
@@ -233,8 +233,8 @@ const MemberList = () => {
           </h2>
         </div>
         <div className="p-8 text-center">
-          <p className="text-red-500">Failed to load members. Please try again later.</p>
-          <p className="text-xs text-gray-500 mt-2">Error: {membersError?.message || 'Unknown error'}</p>
+          <p className="text-coinbase-red">Failed to load members. Please try again later.</p>
+          <p className={`text-xs ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'} mt-2`}>Error: {membersError?.message || 'Unknown error'}</p>
         </div>
       </div>
     );
@@ -243,9 +243,9 @@ const MemberList = () => {
   // Additional safety check - if we're not loading and have no members, show empty state
   if (!membersLoading && !membersError && members.length === 0) {
     return (
-      <div className="binance-section overflow-hidden shadow-2xl">
-        <div className="binance-section-header bg-gradient-to-r from-binance-green/20 to-binance-yellow/10 px-4 py-3">
-          <h2 className="binance-section-title flex items-center">
+      <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} rounded-xl p-8 border shadow-lg overflow-hidden`}>
+        <div className={`${isDark ? 'bg-gradient-to-r from-coinbase-green/20 to-coinbase-blue/10 border-coinbase-dark-border' : 'bg-gradient-to-r from-green-100 to-blue-100 border-gray-200'} px-4 py-3 border-b`}>
+          <h2 className={`text-xl font-bold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'} flex items-center`}>
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
             </svg>
@@ -253,8 +253,8 @@ const MemberList = () => {
           </h2>
         </div>
         <div className="p-8 text-center">
-          <p className="text-gray-600 dark:text-gray-400">No members found</p>
-          <p className="text-xs text-gray-500 mt-2">Be the first to join our VIP program!</p>
+          <p className={`${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>No members found</p>
+          <p className={`text-xs ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'} mt-2`}>Be the first to join our VIP program!</p>
         </div>
       </div>
     );
@@ -262,17 +262,17 @@ const MemberList = () => {
 
   try {
     return (
-      <div className="binance-section overflow-hidden shadow-2xl">
+      <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} rounded-xl border shadow-lg overflow-hidden`}>
       {/* Header with Stats Toggle */}
-      <div className="binance-section-header bg-gradient-to-r from-binance-green/20 to-binance-yellow/10 px-4 py-3">
+      <div className={`${isDark ? 'bg-gradient-to-r from-coinbase-green/20 to-coinbase-blue/10 border-coinbase-dark-border' : 'bg-gradient-to-r from-green-100 to-blue-100 border-gray-200'} px-4 py-3 border-b`}>
         <div className="flex items-center justify-between">
-          <h2 className="binance-section-title flex items-center">
+          <h2 className={`text-xl font-bold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'} flex items-center`}>
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
             </svg>
             Member List
             {stats.totalMembers && (
-              <span className="ml-2 text-sm bg-binance-green/20 text-binance-green px-2 py-1 rounded-full">
+              <span className={`ml-2 text-sm ${isDark ? 'bg-coinbase-green/20 text-coinbase-green border-coinbase-green/30' : 'bg-green-100 text-green-800 border-green-200'} px-2 py-1 rounded-full border`}>
                 {stats.totalMembers} members
               </span>
             )}
@@ -281,7 +281,7 @@ const MemberList = () => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="text-xs bg-white/10 border border-white/20 rounded px-2 py-1 text-white"
+              className={`text-xs ${isDark ? 'bg-coinbase-dark-tertiary border-coinbase-dark-border text-coinbase-text-primary' : 'bg-white border-gray-300 text-gray-900'} border rounded px-2 py-1`}
             >
               <option value="earnings">Sort by Earnings</option>
               <option value="vipLevel">Sort by VIP Level</option>
@@ -289,7 +289,7 @@ const MemberList = () => {
             </select>
             <button
               onClick={() => setShowStats(!showStats)}
-              className="text-xs bg-white/10 border border-white/20 rounded px-2 py-1 text-white hover:bg-white/20 transition-colors"
+              className={`text-xs ${isDark ? 'bg-coinbase-dark-tertiary border-coinbase-dark-border text-coinbase-text-primary hover:bg-coinbase-dark-border' : 'bg-white border-gray-300 text-gray-900 hover:bg-gray-50'} border rounded px-2 py-1 transition-colors`}
             >
               {showStats ? 'Hide' : 'Show'} Stats
             </button>
@@ -299,31 +299,31 @@ const MemberList = () => {
 
       {/* Statistics Section */}
       {showStats && stats && (
-        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-4 border-b border-white/20">
+        <div className={`${isDark ? 'bg-gradient-to-r from-coinbase-blue/10 to-coinbase-green/10 border-coinbase-dark-border' : 'bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-gray-200'} p-4 border-b`}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-binance-green">
+              <div className="text-2xl font-bold text-coinbase-green">
                 {stats.totalMembers || 0}
               </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Total Members</div>
+              <div className={`text-xs ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Total Members</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-blue-500">
+              <div className="text-2xl font-bold text-coinbase-blue">
                 {stats.activeMembers || 0}
               </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Active VIP</div>
+              <div className={`text-xs ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Active VIP</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-purple-500">
+              <div className="text-2xl font-bold text-coinbase-green">
                 {formatCurrency(stats.totalEarnings || 0)}
               </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Total Earnings</div>
+              <div className={`text-xs ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Total Earnings</div>
             </div>
             <div>
-              <div className="text-lg font-bold text-yellow-500">
+              <div className={`text-lg font-bold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
                 {stats.topEarner?.email || 'N/A'}
               </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">
+              <div className={`text-xs ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>
                 Top: {formatCurrency(stats.topEarner?.totalEarnings || 0)}
               </div>
             </div>
@@ -348,11 +348,11 @@ const MemberList = () => {
               return (
               <div 
                 key={`${member.id || index}-${index}`}
-                className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/20 hover:bg-gray-50 dark:hover:bg-white/10 backdrop-blur-sm transition-all duration-200"
+                className={`flex items-center justify-between p-4 ${isDark ? 'border-coinbase-dark-border hover:bg-coinbase-dark-tertiary' : 'border-gray-200 hover:bg-gray-50'} border-b transition-all duration-200`}
               >
                 {/* Left side - Number and Badge */}
                 <div className="flex items-center space-x-3">
-                  <span className="text-sm text-gray-600 dark:text-gray-300 font-medium min-w-[2rem]">
+                  <span className={`text-sm ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'} font-medium min-w-[2rem]`}>
                     #{index + 1}
                   </span>
                   {getBadgeIcon(member.badge)}
@@ -360,19 +360,19 @@ const MemberList = () => {
 
                 {/* Center - Member Info */}
                 <div className="flex-1 ml-4">
-                  <div className="text-sm text-gray-900 dark:text-white font-medium">
+                  <div className={`text-sm ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'} font-medium`}>
                     {member.fullName || member.email}
                   </div>
                   <div className="flex items-center space-x-2 mt-1">
                     <span className={`text-xs font-semibold ${getVipLevelColor(member.vipLevel)}`}>
                       {member.vipLevel}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className={`text-xs ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>
                       {formatDate(member.joinedAt)}
                     </span>
                   </div>
                   {member.referralCount > 0 && (
-                    <div className="text-xs text-blue-500 mt-1">
+                    <div className="text-xs text-coinbase-blue mt-1">
                       {member.referralCount} referrals
                     </div>
                   )}
@@ -380,11 +380,11 @@ const MemberList = () => {
 
                 {/* Right side - Earnings */}
                 <div className="text-right">
-                  <div className="bg-gradient-to-r from-binance-green to-binance-yellow text-binance-dark px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
+                  <div className={`${isDark ? 'bg-gradient-to-r from-coinbase-green to-coinbase-blue text-coinbase-dark' : 'bg-gradient-to-r from-green-500 to-blue-500 text-white'} px-3 py-1 rounded-full text-sm font-semibold shadow-lg`}>
                     {formatCurrency(member.totalEarnings)}
                   </div>
                   {member.todayEarnings > 0 && (
-                    <div className="text-xs text-green-500 mt-1">
+                    <div className="text-xs text-coinbase-green mt-1">
                       +{formatCurrency(member.todayEarnings)} today
                     </div>
                   )}
@@ -393,7 +393,7 @@ const MemberList = () => {
               );
             }) : (
               <div className="p-8 text-center">
-                <p className="text-gray-600 dark:text-gray-400">No members found</p>
+                <p className={`${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>No members found</p>
               </div>
             )}
           </div>
@@ -408,8 +408,8 @@ const MemberList = () => {
                   key={index}
                   className={`w-2 h-2 rounded-full transition-all duration-300 ${
                     index === currentIndex 
-                      ? 'bg-emerald-400' 
-                      : 'bg-white/30'
+                      ? 'bg-coinbase-green' 
+                      : isDark ? 'bg-coinbase-dark-border' : 'bg-gray-300'
                   }`}
                 />
               ))}
@@ -419,8 +419,8 @@ const MemberList = () => {
       </div>
 
       {/* Footer */}
-      <div className="bg-white/10 backdrop-blur-sm px-4 py-3 border-t border-white/20">
-        <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
+      <div className={`${isDark ? 'bg-coinbase-dark-tertiary border-coinbase-dark-border' : 'bg-gray-50 border-gray-200'} px-4 py-3 border-t`}>
+        <div className={`flex items-center justify-between text-xs ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>
           <div className="flex items-center space-x-4">
             <span>🔄 Auto-refresh: 30s</span>
             <span>📊 Showing top {members.length} members</span>

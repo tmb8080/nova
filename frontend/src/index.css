@@ -14,7 +14,7 @@
       sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    @apply bg-white dark:bg-binance-dark text-gray-900 dark:text-binance-text-primary transition-colors duration-200;
+    @apply bg-white dark:bg-coinbase-dark text-gray-900 dark:text-coinbase-text-primary transition-colors duration-200;
   }
 
   code {
@@ -27,174 +27,174 @@
     @apply transition-colors duration-200;
   }
 
-  /* Binance-style scrollbar */
+  /* Coinbase-style scrollbar */
   ::-webkit-scrollbar {
     @apply w-2;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-gray-100 dark:bg-binance-dark-secondary;
+    @apply bg-gray-100 dark:bg-coinbase-dark-secondary;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 dark:bg-binance-dark-border rounded-full;
+    @apply bg-gray-300 dark:bg-coinbase-dark-border rounded-full;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400 dark:bg-binance-yellow;
+    @apply bg-gray-400 dark:bg-coinbase-blue;
   }
 }
 
 @layer components {
-  /* Binance-style buttons */
+  /* Coinbase-style buttons */
   .btn-primary {
-    @apply bg-binance-yellow hover:bg-binance-yellow-dark text-binance-dark font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl;
+    @apply bg-coinbase-blue hover:bg-coinbase-blue-dark text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl;
   }
   
   .btn-secondary {
-    @apply bg-binance-dark-secondary hover:bg-binance-dark-tertiary text-binance-text-primary font-medium py-3 px-6 rounded-lg border border-binance-dark-border transition-all duration-200;
+    @apply bg-coinbase-dark-secondary hover:bg-coinbase-dark-tertiary text-coinbase-text-primary font-medium py-3 px-6 rounded-lg border border-coinbase-dark-border transition-all duration-200;
   }
 
   .btn-success {
-    @apply bg-binance-green hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200;
+    @apply bg-coinbase-green hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200;
   }
 
   .btn-danger {
-    @apply bg-binance-red hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200;
+    @apply bg-coinbase-red hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200;
   }
   
   .input-field {
-    @apply w-full px-4 py-3 border border-gray-300 dark:border-binance-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-binance-yellow focus:border-binance-yellow bg-white dark:bg-binance-dark-secondary text-gray-900 dark:text-binance-text-primary transition-all duration-200;
+    @apply w-full px-4 py-3 border border-gray-300 dark:border-coinbase-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-coinbase-blue focus:border-coinbase-blue bg-white dark:bg-coinbase-dark-secondary text-gray-900 dark:text-coinbase-text-primary transition-all duration-200;
   }
 
-  .binance-input {
-    @apply w-full px-4 py-3 border border-binance-dark-border rounded-lg bg-binance-dark-secondary text-binance-text-primary placeholder-binance-text-tertiary focus:outline-none focus:ring-2 focus:ring-binance-yellow focus:border-binance-yellow transition-all duration-200;
+  .coinbase-input {
+    @apply w-full px-4 py-3 border border-coinbase-dark-border rounded-lg bg-coinbase-dark-secondary text-coinbase-text-primary placeholder-coinbase-text-tertiary focus:outline-none focus:ring-2 focus:ring-coinbase-blue focus:border-coinbase-blue transition-all duration-200;
   }
   
-  /* Binance-style cards */
+  /* Coinbase-style cards */
   .card {
-    @apply bg-white dark:bg-binance-dark-secondary rounded-xl shadow-lg border border-gray-200 dark:border-binance-dark-border transition-all duration-200;
+    @apply bg-white dark:bg-coinbase-dark-secondary rounded-xl shadow-lg border border-gray-200 dark:border-coinbase-dark-border transition-all duration-200;
   }
 
-  .binance-card {
-    @apply bg-binance-dark-secondary border-binance-dark-border text-binance-text-primary rounded-xl shadow-lg;
+  .coinbase-card {
+    @apply bg-coinbase-dark-secondary border-coinbase-dark-border text-coinbase-text-primary rounded-xl shadow-lg;
   }
 
-  .binance-card-header {
-    @apply bg-binance-dark-tertiary border-b border-binance-dark-border p-6 rounded-t-xl;
+  .coinbase-card-header {
+    @apply bg-coinbase-dark-tertiary border-b border-coinbase-dark-border p-6 rounded-t-xl;
   }
 
-  .binance-card-content {
+  .coinbase-card-content {
     @apply p-6;
   }
 
-  /* Binance-style form elements */
+  /* Coinbase-style form elements */
   .form-input {
-    @apply bg-white dark:bg-binance-dark-secondary border-gray-300 dark:border-binance-dark-border text-gray-900 dark:text-binance-text-primary placeholder-gray-500 dark:placeholder-binance-text-tertiary;
+    @apply bg-white dark:bg-coinbase-dark-secondary border-gray-300 dark:border-coinbase-dark-border text-gray-900 dark:text-coinbase-text-primary placeholder-gray-500 dark:placeholder-coinbase-text-tertiary;
   }
 
   .form-label {
-    @apply text-gray-700 dark:text-binance-text-primary font-medium;
+    @apply text-gray-700 dark:text-coinbase-text-primary font-medium;
   }
 
-  .binance-form-group {
+  .coinbase-form-group {
     @apply space-y-2;
   }
 
-  .binance-form-label {
-    @apply text-sm font-medium text-gray-700 dark:text-binance-text-primary;
+  .coinbase-form-label {
+    @apply text-sm font-medium text-gray-700 dark:text-coinbase-text-primary;
   }
 
-  /* Binance-style content sections */
-  .binance-section {
-    @apply bg-white dark:bg-binance-dark-secondary border border-gray-200 dark:border-binance-dark-border rounded-xl p-6 shadow-lg;
+  /* Coinbase-style content sections */
+  .coinbase-section {
+    @apply bg-white dark:bg-coinbase-dark-secondary border border-gray-200 dark:border-coinbase-dark-border rounded-xl p-6 shadow-lg;
   }
 
-  .binance-section-header {
-    @apply border-b border-gray-200 dark:border-binance-dark-border pb-4 mb-6;
+  .coinbase-section-header {
+    @apply border-b border-gray-200 dark:border-coinbase-dark-border pb-4 mb-6;
   }
 
-  .binance-section-title {
-    @apply text-lg font-semibold text-gray-900 dark:text-binance-text-primary;
+  .coinbase-section-title {
+    @apply text-lg font-semibold text-gray-900 dark:text-coinbase-text-primary;
   }
 
-  .binance-section-subtitle {
-    @apply text-sm text-gray-600 dark:text-binance-text-secondary mt-1;
+  .coinbase-section-subtitle {
+    @apply text-sm text-gray-600 dark:text-coinbase-text-secondary mt-1;
   }
 
-  /* Binance-style stats cards */
-  .binance-stat-card {
-    @apply bg-white dark:bg-binance-dark-secondary border border-gray-200 dark:border-binance-dark-border rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200;
+  /* Coinbase-style stats cards */
+  .coinbase-stat-card {
+    @apply bg-white dark:bg-coinbase-dark-secondary border border-gray-200 dark:border-coinbase-dark-border rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200;
   }
 
-  .binance-stat-value {
-    @apply text-2xl font-bold text-gray-900 dark:text-binance-text-primary;
+  .coinbase-stat-value {
+    @apply text-2xl font-bold text-gray-900 dark:text-coinbase-text-primary;
   }
 
-  .binance-stat-label {
-    @apply text-sm text-gray-600 dark:text-binance-text-secondary mt-1;
+  .coinbase-stat-label {
+    @apply text-sm text-gray-600 dark:text-coinbase-text-secondary mt-1;
   }
 
-  .binance-stat-change {
+  .coinbase-stat-change {
     @apply text-sm font-medium;
   }
 
-  .binance-stat-change.positive {
-    @apply text-binance-green;
+  .coinbase-stat-change.positive {
+    @apply text-coinbase-green;
   }
 
-  .binance-stat-change.negative {
-    @apply text-binance-red;
+  .coinbase-stat-change.negative {
+    @apply text-coinbase-red;
   }
 
-  /* Binance-style tables */
-  .binance-table {
-    @apply w-full bg-binance-dark-secondary border border-binance-dark-border rounded-xl overflow-hidden;
+  /* Coinbase-style tables */
+  .coinbase-table {
+    @apply w-full bg-coinbase-dark-secondary border border-coinbase-dark-border rounded-xl overflow-hidden;
   }
 
-  .binance-table-header {
-    @apply bg-binance-dark-tertiary border-b border-binance-dark-border;
+  .coinbase-table-header {
+    @apply bg-coinbase-dark-tertiary border-b border-coinbase-dark-border;
   }
 
-  .binance-table-header th {
-    @apply px-6 py-4 text-left text-sm font-medium text-binance-text-primary;
+  .coinbase-table-header th {
+    @apply px-6 py-4 text-left text-sm font-medium text-coinbase-text-primary;
   }
 
-  .binance-table-body tr {
-    @apply border-b border-binance-dark-border hover:bg-binance-dark-tertiary transition-colors duration-200;
+  .coinbase-table-body tr {
+    @apply border-b border-coinbase-dark-border hover:bg-coinbase-dark-tertiary transition-colors duration-200;
   }
 
-  .binance-table-body td {
-    @apply px-6 py-4 text-sm text-binance-text-primary;
+  .coinbase-table-body td {
+    @apply px-6 py-4 text-sm text-coinbase-text-primary;
   }
 
-  /* Binance-style lists */
-  .binance-list {
+  /* Coinbase-style lists */
+  .coinbase-list {
     @apply space-y-2;
   }
 
-  .binance-list-item {
-    @apply bg-white dark:bg-binance-dark-secondary border border-gray-200 dark:border-binance-dark-border rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-binance-dark-tertiary transition-colors duration-200;
+  .coinbase-list-item {
+    @apply bg-white dark:bg-coinbase-dark-secondary border border-gray-200 dark:border-coinbase-dark-border rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-coinbase-dark-tertiary transition-colors duration-200;
   }
 
-  /* Binance-style badges */
-  .binance-badge {
+  /* Coinbase-style badges */
+  .coinbase-badge {
     @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
   }
 
-  .binance-badge.success {
-    @apply bg-binance-green/20 text-binance-green border border-binance-green/30;
+  .coinbase-badge.success {
+    @apply bg-coinbase-green/20 text-coinbase-green border border-coinbase-green/30;
   }
 
-  .binance-badge.warning {
-    @apply bg-binance-yellow/20 text-binance-yellow border border-binance-yellow/30;
+  .coinbase-badge.warning {
+    @apply bg-coinbase-blue/20 text-coinbase-blue border border-coinbase-blue/30;
   }
 
-  .binance-badge.error {
-    @apply bg-binance-red/20 text-binance-red border border-binance-red/30;
+  .coinbase-badge.error {
+    @apply bg-coinbase-red/20 text-coinbase-red border border-coinbase-red/30;
   }
 
-  .binance-badge.info {
+  .coinbase-badge.info {
     @apply bg-blue-500/20 text-blue-400 border border-blue-500/30;
   }
 

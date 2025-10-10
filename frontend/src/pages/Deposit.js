@@ -695,7 +695,7 @@ const Deposit = () => {
                             {network.isUserAddress && (
                               <div className="text-xs text-blue-600 mt-1">✓ Your Address</div>
                             )}
-                            {network.address && (
+                            {network.address && typeof network.address === 'string' && (
                               <div className="text-xs text-gray-500 mt-1 font-mono break-all">
                                 {network.address.substring(0, 8)}...{network.address.substring(network.address.length - 6)}
                               </div>

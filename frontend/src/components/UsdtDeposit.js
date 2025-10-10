@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { walletAPI, depositAPI } from '../services/api';
+import { walletAPI, depositAPI, vipAPI } from '../services/api';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { toast } from 'react-hot-toast';
@@ -570,22 +570,79 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
       
       if (response.data?.autoConfirmed) {
         toast.success(`🎉 Deposit automatically confirmed! Amount has been added to your wallet.`);
-        // Close modal after auto-confirmation
-        setTimeout(() => {
-          onClose();
-        }, 2000);
+        
+        // If this deposit was for VIP upgrade, attempt VIP upgrade after successful deposit
+        if (vipToJoin) {
+          setTimeout(() => {
+            attemptVipUpgrade();
+          }, 1000);
+        } else {
+          // Close modal after auto-confirmation
+          setTimeout(() => {
+            onClose();
+          }, 2000);
+        }
       } else {
-      toast.success('Deposit created successfully!');
+        toast.success('Deposit created successfully!');
+        
+        // For manual deposits, also attempt VIP upgrade if this was for VIP
+        if (vipToJoin) {
+          setTimeout(() => {
+            attemptVipUpgrade();
+          }, 1000);
+        } else {
+          // Close modal after manual deposit
+          setTimeout(() => {
+            onClose();
+          }, 2000);
+        }
       }
       
       queryClient.invalidateQueries(['deposits']);
       queryClient.invalidateQueries(['wallet']); // Refresh wallet balance
+      queryClient.invalidateQueries(['walletStats']); // Refresh wallet stats for VIP calculations
     },
     onError: (error) => {
       console.error('❌ Deposit creation failed:', error);
       toast.error(error.response?.data?.message || 'Failed to create deposit');
     },
   });
+
+  // VIP upgrade mutation
+  const vipUpgradeMutation = useMutation({
+    mutationFn: (vipLevelId) => vipAPI.joinVip(vipLevelId),
+    onSuccess: (data) => {
+      const message = data?.data?.isUpgrade 
+        ? `🎉 Successfully upgraded to ${data.data.vipLevel?.name || 'VIP level'}!`
+        : '🎉 Successfully joined VIP level!';
+      toast.success(message);
+      queryClient.invalidateQueries(['walletStats']);
+      queryClient.invalidateQueries(['vipStatus']);
+      
+      // Close modal after successful VIP upgrade
+      setTimeout(() => {
+        onClose();
+      }, 2000);
+    },
+    onError: (error) => {
+      console.error('VIP upgrade error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to upgrade VIP level';
+      toast.error(errorMessage);
+      
+      // Close modal even if VIP upgrade fails (deposit was successful)
+      setTimeout(() => {
+        onClose();
+      }, 3000);
+    },
+  });
+
+  // Function to attempt VIP upgrade after successful deposit
+  const attemptVipUpgrade = () => {
+    if (vipToJoin) {
+      console.log('🚀 Attempting VIP upgrade for:', vipToJoin);
+      vipUpgradeMutation.mutate(vipToJoin.id);
+    }
+  };
 
   // Function to trigger auto-fill (kept for compatibility but not used)
   const triggerAutoFill = (hash) => {
@@ -688,26 +745,75 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
     createDepositMutation.mutate(depositData);
   };
 
+  // Handle manual deposit submission (for non-auto-detected transactions)
+  const handleManualSubmit = () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    if (!transactionHash.trim()) {
+      toast.error('Please enter the transaction hash');
+      return;
+    }
+
+    const depositData = {
+      amount: parseFloat(amount),
+      currency: selectedMethodData.currency,
+      network: selectedMethodData.network,
+      transactionHash: transactionHash.trim(),
+      status: 'PENDING',
+      autoConfirmed: false
+    };
+
+    console.log('🚀 Creating manual deposit:', depositData);
+    createDepositMutation.mutate(depositData);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="backdrop-blur-xl bg-white/10 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl">
+      <div className="backdrop-blur-xl bg-white/10 dark:bg-coinbase-dark-secondary/90 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-white/20 dark:border-coinbase-dark-border shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/20 sticky top-0 bg-white/5 backdrop-blur-sm">
-          <h2 className="text-xl font-bold text-white">USDT</h2>
+        <div className="flex items-center justify-between p-4 border-b border-white/20 dark:border-coinbase-dark-border sticky top-0 bg-white/5 dark:bg-coinbase-dark-secondary/50 backdrop-blur-sm">
+          <div className="flex items-center space-x-3">
+            <h2 className="text-xl font-bold text-white dark:text-coinbase-text-primary">USDT Deposit</h2>
+            {vipToJoin && (
+              <div className="bg-gradient-to-r from-coinbase-blue to-coinbase-green text-white px-3 py-1 rounded-full text-xs font-semibold">
+                VIP Upgrade
+              </div>
+            )}
+          </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/20 rounded-full transition-colors"
+            className="p-2 hover:bg-white/20 dark:hover:bg-coinbase-dark-tertiary rounded-full transition-colors"
           >
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6 text-white dark:text-coinbase-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
+        {/* VIP Upgrade Info */}
+        {vipToJoin && (
+          <div className="mx-4 mt-4 p-4 bg-gradient-to-r from-coinbase-blue/10 to-coinbase-green/10 border border-coinbase-blue/20 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-coinbase-blue to-coinbase-green rounded-lg flex items-center justify-center">
+                <span className="text-white text-sm font-bold">VIP</span>
+              </div>
+              <div>
+                <h3 className="text-white dark:text-coinbase-text-primary font-semibold">Upgrading to {vipToJoin.name}</h3>
+                <p className="text-white/70 dark:text-coinbase-text-secondary text-sm">
+                  After deposit confirmation, you'll automatically be upgraded to this VIP level
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="p-4 space-y-6">
           {/* Deposit Methods */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-3">Select Deposit Method</h3>
+            <h3 className="text-lg font-semibold text-white dark:text-coinbase-text-primary mb-3">Select Deposit Method</h3>
             <div className="space-y-2">
               {depositMethods.map((method) => (
                 <button
@@ -716,7 +822,7 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                   className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all ${
                     selectedMethod === method.key
                       ? `${method.color} text-white border-transparent shadow-lg`
-                      : 'bg-white/10 backdrop-blur-sm text-gray-300 hover:text-white hover:bg-white/20 border-white/20'
+                      : 'bg-white/10 dark:bg-coinbase-dark-tertiary backdrop-blur-sm text-gray-300 dark:text-coinbase-text-secondary hover:text-white dark:hover:text-coinbase-text-primary hover:bg-white/20 dark:hover:bg-coinbase-dark-border border-white/20 dark:border-coinbase-dark-border'
                   }`}
                 >
                   <span className="font-medium">{method.name}</span>
@@ -731,44 +837,44 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
           {/* Loading State */}
           {addressesLoading && (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto"></div>
-              <p className="text-gray-300 mt-2">Loading wallet addresses...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-coinbase-blue mx-auto"></div>
+              <p className="text-gray-300 dark:text-coinbase-text-secondary mt-2">Loading wallet addresses...</p>
             </div>
           )}
 
           {/* Error State */}
           {addressesError && (
-            <div className="bg-red-500/20 backdrop-blur-sm border border-red-400/30 rounded-lg p-4">
-              <p className="text-red-300">Error loading wallet addresses. Please try again.</p>
+            <div className="bg-red-500/20 dark:bg-coinbase-red/20 backdrop-blur-sm border border-red-400/30 dark:border-coinbase-red/30 rounded-lg p-4">
+              <p className="text-red-300 dark:text-coinbase-red">Error loading wallet addresses. Please try again.</p>
             </div>
           )}
 
           {/* QR Code and Address */}
           {!addressesLoading && !addressesError && selectedAddress && (
             <div>
-              <h3 className="text-lg font-semibold text-white mb-3">Recharge QR Code</h3>
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center border border-white/20">
+              <h3 className="text-lg font-semibold text-white dark:text-coinbase-text-primary mb-3">Recharge QR Code</h3>
+              <div className="bg-white/10 dark:bg-coinbase-dark-tertiary backdrop-blur-sm rounded-lg p-4 text-center border border-white/20 dark:border-coinbase-dark-border">
                 {/* QR Code */}
                 <div className="mb-4">
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${selectedAddress}`}
                     alt={`QR Code for ${selectedMethodData?.name}`}
-                    className="mx-auto border border-white/20 rounded-lg bg-white"
+                    className="mx-auto border border-white/20 dark:border-coinbase-dark-border rounded-lg bg-white"
                   />
                 </div>
 
                 {/* Wallet Address */}
                 <div className="mb-4">
-                  <div className="flex items-center justify-between bg-white/10 backdrop-blur-sm p-3 rounded-lg border border-white/20">
-                    <span className="font-mono text-sm text-purple-300 break-all">
+                  <div className="flex items-center justify-between bg-white/10 dark:bg-coinbase-dark-secondary backdrop-blur-sm p-3 rounded-lg border border-white/20 dark:border-coinbase-dark-border">
+                    <span className="font-mono text-sm text-purple-300 dark:text-coinbase-blue break-all">
                       {selectedAddress}
                     </span>
                     <button
                       onClick={() => copyToClipboard(selectedAddress)}
                       className={`ml-2 px-3 py-1 rounded text-xs font-medium transition-colors ${
                         copiedAddress
-                          ? 'bg-green-500/20 text-green-300 border border-green-400/30'
-                          : 'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-400/30'
+                          ? 'bg-green-500/20 dark:bg-coinbase-green/20 text-green-300 dark:text-coinbase-green border border-green-400/30 dark:border-coinbase-green/30'
+                          : 'bg-purple-500/20 dark:bg-coinbase-blue/20 text-purple-300 dark:text-coinbase-blue hover:bg-purple-500/30 dark:hover:bg-coinbase-blue/30 border border-purple-400/30 dark:border-coinbase-blue/30'
                       }`}
                     >
                       {copiedAddress ? 'Copied!' : 'Copy'}
@@ -781,8 +887,8 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
 
           {/* No Address Available */}
           {!addressesLoading && !addressesError && !selectedAddress && addresses?.data && (
-            <div className="bg-yellow-500/20 backdrop-blur-sm border border-yellow-400/30 rounded-lg p-4">
-              <p className="text-yellow-300">
+            <div className="bg-yellow-500/20 dark:bg-coinbase-blue/20 backdrop-blur-sm border border-yellow-400/30 dark:border-coinbase-blue/30 rounded-lg p-4">
+              <p className="text-yellow-300 dark:text-coinbase-blue">
                 No wallet address available for {selectedMethodData?.name}. Please select a different method.
               </p>
             </div>
@@ -790,30 +896,30 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
 
           {/* Deposit Instructions */}
           {selectedAddress && (
-            <div className="bg-blue-500/20 backdrop-blur-sm border border-blue-400/30 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-blue-300 mb-3">📋 Deposit Instructions</h4>
+            <div className="bg-blue-500/20 dark:bg-coinbase-blue/20 backdrop-blur-sm border border-blue-400/30 dark:border-coinbase-blue/30 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-blue-300 dark:text-coinbase-blue mb-3">📋 Deposit Instructions</h4>
               <div className="space-y-3">
                 <div className="flex items-start space-x-2">
-                  <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                  <span className="bg-blue-500 dark:bg-coinbase-blue text-white text-xs rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
                   <div>
-                    <p className="text-sm text-blue-300 font-medium">Select Network & Copy Address</p>
-                    <p className="text-xs text-blue-200">Choose {selectedMethodData?.name} and copy the wallet address above</p>
+                    <p className="text-sm text-blue-300 dark:text-coinbase-blue font-medium">Select Network & Copy Address</p>
+                    <p className="text-xs text-blue-200 dark:text-coinbase-text-secondary">Choose {selectedMethodData?.name} and copy the wallet address above</p>
                   </div>
                 </div>
                 
                 <div className="flex items-start space-x-2">
-                  <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                  <span className="bg-blue-500 dark:bg-coinbase-blue text-white text-xs rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
                   <div>
-                    <p className="text-sm text-blue-300 font-medium">Send Funds from Your Wallet</p>
-                    <p className="text-xs text-blue-200">Open your crypto wallet (MetaMask, Trust Wallet, etc.) and send any amount of {selectedMethodData?.currency} to the copied address</p>
+                    <p className="text-sm text-blue-300 dark:text-coinbase-blue font-medium">Send Funds from Your Wallet</p>
+                    <p className="text-xs text-blue-200 dark:text-coinbase-text-secondary">Open your crypto wallet (MetaMask, Trust Wallet, etc.) and send any amount of {selectedMethodData?.currency} to the copied address</p>
                   </div>
                 </div>
                 
                 <div className="flex items-start space-x-2">
-                  <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                  <span className="bg-blue-500 dark:bg-coinbase-blue text-white text-xs rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
                   <div>
-                    <p className="text-sm text-blue-300 font-medium">Get Transaction Hash</p>
-                    <p className="text-xs text-blue-200">
+                    <p className="text-sm text-blue-300 dark:text-coinbase-blue font-medium">Get Transaction Hash</p>
+                    <p className="text-xs text-blue-200 dark:text-coinbase-text-secondary">
                       <strong>Where to find Transaction Hash:</strong><br/>
                       • <strong>MetaMask:</strong> Click on the transaction → Copy "Transaction Hash"<br/>
                       • <strong>Trust Wallet:</strong> Tap transaction → Copy "TxID" or "Hash"<br/>
@@ -824,10 +930,10 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                 </div>
                 
                 <div className="flex items-start space-x-2">
-                  <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
+                  <span className="bg-blue-500 dark:bg-coinbase-blue text-white text-xs rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
                   <div>
-                    <p className="text-sm text-blue-300 font-medium">Paste Hash & Submit</p>
-                    <p className="text-xs text-blue-200">Paste the transaction hash below to auto-detect amount and network, then click "Submit Deposit"</p>
+                    <p className="text-sm text-blue-300 dark:text-coinbase-blue font-medium">Paste Hash & Submit</p>
+                    <p className="text-xs text-blue-200 dark:text-coinbase-text-secondary">Paste the transaction hash below to auto-detect amount and network, then click "Submit Deposit"</p>
                   </div>
                 </div>
               </div>
@@ -836,23 +942,23 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
 
           {/* Transaction Details Form */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white">Transaction Details</h3>
+            <h3 className="text-lg font-semibold text-white dark:text-coinbase-text-primary">Transaction Details</h3>
             
             {/* Auto-Detected Amount Display */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 dark:text-coinbase-text-secondary mb-2">
                 Amount ({selectedMethodData?.currency})
               </label>
-              <div className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white">
+              <div className="w-full px-4 py-3 bg-white/10 dark:bg-coinbase-dark-tertiary backdrop-blur-sm border border-white/20 dark:border-coinbase-dark-border rounded-lg text-white dark:text-coinbase-text-primary">
                 {autoDetectResult && autoDetectResult.found && autoDetectResult.suggestedAmount && autoDetectResult.suggestedAmount !== 'N/A' ? (
                   <div className="flex items-center justify-between">
-                    <span className="text-white font-medium">
+                    <span className="text-white dark:text-coinbase-text-primary font-medium">
                       {autoDetectResult.suggestedAmount} {selectedMethodData?.currency}
                     </span>
-                    <span className="text-green-400 text-sm">✅ Auto-detected</span>
+                    <span className="text-green-400 dark:text-coinbase-green text-sm">✅ Auto-detected</span>
                   </div>
                 ) : (
-                  <span className="text-gray-400">
+                  <span className="text-gray-400 dark:text-coinbase-text-tertiary">
                     {autoDetectResult && autoDetectResult.found ? 'Amount will be auto-filled from verified transaction' : 'Paste transaction hash to auto-detect amount'}
                   </span>
                 )}
@@ -861,34 +967,34 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
 
             {/* Transaction Hash Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 dark:text-coinbase-text-secondary mb-2">
                 Transaction Hash
               </label>
               <div className="flex gap-2">
                 <div className="flex-1 relative">
-              <input
-                type="text"
-                value={transactionHash}
+                  <input
+                    type="text"
+                    value={transactionHash}
                     onChange={handleTransactionHashChange}
                     placeholder="Paste or type transaction hash from your wallet"
-                    className={`w-full px-4 py-3 bg-white/10 backdrop-blur-sm border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                    className={`w-full px-4 py-3 bg-white/10 dark:bg-coinbase-dark-tertiary backdrop-blur-sm border rounded-lg text-white dark:text-coinbase-text-primary placeholder-gray-400 dark:placeholder-coinbase-text-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-coinbase-blue focus:border-transparent ${
                       transactionHash && transactionHash.length >= 64
                         ? /^0x[a-fA-F0-9]{64}$|^[a-fA-F0-9]{64}$/.test(transactionHash)
-                          ? 'border-green-400 focus:ring-green-500'
-                          : 'border-red-400 focus:ring-red-500'
-                        : 'border-white/20'
+                          ? 'border-green-400 dark:border-coinbase-green focus:ring-green-500 dark:focus:ring-coinbase-green'
+                          : 'border-red-400 dark:border-coinbase-red focus:ring-red-500 dark:focus:ring-coinbase-red'
+                        : 'border-white/20 dark:border-coinbase-dark-border'
                     }`}
                   />
                   {transactionHash && (
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                       {transactionHash.length >= 64 ? (
                         /^0x[a-fA-F0-9]{64}$|^[a-fA-F0-9]{64}$/.test(transactionHash) ? (
-                          <span className="text-green-400 text-sm">✅</span>
+                          <span className="text-green-400 dark:text-coinbase-green text-sm">✅</span>
                         ) : (
-                          <span className="text-red-400 text-sm">❌</span>
+                          <span className="text-red-400 dark:text-coinbase-red text-sm">❌</span>
                         )
                       ) : (
-                        <span className="text-gray-400 text-sm">{transactionHash.length}/64</span>
+                        <span className="text-gray-400 dark:text-coinbase-text-tertiary text-sm">{transactionHash.length}/64</span>
                       )}
                     </div>
                   )}
@@ -899,21 +1005,21 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                   onClick={() => checkAllNetworks(transactionHash)}
                   loading={checkAllNetworksMutation.isPending}
                   disabled={!transactionHash}
-                  className="whitespace-nowrap bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 border-0 shadow-lg"
+                  className="whitespace-nowrap bg-gradient-to-r from-purple-500 to-blue-500 dark:from-coinbase-blue dark:to-coinbase-blue-dark text-white hover:from-purple-600 hover:to-blue-600 dark:hover:from-coinbase-blue-dark dark:hover:to-coinbase-blue border-0 shadow-lg"
                 >
                   {checkAllNetworksMutation.isPending ? 'Checking...' : '🔍 Auto Detect'}
                 </Button>
               </div>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 dark:text-coinbase-text-tertiary mt-1">
                 Find this in your wallet's transaction history or blockchain explorer
               </p>
               
               {/* Auto-detection Status */}
               {isAutoDetecting && (
-                <div className="mt-2 p-2 bg-blue-500/20 border border-blue-400/30 rounded-lg">
+                <div className="mt-2 p-2 bg-blue-500/20 dark:bg-coinbase-blue/20 border border-blue-400/30 dark:border-coinbase-blue/30 rounded-lg">
                   <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
-                    <span className="text-sm text-blue-300">Detecting transaction across networks...</span>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400 dark:border-coinbase-blue"></div>
+                    <span className="text-sm text-blue-300 dark:text-coinbase-blue">Detecting transaction across networks...</span>
                   </div>
                 </div>
               )}
@@ -923,23 +1029,23 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                 <div className={`mt-2 p-3 rounded-lg border ${
                   autoDetectResult.found 
                     ? (autoDetectResult.isRecipientMatching 
-                        ? 'bg-green-500/20 border-green-400/30' 
-                        : 'bg-yellow-500/20 border-yellow-400/30')
-                    : 'bg-red-500/20 border-red-400/30'
+                        ? 'bg-green-500/20 dark:bg-coinbase-green/20 border-green-400/30 dark:border-coinbase-green/30' 
+                        : 'bg-yellow-500/20 dark:bg-coinbase-blue/20 border-yellow-400/30 dark:border-coinbase-blue/30')
+                    : 'bg-red-500/20 dark:bg-coinbase-red/20 border-red-400/30 dark:border-coinbase-red/30'
                 }`}>
                   {autoDetectResult.found && autoDetectResult.isRecipientMatching && createDepositMutation.isLoading && (
-                    <div className="mb-2 p-2 bg-green-500/30 border border-green-400/50 rounded">
+                    <div className="mb-2 p-2 bg-green-500/30 dark:bg-coinbase-green/30 border border-green-400/50 dark:border-coinbase-green/50 rounded">
                       <div className="flex items-center space-x-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-400"></div>
-                        <span className="text-green-300 text-sm font-medium">🔄 Auto-confirming deposit...</span>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-400 dark:border-coinbase-green"></div>
+                        <span className="text-green-300 dark:text-coinbase-green text-sm font-medium">🔄 Auto-confirming deposit...</span>
                       </div>
                     </div>
                   )}
                   <div className="flex items-center space-x-2 mb-2">
                     <span className={`text-lg ${
                       autoDetectResult.found 
-                        ? (autoDetectResult.isRecipientMatching ? 'text-green-400' : 'text-yellow-400')
-                        : 'text-red-400'
+                        ? (autoDetectResult.isRecipientMatching ? 'text-green-400 dark:text-coinbase-green' : 'text-yellow-400 dark:text-coinbase-blue')
+                        : 'text-red-400 dark:text-coinbase-red'
                     }`}>
                       {autoDetectResult.found 
                         ? (autoDetectResult.isRecipientMatching ? '✅' : '⚠️')
@@ -948,16 +1054,16 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                     </span>
                     <span className={`text-sm font-medium ${
                       autoDetectResult.found 
-                        ? (autoDetectResult.isRecipientMatching ? 'text-green-300' : 'text-yellow-300')
-                        : 'text-red-300'
+                        ? (autoDetectResult.isRecipientMatching ? 'text-green-300 dark:text-coinbase-green' : 'text-yellow-300 dark:text-coinbase-blue')
+                        : 'text-red-300 dark:text-coinbase-red'
                     }`}>
                       {autoDetectResult.found ? 'Transaction Detected' : 'Transaction Not Found'}
                     </span>
                   </div>
                   <div className={`text-xs space-y-1 ${
                     autoDetectResult.found 
-                      ? (autoDetectResult.isRecipientMatching ? 'text-green-200' : 'text-yellow-200')
-                      : 'text-red-200'
+                      ? (autoDetectResult.isRecipientMatching ? 'text-green-200 dark:text-coinbase-green' : 'text-yellow-200 dark:text-coinbase-blue')
+                      : 'text-red-200 dark:text-coinbase-red'
                   }`}>
                     <div>Network: {autoDetectResult.foundOnNetwork || autoDetectResult.suggestedNetwork || 'N/A'}</div>
                     <div>Amount: {autoDetectResult.suggestedAmount || 'N/A'} USDT</div>
@@ -972,7 +1078,7 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                       </>
                     )}
                     {!autoDetectResult.found && (
-                      <div className="text-xs text-red-300 mt-2">
+                      <div className="text-xs text-red-300 dark:text-coinbase-red mt-2">
                         🔍 Check the enhanced detection modal for detailed debugging information
                       </div>
                     )}
@@ -983,9 +1089,9 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
           </div>
 
           {/* Important Notes */}
-          <div className="bg-yellow-500/20 backdrop-blur-sm border border-yellow-400/30 rounded-lg p-4">
-            <h4 className="text-sm font-semibold text-yellow-300 mb-2">⚠️ Important Notes:</h4>
-            <ul className="text-sm text-yellow-200 space-y-1 list-disc list-inside">
+          <div className="bg-yellow-500/20 dark:bg-coinbase-blue/20 backdrop-blur-sm border border-yellow-400/30 dark:border-coinbase-blue/30 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-yellow-300 dark:text-coinbase-blue mb-2">⚠️ Important Notes:</h4>
+            <ul className="text-sm text-yellow-200 dark:text-coinbase-text-secondary space-y-1 list-disc list-inside">
               <li>Paste transaction hash to auto-detect amount and network</li>
               <li>Any amount from verified transaction will be accepted</li>
               <li>Use only {selectedMethodData?.name} network - wrong network = lost funds</li>
@@ -1010,8 +1116,8 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
             }
             className={`w-full py-3 rounded-lg font-medium ${
               autoDetectResult && autoDetectResult.found && !autoDetectResult.isRecipientMatching
-                ? 'bg-red-500 hover:bg-red-600 text-white cursor-not-allowed'
-                : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed'
+                ? 'bg-red-500 dark:bg-coinbase-red hover:bg-red-600 dark:hover:bg-coinbase-red/80 text-white cursor-not-allowed'
+                : 'bg-gradient-to-r from-purple-600 to-blue-600 dark:from-coinbase-blue dark:to-coinbase-blue-dark hover:from-purple-700 hover:to-blue-700 dark:hover:from-coinbase-blue-dark dark:hover:to-coinbase-blue text-white disabled:opacity-50 disabled:cursor-not-allowed'
             }`}
           >
             {createDepositMutation.isLoading ? (
@@ -1028,7 +1134,7 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
           {/* Enhanced Detection Button */}
           <Button
             onClick={() => setShowAutoDetectModal(true)}
-            className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 rounded-lg font-medium"
+            className="w-full bg-gradient-to-r from-green-500 to-emerald-500 dark:from-coinbase-green dark:to-coinbase-green hover:from-green-600 hover:to-emerald-600 dark:hover:from-coinbase-green/80 dark:hover:to-coinbase-green/80 text-white py-3 rounded-lg font-medium"
           >
             🔍 Enhanced Transaction Detection
           </Button>
@@ -1045,30 +1151,30 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
             }
           }}
         >
-          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200">
+          <div className="bg-white dark:bg-coinbase-dark-secondary rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-coinbase-dark-border">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-coinbase-blue/20 rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-blue-600 dark:text-coinbase-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-coinbase-text-primary">
+                      {autoDetectResult ? 'Transaction Results' : 'Enhanced Transaction Detection'}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-coinbase-text-secondary">
+                      {autoDetectResult 
+                        ? 'Detailed analysis of your transaction hash'
+                        : 'Paste any transaction hash to automatically detect details'
+                      }
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    {autoDetectResult ? 'Transaction Results' : 'Enhanced Transaction Detection'}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    {autoDetectResult 
-                      ? 'Detailed analysis of your transaction hash'
-                      : 'Paste any transaction hash to automatically detect details'
-                    }
-                  </p>
-                </div>
-              </div>
                 <button
                   onClick={() => setShowAutoDetectModal(false)}
-                  className="text-gray-400 hover:text-gray-600 text-2xl transition-colors"
+                  className="text-gray-400 dark:text-coinbase-text-secondary hover:text-gray-600 dark:hover:text-coinbase-text-primary text-2xl transition-colors"
                 >
                   ×
                 </button>
@@ -1077,7 +1183,7 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
               <div className="space-y-6">
                 {/* Transaction Hash Input */}
                 <div className="space-y-3">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium text-gray-700 dark:text-coinbase-text-primary">
                     Transaction Hash *
                   </label>
                   <div className="flex gap-2">
@@ -1115,24 +1221,24 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                             });
                           }
                         }}
-                        className={`w-full px-4 py-3 bg-gray-50 border rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        className={`w-full px-4 py-3 bg-gray-50 dark:bg-coinbase-dark-tertiary border rounded-lg text-gray-900 dark:text-coinbase-text-primary placeholder-gray-500 dark:placeholder-coinbase-text-tertiary focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-coinbase-blue focus:border-transparent ${
                           transactionHash && transactionHash.length >= 64
                             ? /^0x[a-fA-F0-9]{64}$|^[a-fA-F0-9]{64}$/.test(transactionHash)
-                              ? 'border-green-400 focus:ring-green-500'
-                              : 'border-red-400 focus:ring-red-500'
-                            : 'border-gray-200'
+                              ? 'border-green-400 dark:border-coinbase-green focus:ring-green-500 dark:focus:ring-coinbase-green'
+                              : 'border-red-400 dark:border-coinbase-red focus:ring-red-500 dark:focus:ring-coinbase-red'
+                            : 'border-gray-200 dark:border-coinbase-dark-border'
                         }`}
                       />
                       {transactionHash && (
                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                           {transactionHash.length >= 64 ? (
                             /^0x[a-fA-F0-9]{64}$|^[a-fA-F0-9]{64}$/.test(transactionHash) ? (
-                              <span className="text-green-600 text-sm">✅</span>
+                              <span className="text-green-600 dark:text-coinbase-green text-sm">✅</span>
                             ) : (
-                              <span className="text-red-600 text-sm">❌</span>
+                              <span className="text-red-600 dark:text-coinbase-red text-sm">❌</span>
                             )
                           ) : (
-                            <span className="text-gray-500 text-sm">{transactionHash.length}/64</span>
+                            <span className="text-gray-500 dark:text-coinbase-text-tertiary text-sm">{transactionHash.length}/64</span>
                           )}
                         </div>
                       )}
@@ -1143,24 +1249,24 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                       onClick={() => checkAllNetworks(transactionHash)}
                       loading={checkAllNetworksMutation.isPending}
                       disabled={!transactionHash}
-                      className="whitespace-nowrap bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 border-0 shadow-lg"
+                      className="whitespace-nowrap bg-gradient-to-r from-purple-500 to-blue-500 dark:from-coinbase-blue dark:to-coinbase-blue-dark text-white hover:from-purple-600 hover:to-blue-600 dark:hover:from-coinbase-blue-dark dark:hover:to-coinbase-blue border-0 shadow-lg"
                     >
                       {checkAllNetworksMutation.isPending ? 'Checking...' : '🔍 Check All'}
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-coinbase-text-tertiary">
                     🔍 Paste transaction hash to automatically detect network, amount, and verify recipient. Any verified amount will be accepted.
                   </p>
                 </div>
 
                 {/* Loading State */}
                 {isAutoDetecting && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="bg-blue-50 dark:bg-coinbase-blue/20 border border-blue-200 dark:border-coinbase-blue/30 rounded-lg p-4">
                     <div className="flex items-center justify-center space-x-3">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 dark:border-coinbase-blue"></div>
                       <div>
-                        <p className="text-sm font-medium text-blue-800">Searching Transaction</p>
-                        <p className="text-xs text-blue-600">Checking across all supported networks...</p>
+                        <p className="text-sm font-medium text-blue-800 dark:text-coinbase-blue">Searching Transaction</p>
+                        <p className="text-xs text-blue-600 dark:text-coinbase-text-secondary">Checking across all supported networks...</p>
                       </div>
                     </div>
                     <div className="mt-3 flex justify-center space-x-2">
@@ -1177,15 +1283,15 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                   <div className={`border rounded-lg p-4 ${
                     autoDetectResult.found
                       ? (autoDetectResult.isRecipientMatching 
-                          ? 'bg-green-50 border-green-200' 
-                          : 'bg-yellow-50 border-yellow-200')
-                      : 'bg-red-50 border-red-200'
+                          ? 'bg-green-50 dark:bg-coinbase-green/20 border-green-200 dark:border-coinbase-green/30' 
+                          : 'bg-yellow-50 dark:bg-coinbase-blue/20 border-yellow-200 dark:border-coinbase-blue/30')
+                      : 'bg-red-50 dark:bg-coinbase-red/20 border-red-200 dark:border-coinbase-red/30'
                   }`}>
                     <div className="flex items-center space-x-2 mb-3">
                       <span className={`text-lg ${
                         autoDetectResult.found
-                          ? (autoDetectResult.isRecipientMatching ? 'text-green-600' : 'text-yellow-600')
-                          : 'text-red-600'
+                          ? (autoDetectResult.isRecipientMatching ? 'text-green-600 dark:text-coinbase-green' : 'text-yellow-600 dark:text-coinbase-blue')
+                          : 'text-red-600 dark:text-coinbase-red'
                       }`}>
                         {autoDetectResult.found 
                           ? (autoDetectResult.isRecipientMatching ? '✅' : '⚠️')
@@ -1194,8 +1300,8 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                       </span>
                       <h4 className={`text-sm font-medium ${
                         autoDetectResult.found
-                          ? (autoDetectResult.isRecipientMatching ? 'text-green-800' : 'text-yellow-800')
-                          : 'text-red-800'
+                          ? (autoDetectResult.isRecipientMatching ? 'text-green-800 dark:text-coinbase-green' : 'text-yellow-800 dark:text-coinbase-blue')
+                          : 'text-red-800 dark:text-coinbase-red'
                       }`}>
                         {autoDetectResult.found ? 'Transaction Auto-Detected' : 'Transaction Not Found - Debug Info'}
                       </h4>
@@ -1203,50 +1309,50 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                       <div>
-                        <span className={autoDetectResult.isRecipientMatching ? 'text-green-700' : 'text-yellow-700'}>Network:</span>
-                        <span className={`ml-2 font-medium ${autoDetectResult.isRecipientMatching ? 'text-green-900' : 'text-yellow-900'}`}>
+                        <span className={autoDetectResult.isRecipientMatching ? 'text-green-700 dark:text-coinbase-green' : 'text-yellow-700 dark:text-coinbase-blue'}>Network:</span>
+                        <span className={`ml-2 font-medium ${autoDetectResult.isRecipientMatching ? 'text-green-900 dark:text-coinbase-green' : 'text-yellow-900 dark:text-coinbase-blue'}`}>
                           {autoDetectResult.foundOnNetwork || autoDetectResult.suggestedNetwork}
                         </span>
                       </div>
                       <div>
-                        <span className={autoDetectResult.isRecipientMatching ? 'text-green-700' : 'text-yellow-700'}>Amount:</span>
-                        <span className={`ml-2 font-medium ${autoDetectResult.isRecipientMatching ? 'text-green-900' : 'text-yellow-900'}`}>
+                        <span className={autoDetectResult.isRecipientMatching ? 'text-green-700 dark:text-coinbase-green' : 'text-yellow-700 dark:text-coinbase-blue'}>Amount:</span>
+                        <span className={`ml-2 font-medium ${autoDetectResult.isRecipientMatching ? 'text-green-900 dark:text-coinbase-green' : 'text-yellow-900 dark:text-coinbase-blue'}`}>
                           {autoDetectResult.suggestedAmount} USDT
                         </span>
                       </div>
                       <div className="sm:col-span-2">
-                        <span className={autoDetectResult.isRecipientMatching ? 'text-green-700' : 'text-yellow-700'}>Recipient:</span>
+                        <span className={autoDetectResult.isRecipientMatching ? 'text-green-700 dark:text-coinbase-green' : 'text-yellow-700 dark:text-coinbase-blue'}>Recipient:</span>
                         <div className={`mt-1 font-mono text-xs break-all p-2 rounded border ${
-                          autoDetectResult.isRecipientMatching ? 'bg-green-100' : 'bg-yellow-100'
+                          autoDetectResult.isRecipientMatching ? 'bg-green-100 dark:bg-coinbase-green/20' : 'bg-yellow-100 dark:bg-coinbase-blue/20'
                         }`}>
                           {autoDetectResult.recipientAddress}
                         </div>
                       </div>
                       <div className="sm:col-span-2">
-                        <span className={autoDetectResult.isRecipientMatching ? 'text-green-700' : 'text-yellow-700'}>Sender:</span>
+                        <span className={autoDetectResult.isRecipientMatching ? 'text-green-700 dark:text-coinbase-green' : 'text-yellow-700 dark:text-coinbase-blue'}>Sender:</span>
                         <div className={`mt-1 font-mono text-xs break-all p-2 rounded border ${
-                          autoDetectResult.isRecipientMatching ? 'bg-green-100' : 'bg-yellow-100'
+                          autoDetectResult.isRecipientMatching ? 'bg-green-100 dark:bg-coinbase-green/20' : 'bg-yellow-100 dark:bg-coinbase-blue/20'
                         }`}>
                           {autoDetectResult.senderAddress}
                         </div>
                       </div>
                       <div>
-                        <span className={autoDetectResult.isRecipientMatching ? 'text-green-700' : 'text-yellow-700'}>Block:</span>
-                        <span className={`ml-2 font-medium ${autoDetectResult.isRecipientMatching ? 'text-green-900' : 'text-yellow-900'}`}>
+                        <span className={autoDetectResult.isRecipientMatching ? 'text-green-700 dark:text-coinbase-green' : 'text-yellow-700 dark:text-coinbase-blue'}>Block:</span>
+                        <span className={`ml-2 font-medium ${autoDetectResult.isRecipientMatching ? 'text-green-900 dark:text-coinbase-green' : 'text-yellow-900 dark:text-coinbase-blue'}`}>
                           {autoDetectResult.blockNumber}
                         </span>
                       </div>
                       <div>
-                        <span className={autoDetectResult.isRecipientMatching ? 'text-green-700' : 'text-yellow-700'}>Status:</span>
+                        <span className={autoDetectResult.isRecipientMatching ? 'text-green-700 dark:text-coinbase-green' : 'text-yellow-700 dark:text-coinbase-blue'}>Status:</span>
                         <span className={`ml-2 px-2 py-1 rounded text-xs ${
                           autoDetectResult.isRecipientMatching 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
+                            ? 'bg-green-100 dark:bg-coinbase-green/20 text-green-800 dark:text-coinbase-green' 
+                            : 'bg-red-100 dark:bg-coinbase-red/20 text-red-800 dark:text-coinbase-red'
                         }`}>
                           {autoDetectResult.isRecipientMatching ? '✓ Valid Recipient' : '✗ Invalid Recipient'}
                         </span>
                         {!autoDetectResult.isRecipientMatching && (
-                          <div className="mt-1 text-xs text-red-600">
+                          <div className="mt-1 text-xs text-red-600 dark:text-coinbase-red">
                             ⚠️ Transaction found but recipient doesn't match our addresses. Check the address analysis below.
                           </div>
                         )}
@@ -1254,60 +1360,60 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                     </div>
 
                     {/* Detailed Matching Information */}
-                    <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-coinbase-dark-border">
                       <div className="space-y-2 text-xs">
                         
                         
                         {/* Transaction Details */}
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Transaction Hash:</span>
-                          <span className="font-mono text-gray-800">{autoDetectResult.transactionHash}</span>
+                          <span className="text-gray-600 dark:text-coinbase-text-secondary">Transaction Hash:</span>
+                          <span className="font-mono text-gray-800 dark:text-coinbase-text-primary">{autoDetectResult.transactionHash}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Found Status:</span>
-                          <span className={`font-medium ${autoDetectResult.found ? 'text-green-600' : 'text-red-600'}`}>
+                          <span className="text-gray-600 dark:text-coinbase-text-secondary">Found Status:</span>
+                          <span className={`font-medium ${autoDetectResult.found ? 'text-green-600 dark:text-coinbase-green' : 'text-red-600 dark:text-coinbase-red'}`}>
                             {autoDetectResult.found ? '✓ FOUND' : '✗ NOT FOUND'}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Found On Network:</span>
-                          <span className="font-mono text-gray-800">{autoDetectResult.foundOnNetwork || 'N/A'}</span>
+                          <span className="text-gray-600 dark:text-coinbase-text-secondary">Found On Network:</span>
+                          <span className="font-mono text-gray-800 dark:text-coinbase-text-primary">{autoDetectResult.foundOnNetwork || 'N/A'}</span>
                         </div>
                         
                         {/* Only show matching details if transaction was found */}
                         {autoDetectResult.found && (
                           <>
                             <div className="flex justify-between">
-                              <span className="text-gray-600">Transaction Recipient:</span>
-                              <span className="font-mono text-gray-800">{autoDetectResult.recipientAddress}</span>
+                              <span className="text-gray-600 dark:text-coinbase-text-secondary">Transaction Recipient:</span>
+                              <span className="font-mono text-gray-800 dark:text-coinbase-text-primary">{autoDetectResult.recipientAddress}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-600">Our Company Addresses:</span>
+                              <span className="text-gray-600 dark:text-coinbase-text-secondary">Our Company Addresses:</span>
                               <div className="text-right">
                                 {autoDetectResult.companyAddresses && Object.entries(autoDetectResult.companyAddresses).map(([network, address]) => (
-                                  <div key={network} className="font-mono text-gray-800">
+                                  <div key={network} className="font-mono text-gray-800 dark:text-coinbase-text-primary">
                                     {network}: {address}
                                   </div>
                                 ))}
                               </div>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-600">Matching Result:</span>
-                              <span className={`font-medium ${autoDetectResult.isRecipientMatching ? 'text-green-600' : 'text-red-600'}`}>
+                              <span className="text-gray-600 dark:text-coinbase-text-secondary">Matching Result:</span>
+                              <span className={`font-medium ${autoDetectResult.isRecipientMatching ? 'text-green-600 dark:text-coinbase-green' : 'text-red-600 dark:text-coinbase-red'}`}>
                                 {autoDetectResult.isRecipientMatching ? '✓ MATCH FOUND' : '✗ NO MATCH'}
                               </span>
                             </div>
                             {autoDetectResult.companyAddresses && (
-                              <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
-                                <div className="font-medium text-gray-700 mb-1">Address Comparison:</div>
+                              <div className="mt-2 p-2 bg-gray-50 dark:bg-coinbase-dark-tertiary rounded text-xs">
+                                <div className="font-medium text-gray-700 dark:text-coinbase-text-primary mb-1">Address Comparison:</div>
                                 {Object.entries(autoDetectResult.companyAddresses).map(([network, address]) => {
                                   const matches = address.toLowerCase() === autoDetectResult.recipientAddress?.toLowerCase();
                                   return (
-                                    <div key={network} className={`flex justify-between ${matches ? 'text-green-600' : 'text-gray-500'}`}>
+                                    <div key={network} className={`flex justify-between ${matches ? 'text-green-600 dark:text-coinbase-green' : 'text-gray-500 dark:text-coinbase-text-tertiary'}`}>
                                       <span>{network}:</span>
                                       <span className="font-mono">{matches ? '✓ MATCH' : '✗ NO MATCH'}</span>
-    </div>
-  );
+                                    </div>
+                                  );
                                 })}
                               </div>
                             )}
@@ -1316,10 +1422,10 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                         
                         {/* Network Check Results */}
                         {autoDetectResult.networkResults && (
-                          <div className="mt-2 p-2 bg-blue-50 rounded text-xs">
-                            <div className="font-medium text-blue-700 mb-1">Network Check Results:</div>
+                          <div className="mt-2 p-2 bg-blue-50 dark:bg-coinbase-blue/20 rounded text-xs">
+                            <div className="font-medium text-blue-700 dark:text-coinbase-blue mb-1">Network Check Results:</div>
                             {Object.entries(autoDetectResult.networkResults).map(([network, result]) => (
-                              <div key={network} className={`flex justify-between ${result.found ? 'text-green-600' : 'text-gray-500'}`}>
+                              <div key={network} className={`flex justify-between ${result.found ? 'text-green-600 dark:text-coinbase-green' : 'text-gray-500 dark:text-coinbase-text-tertiary'}`}>
                                 <span>{network}:</span>
                                 <span className="font-mono">{result.found ? '✓ FOUND' : '✗ NOT FOUND'}</span>
                               </div>
@@ -1329,24 +1435,24 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                         
                         {/* Detailed Recipient Analysis */}
                         {autoDetectResult.recipientAddress && autoDetectResult.companyAddresses && (
-                          <div className="mt-2 p-2 bg-orange-50 rounded text-xs">
-                            <div className="font-medium text-orange-700 mb-1">Recipient Address Analysis:</div>
+                          <div className="mt-2 p-2 bg-orange-50 dark:bg-coinbase-blue/20 rounded text-xs">
+                            <div className="font-medium text-orange-700 dark:text-coinbase-blue mb-1">Recipient Address Analysis:</div>
                             <div className="space-y-1">
                               <div className="flex justify-between">
-                                <span className="text-orange-600">Transaction Recipient:</span>
-                                <span className="font-mono text-orange-800 break-all">
+                                <span className="text-orange-600 dark:text-coinbase-blue">Transaction Recipient:</span>
+                                <span className="font-mono text-orange-800 dark:text-coinbase-text-primary break-all">
                                   {autoDetectResult.recipientAddress}
                                 </span>
                               </div>
-                              <div className="text-orange-600 font-medium">Company Addresses:</div>
+                              <div className="text-orange-600 dark:text-coinbase-blue font-medium">Company Addresses:</div>
                               {Object.entries(autoDetectResult.companyAddresses).map(([network, address]) => {
                                 const matches = address.toLowerCase() === autoDetectResult.recipientAddress?.toLowerCase();
                                 return (
-                                  <div key={network} className={`flex justify-between ${matches ? 'text-green-600' : 'text-orange-500'}`}>
+                                  <div key={network} className={`flex justify-between ${matches ? 'text-green-600 dark:text-coinbase-green' : 'text-orange-500 dark:text-coinbase-text-tertiary'}`}>
                                     <span>{network}:</span>
                                     <div className="text-right">
                                       <div className="font-mono text-xs break-all">{address}</div>
-                                      <div className={`text-xs ${matches ? 'text-green-600' : 'text-orange-500'}`}>
+                                      <div className={`text-xs ${matches ? 'text-green-600 dark:text-coinbase-green' : 'text-orange-500 dark:text-coinbase-text-tertiary'}`}>
                                         {matches ? '✓ MATCH' : '✗ NO MATCH'}
                                       </div>
                                     </div>
@@ -1362,11 +1468,12 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                 )}
               </div>
               
-              <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-coinbase-dark-border">
                 <div className="flex justify-end space-x-3">
                   <Button
                     variant="outline"
                     onClick={() => setShowAutoDetectModal(false)}
+                    className="border-gray-300 dark:border-coinbase-dark-border text-gray-700 dark:text-coinbase-text-primary hover:bg-gray-50 dark:hover:bg-coinbase-dark-tertiary"
                   >
                     Close
                   </Button>
@@ -1399,10 +1506,10 @@ const UsdtDeposit = ({ onClose, vipToJoin }) => {
                     disabled={!autoDetectResult || (autoDetectResult && !autoDetectResult.isRecipientMatching)}
                     className={`${
                       autoDetectResult?.isRecipientMatching 
-                        ? 'bg-green-500 hover:bg-green-600' 
+                        ? 'bg-green-500 dark:bg-coinbase-green hover:bg-green-600 dark:hover:bg-coinbase-green/80' 
                         : autoDetectResult && !autoDetectResult.isRecipientMatching
-                        ? 'bg-red-500 hover:bg-red-600 cursor-not-allowed'
-                        : 'bg-yellow-500 hover:bg-yellow-600'
+                        ? 'bg-red-500 dark:bg-coinbase-red hover:bg-red-600 dark:hover:bg-coinbase-red/80 cursor-not-allowed'
+                        : 'bg-yellow-500 dark:bg-coinbase-blue hover:bg-yellow-600 dark:hover:bg-coinbase-blue/80'
                     } text-white`}
                   >
                     {autoDetectResult?.isRecipientMatching 

@@ -8,44 +8,44 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Binance-inspired color scheme
+        // Coinbase-inspired color scheme
         primary: {
-          50: '#fefce8',
-          100: '#fef9c3',
-          200: '#fef08a',
-          300: '#fde047',
-          400: '#facc15',
-          500: '#eab308', // Binance yellow
-          600: '#ca8a04',
-          700: '#a16207',
-          800: '#854d0e',
-          900: '#713f12',
+          50: '#f0f9ff',
+          100: '#e0f2fe',
+          200: '#bae6fd',
+          300: '#7dd3fc',
+          400: '#38bdf8',
+          500: '#0ea5e9', // Coinbase blue
+          600: '#0284c7',
+          700: '#0369a1',
+          800: '#075985',
+          900: '#0c4a6e',
         },
         accent: {
-          50: '#fefce8',
-          100: '#fef9c3',
-          200: '#fef08a',
-          300: '#fde047',
-          400: '#facc15',
-          500: '#eab308', // Binance yellow
-          600: '#ca8a04',
-          700: '#a16207',
-          800: '#854d0e',
-          900: '#713f12',
+          50: '#f8fafc',
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b', // Coinbase gray
+          600: '#475569',
+          700: '#334155',
+          800: '#1e293b',
+          900: '#0f172a',
         },
-        // Binance dark theme colors
-        binance: {
-          dark: '#0b0e11', // Main dark background
-          'dark-secondary': '#161a1e', // Secondary dark
-          'dark-tertiary': '#1e2329', // Tertiary dark
-          'dark-border': '#2b3139', // Border color
-          yellow: '#f0b90b', // Binance yellow
-          'yellow-dark': '#d4a017',
-          green: '#02c076', // Success green
-          red: '#f84960', // Error red
-          'text-primary': '#eaecef',
-          'text-secondary': '#848e9c',
-          'text-tertiary': '#707a8a',
+        // Coinbase dark theme colors
+        coinbase: {
+          dark: '#000000', // Pure black background
+          'dark-secondary': '#0a0a0a', // Secondary dark
+          'dark-tertiary': '#1a1a1a', // Tertiary dark
+          'dark-border': '#2a2a2a', // Border color
+          blue: '#0052ff', // Coinbase blue
+          'blue-dark': '#0039cc',
+          green: '#00d4aa', // Success green
+          red: '#ff6b6b', // Error red
+          'text-primary': '#ffffff',
+          'text-secondary': '#8b8b8b',
+          'text-tertiary': '#6b6b6b',
         },
         success: {
           50: '#ecfdf5',

@@ -20,6 +20,7 @@ const vipRoutes = require('./routes/vip');
 const taskRoutes = require('./routes/tasks');
 const companyWalletRoutes = require('./routes/companyWallet');
 const membersRoutes = require('./routes/members');
+const announcementsRoutes = require('./routes/announcements');
 
 // Import services
 const { processWalletGrowth } = require('./services/walletService');
@@ -84,6 +85,7 @@ app.use('/api/vip', vipRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/company-wallet', companyWalletRoutes);
 app.use('/api/members', membersRoutes);
+app.use('/api/announcements', announcementsRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

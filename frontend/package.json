@@ -1,7 +1,7 @@
 {
   "name": "trinity-metro-bike-frontend",
   "version": "1.0.0",
-  "description": "Frontend for MotoImvestment referral platform",
+  "description": "Frontend for Token Rise referral platform",
   "private": true,
   "dependencies": {
     "@reduxjs/toolkit": "^1.9.5",
@@ -24,6 +24,7 @@
     "tailwind-merge": "^1.14.0"
   },
   "devDependencies": {
+    "@craco/craco": "^7.1.0",
     "@types/react": "^18.2.21",
     "@types/react-dom": "^18.2.7",
     "autoprefixer": "^10.4.15",
@@ -35,9 +36,9 @@
     "tailwindcss": "^3.3.3"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test",
     "eject": "react-scripts eject",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint src --ext .js,.jsx,.ts,.tsx --fix",

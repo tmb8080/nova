@@ -16,7 +16,6 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import VerifyEmail from './pages/VerifyEmail';
 import Deposit from './pages/Deposit';
-import MotoImvestmentLanding from './pages/NovaStakingLanding';
 
 import VipSelection from './pages/VipSelection';
 import Profile from './pages/Profile';
@@ -40,12 +39,12 @@ const ProtectedRoute = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-binance-dark">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-coinbase-dark">
         <div className="mb-8">
           <Logo className="h-28 w-auto" />
         </div>
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-accent-500"></div>
-        <p className="mt-4 text-gray-600 text-lg">Loading...</p>
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-coinbase-blue"></div>
+        <p className="mt-4 text-gray-600 dark:text-coinbase-text-secondary text-lg">Loading...</p>
       </div>
     );
   }
@@ -63,12 +62,12 @@ const PublicRoute = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-binance-dark">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-coinbase-dark">
         <div className="mb-8">
           <Logo className="h-28 w-auto" />
         </div>
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-accent-500"></div>
-        <p className="mt-4 text-gray-600 text-lg">Loading...</p>
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-coinbase-blue"></div>
+        <p className="mt-4 text-gray-600 dark:text-coinbase-text-secondary text-lg">Loading...</p>
       </div>
     );
   }
@@ -91,11 +90,7 @@ function App() {
               {/* Public routes */}
               <Route
                 path="/"
-                element={<MotoImvestmentLanding />}
-              />
-              <Route
-                path="/nova-staking"
-                element={<MotoImvestmentLanding />}
+                element={<Navigate to="/login" replace />}
               />
               <Route
                 path="/login"
@@ -207,7 +202,7 @@ function App() {
                     <div className="min-h-screen flex items-center justify-center">
                       <div className="text-center">
                         <h1 className="text-2xl font-bold text-gray-900 mb-4">Withdraw Page</h1>
-                        <p className="text-gray-600">Coming soon...</p>
+                        <p className="text-gray-600 dark:text-coinbase-text-secondary">Coming soon...</p>
                       </div>
                     </div>
                     <HelpButton />
@@ -221,7 +216,7 @@ function App() {
                     <div className="min-h-screen flex items-center justify-center">
                       <div className="text-center">
                       <h1 className="text-2xl font-bold text-gray-900 mb-4">Referral Page</h1>
-                      <p className="text-gray-600">Coming soon...</p>
+                      <p className="text-gray-600 dark:text-coinbase-text-secondary">Coming soon...</p>
                     </div>
                   </div>
                   <HelpButton />
@@ -235,7 +230,7 @@ function App() {
                     <div className="min-h-screen flex items-center justify-center">
                       <div className="text-center">
                         <h1 className="text-2xl font-bold text-gray-900 mb-4">Transactions Page</h1>
-                        <p className="text-gray-600">Coming soon...</p>
+                        <p className="text-gray-600 dark:text-coinbase-text-secondary">Coming soon...</p>
                       </div>
                     </div>
                     <HelpButton />
@@ -252,7 +247,7 @@ function App() {
                     <div className="min-h-screen flex items-center justify-center">
                       <div className="text-center">
                         <h1 className="text-2xl font-bold text-gray-900 mb-4">Admin Dashboard</h1>
-                        <p className="text-gray-600">Coming soon...</p>
+                        <p className="text-gray-600 dark:text-coinbase-text-secondary">Coming soon...</p>
                       </div>
                     </div>
                     <HelpButton />
@@ -266,16 +261,16 @@ function App() {
                 path="*"
                 element={
                   <>
-                    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-binance-dark">
+                    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-coinbase-dark">
                       <div className="text-center">
                         <div className="mb-8">
                           <Logo className="h-32 w-auto mx-auto" />
                         </div>
                         <h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
-                        <p className="text-gray-600 mb-4">Page not found</p>
+                        <p className="text-gray-600 dark:text-coinbase-text-secondary mb-4">Page not found</p>
                         <a
                           href="/dashboard"
-                          className="text-accent-600 hover:text-accent-500 font-medium"
+                          className="text-coinbase-blue hover:text-coinbase-blue-dark font-medium"
                         >
                           Go to Dashboard
                         </a>

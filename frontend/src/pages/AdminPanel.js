@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { adminAPI, walletAPI } from '../services/api';
+import { adminAPI, walletAPI, announcementsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Button } from '../components/ui/Button';
 import WithdrawalHistory from '../components/WithdrawalHistory';
 import AdminWithdrawalHistory from '../components/AdminWithdrawalHistory';
@@ -13,9 +14,12 @@ import toast from 'react-hot-toast';
 import Card from '../components/ui/Card';
 import AdminVipManager from '../components/AdminVipManager';
 import AdminVipMembersList from '../components/AdminVipMembersList';
+import AdminAnnouncementManager from '../components/AdminAnnouncementManager';
+import Logo from '../components/ui/Logo';
 
 const AdminPanel = () => {
   const { user, logout } = useAuth();
+  const { isDark } = useTheme();
   const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
@@ -40,12 +44,21 @@ const AdminPanel = () => {
   const [transactionResults, setTransactionResults] = useState(null);
   const [isCheckingNetworks, setIsCheckingNetworks] = useState(false);
   const [companyAddresses, setCompanyAddresses] = useState(null);
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
+  const [announcementForm, setAnnouncementForm] = useState({
+    title: '',
+    content: '',
+    priority: 'medium',
+    isActive: true,
+    link: ''
+  });
 
   // Handle URL parameters for tab switching
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const tabParam = urlParams.get('tab');
-    if (tabParam && ['dashboard', 'deposits', 'withdrawals', 'withdrawal-history', 'users', 'settings', 'vips'].includes(tabParam)) {
+    if (tabParam && ['dashboard', 'deposits', 'withdrawals', 'withdrawal-history', 'users', 'settings', 'vips', 'announcements'].includes(tabParam)) {
       setActiveTab(tabParam);
     } else if (location.pathname === '/admin' && !location.search) {
       // If we're on /admin without any search params, set to dashboard
@@ -98,6 +111,45 @@ const AdminPanel = () => {
       return response.data.data || response.data; // Handle both nested and direct responses
     },
     enabled: !!user?.isAdmin, // Only run if user is admin
+  });
+
+  // Withdrawal fee tiers
+  const { data: feeTiersData, refetch: refetchFeeTiers } = useQuery({
+    queryKey: ['withdrawalFeeTiers'],
+    queryFn: async () => {
+      const res = await adminAPI.getWithdrawalFeeTiers();
+      return res.data.data || res.data;
+    },
+    enabled: !!user?.isAdmin,
+  });
+  const { data: feeTierValidation, refetch: refetchFeeTierValidation } = useQuery({
+    queryKey: ['withdrawalFeeTiersValidate'],
+    queryFn: async () => {
+      const res = await adminAPI.validateWithdrawalFeeTiers();
+      return res.data.data || res.data;
+    },
+    enabled: !!user?.isAdmin,
+  });
+
+  const [newTier, setNewTier] = useState({ minAmount: '', maxAmount: '', percent: '' });
+  const createTierMutation = useMutation({
+    mutationFn: (payload) => adminAPI.createWithdrawalFeeTier(payload),
+    onSuccess: () => {
+      toast.success('Fee tier created');
+      setNewTier({ minAmount: '', maxAmount: '', percent: '' });
+      refetchFeeTiers();
+      refetchFeeTierValidation();
+    },
+    onError: (e) => toast.error(e.response?.data?.message || 'Failed to create tier'),
+  });
+  const deleteTierMutation = useMutation({
+    mutationFn: (id) => adminAPI.deleteWithdrawalFeeTier(id),
+    onSuccess: () => {
+      toast.success('Fee tier deleted');
+      refetchFeeTiers();
+      refetchFeeTierValidation();
+    },
+    onError: (e) => toast.error(e.response?.data?.message || 'Failed to delete tier'),
   });
 
   // Admin settings form state (so inputs reflect real data when opened)
@@ -294,11 +346,25 @@ const AdminPanel = () => {
   // Redirect if not admin
   if (!user?.isAdmin) {
     return (
-      <div className="min-h-screen bg-white dark:bg-binance-dark flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Access Denied</h1>
-          <p className="text-gray-300 mb-6">You don't have admin privileges.</p>
-          <Button onClick={() => logout()}>Logout</Button>
+      <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-coinbase-dark' : 'bg-gradient-to-br from-gray-50 to-white'}`}>
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="w-20 h-20 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
+            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h1 className={`text-3xl font-bold mb-4 ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+            Access Denied
+          </h1>
+          <p className={`text-lg mb-8 ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>
+            You don't have admin privileges to access this panel.
+          </p>
+          <Button 
+            onClick={() => logout()}
+            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            Logout
+          </Button>
         </div>
       </div>
     );
@@ -517,59 +583,91 @@ const AdminPanel = () => {
     { id: 'withdrawal-history', label: 'Withdrawal History', icon: '📋' },
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'settings', label: 'Settings', icon: '⚙️' },
+    { id: 'fee-tiers', label: 'Fee Tiers', icon: '💳' },
     { id: 'vips', label: 'VIPs', icon: '⭐' },
     { id: 'vip-members', label: 'VIP Members', icon: '👑' },
+    { id: 'announcements', label: 'Announcements', icon: '📢' },
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-binance-dark pb-20 md:pb-0 md:pt-16">
+    <div className={`min-h-screen pb-20 md:pb-0 md:pt-16 ${isDark ? 'bg-coinbase-dark' : 'bg-gradient-to-br from-gray-50 to-white'}`}>
       {/* Desktop Navigation */}
       <DesktopNav />
       
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
+        {/* Modern Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Admin Panel</h1>
-          <p className="text-gray-700 dark:text-gray-300">Manage users, deposits, withdrawals, and system settings</p>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-4">
+              <div className="w-16 h-16 bg-gradient-to-r from-coinbase-blue to-coinbase-green rounded-2xl flex items-center justify-center shadow-2xl">
+                <Logo className="h-10 w-10" />
+              </div>
+              <div>
+                <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                  Admin Panel
+                </h1>
+                <p className={`text-lg ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>
+                  Manage users, deposits, withdrawals, and system settings
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className={`px-4 py-2 rounded-xl ${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border shadow-lg`}>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-coinbase-green rounded-full animate-pulse"></div>
+                  <span className={`text-sm font-medium ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                    Live System
+                  </span>
+                </div>
+              </div>
             <Button
               onClick={() => setShowTransactionChecker(true)}
-              className="bg-indigo-500 hover:bg-indigo-600 text-white"
+                className="bg-gradient-to-r from-coinbase-blue to-coinbase-green hover:from-coinbase-blue-dark hover:to-green-600 text-white font-semibold py-2 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
             >
               🔍 Check Transaction
             </Button>
           </div>
         </div>
-        {/* Tab Navigation */}
+        </div>
+        {/* Modern Tab Navigation */}
         <div className="mb-8">
-          <div className="flex flex-wrap gap-2">
+          <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border rounded-2xl p-2 shadow-lg`}>
+            <div className="flex flex-wrap gap-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`flex items-center space-x-2 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                   activeTab === tab.id
-                    ? 'bg-gray-100 text-gray-900 shadow-sm dark:bg-white/20 dark:text-white dark:shadow-lg'
-                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/15 dark:hover:text-white'
+                      ? `${isDark ? 'bg-coinbase-blue text-white shadow-lg' : 'bg-gradient-to-r from-coinbase-blue to-coinbase-green text-white shadow-lg'}`
+                      : `${isDark ? 'text-coinbase-text-secondary hover:text-coinbase-text-primary hover:bg-coinbase-dark-tertiary' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`
                 }`}
               >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
+                  <span className="text-lg">{tab.icon}</span>
+                  <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}
+            </div>
           </div>
         </div>
         {activeTab === 'dashboard' && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">System Overview</h2>
+              <div>
+                <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                  System Overview
+                </h2>
+                <p className={`text-sm ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>
+                  Real-time statistics and system health monitoring
+                </p>
+              </div>
               <Button
                 onClick={() => {
                   queryClient.invalidateQueries(['adminStats']);
                   queryClient.invalidateQueries(['pendingWithdrawals']);
                 }}
-                className="bg-blue-500 hover:bg-blue-600 text-white"
+                className="bg-gradient-to-r from-coinbase-blue to-coinbase-green hover:from-coinbase-blue-dark hover:to-green-600 text-white font-semibold py-2 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 🔄 Refresh Data
               </Button>
@@ -579,42 +677,81 @@ const AdminPanel = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[...Array(4)].map((_, i) => (
                   <div key={i} className="animate-pulse">
-                    <div className="bg-white/10 rounded-lg p-6">
-                      <div className="h-4 bg-white/20 rounded w-1/2 mb-2"></div>
-                      <div className="h-8 bg-white/20 rounded w-1/3"></div>
+                    <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border rounded-2xl p-6`}>
+                      <div className={`h-4 ${isDark ? 'bg-coinbase-dark-border' : 'bg-gray-300'} rounded w-1/2 mb-2`}></div>
+                      <div className={`h-8 ${isDark ? 'bg-coinbase-dark-border' : 'bg-gray-300'} rounded w-1/3`}></div>
                     </div>
                   </div>
                 ))}
               </div>
                          ) : (
-               <div className="space-y-6">
+              <div className="space-y-8">
                  {/* Main Stats Grid */}
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
-                     <div className="text-gray-700 dark:text-gray-300 text-sm">Total Users</div>
-                     <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats?.totalUsers || 0}</div>
-                     <div className="text-xs text-gray-400 mt-1">
+                  <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-xs font-medium ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Total Users</div>
+                        <div className={`text-2xl font-bold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>{stats?.totalUsers || 0}</div>
+                      </div>
+                    </div>
+                    <div className={`text-xs ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>
                        {stats?.activeUsers || 0} active • {stats?.todayUsers || 0} today
                      </div>
                    </div>
-                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
-                     <div className="text-gray-700 dark:text-gray-300 text-sm">Total Deposits</div>
-                     <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(stats?.totalDeposits || 0)}</div>
-                     <div className="text-xs text-gray-400 mt-1">
+                  
+                  <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-xs font-medium ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Total Deposits</div>
+                        <div className={`text-2xl font-bold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>{formatCurrency(stats?.totalDeposits || 0)}</div>
+                      </div>
+                    </div>
+                    <div className={`text-xs ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>
                        {stats?.depositCount || 0} transactions • {formatCurrency(stats?.todayDeposits || 0)} today
                      </div>
                    </div>
-                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
-                     <div className="text-gray-700 dark:text-gray-300 text-sm">Pending Withdrawals</div>
-                     <div className="text-2xl font-bold text-yellow-400">{formatCurrency(stats?.pendingWithdrawals || 0)}</div>
-                     <div className="text-xs text-gray-400 mt-1">
+                  
+                  <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-xs font-medium ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Pending Withdrawals</div>
+                        <div className="text-2xl font-bold text-yellow-500">{formatCurrency(stats?.pendingWithdrawals || 0)}</div>
+                      </div>
+                    </div>
+                    <div className={`text-xs ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>
                        {stats?.pendingWithdrawalCount || 0} requests
                      </div>
                    </div>
-                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
-                     <div className="text-gray-700 dark:text-gray-300 text-sm">System Balance</div>
-                     <div className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(stats?.systemBalance || 0)}</div>
-                     <div className="text-xs text-gray-400 mt-1">
+                  
+                  <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-xs font-medium ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>System Balance</div>
+                        <div className="text-2xl font-bold text-emerald-500">{formatCurrency(stats?.systemBalance || 0)}</div>
+                      </div>
+                    </div>
+                    <div className={`text-xs ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>
                        Net position
                      </div>
                    </div>
@@ -622,59 +759,113 @@ const AdminPanel = () => {
 
                  {/* Detailed Stats Grid */}
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
-                     <div className="text-gray-700 dark:text-gray-300 text-sm">VIP Users</div>
-                     <div className="text-xl font-bold text-purple-600 dark:text-purple-400">{stats?.vipUsers || 0}</div>
-                     <div className="text-xs text-gray-400 mt-1">Active VIP members</div>
+                  <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                        </svg>
                    </div>
-                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
-                     <div className="text-gray-700 dark:text-gray-300 text-sm">VIP Task Earnings</div>
-                     <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{formatCurrency(stats?.totalEarnings || 0)}</div>
-                     <div className="text-xs text-gray-400 mt-1">From VIP tasks only</div>
+                      <div className="text-right">
+                        <div className={`text-xs font-medium ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>VIP Users</div>
+                        <div className="text-xl font-bold text-purple-500">{stats?.vipUsers || 0}</div>
                    </div>
-                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
-                     <div className="text-gray-700 dark:text-gray-300 text-sm">Referral Bonuses</div>
-                     <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(stats?.totalReferralBonus || 0)}</div>
-                     <div className="text-xs text-gray-400 mt-1">Total paid</div>
+                    </div>
+                    <div className={`text-xs ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>
+                      Active VIP members
+                    </div>
+                  </div>
+                  
+                  <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-xs font-medium ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>VIP Task Earnings</div>
+                        <div className="text-xl font-bold text-blue-500">{formatCurrency(stats?.totalEarnings || 0)}</div>
+                      </div>
+                    </div>
+                    <div className={`text-xs ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>
+                      From VIP tasks only
+                    </div>
+                  </div>
+                  
+                  <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-xs font-medium ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Referral Bonuses</div>
+                        <div className="text-xl font-bold text-emerald-500">{formatCurrency(stats?.totalReferralBonus || 0)}</div>
+                      </div>
+                    </div>
+                    <div className={`text-xs ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>
+                      Total paid
+                    </div>
                    </div>
                  </div>
 
                  {/* Transaction Summary */}
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
-                     <div className="text-gray-700 dark:text-gray-300 text-sm mb-4">Deposit Summary</div>
-                     <div className="space-y-2">
-                       <div className="flex justify-between">
-                         <span className="text-gray-500 dark:text-gray-400 text-sm">Confirmed:</span>
-                         <span className="text-gray-900 dark:text-white font-medium">{formatCurrency(stats?.confirmedDeposits || 0)}</span>
+                  <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200`}>
+                    <div className="flex items-center space-x-3 mb-6">
+                      <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                        </svg>
                        </div>
-                       <div className="flex justify-between">
-                         <span className="text-gray-500 dark:text-gray-400 text-sm">Pending:</span>
-                         <span className="text-yellow-400 font-medium">{formatCurrency(stats?.pendingDeposits || 0)}</span>
+                      <h3 className={`text-lg font-semibold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                        Deposit Summary
+                      </h3>
                        </div>
-                       <div className="flex justify-between">
-                         <span className="text-gray-500 dark:text-gray-400 text-sm">Today:</span>
-                         <span className="text-green-600 dark:text-green-400 font-medium">{formatCurrency(stats?.todayDeposits || 0)}</span>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Confirmed:</span>
+                        <span className={`font-semibold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>{formatCurrency(stats?.confirmedDeposits || 0)}</span>
                        </div>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Pending:</span>
+                        <span className="font-semibold text-yellow-500">{formatCurrency(stats?.pendingDeposits || 0)}</span>
                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Today:</span>
+                        <span className="font-semibold text-green-500">{formatCurrency(stats?.todayDeposits || 0)}</span>
                    </div>
-                   <div className="backdrop-blur-xl bg-white dark:bg-white/10 rounded-lg p-6 border border-gray-200 dark:border-white/20">
-                     <div className="text-gray-700 dark:text-gray-300 text-sm mb-4">Withdrawal Summary</div>
-                     <div className="space-y-2">
-                       <div className="flex justify-between">
-                         <span className="text-gray-500 dark:text-gray-400 text-sm">Completed:</span>
-                         <span className="text-gray-900 dark:text-white font-medium">{formatCurrency(stats?.completedWithdrawals || 0)}</span>
                        </div>
-                       <div className="flex justify-between">
-                         <span className="text-gray-500 dark:text-gray-400 text-sm">Pending:</span>
-                         <span className="text-yellow-400 font-medium">{formatCurrency(stats?.pendingWithdrawals || 0)}</span>
                        </div>
-                       <div className="flex justify-between">
-                         <span className="text-gray-500 dark:text-gray-400 text-sm">Today:</span>
-                         <span className="text-red-600 dark:text-red-400 font-medium">{formatCurrency(stats?.todayWithdrawals || 0)}</span>
+                  
+                  <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200`}>
+                    <div className="flex items-center space-x-3 mb-6">
+                      <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-xl flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3 3 3-3 4 4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                        </svg>
                        </div>
+                      <h3 className={`text-lg font-semibold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                        Withdrawal Summary
+                      </h3>
                      </div>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Completed:</span>
+                        <span className={`font-semibold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>{formatCurrency(stats?.completedWithdrawals || 0)}</span>
                    </div>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Pending:</span>
+                        <span className="font-semibold text-yellow-500">{formatCurrency(stats?.pendingWithdrawals || 0)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Today:</span>
+                        <span className="font-semibold text-red-500">{formatCurrency(stats?.todayWithdrawals || 0)}</span>
+                      </div>
+                    </div>
+                  </div>
                  </div>
                </div>
              )}
@@ -682,104 +873,141 @@ const AdminPanel = () => {
         )}
 
         {activeTab === 'withdrawals' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">Pending Withdrawals</h2>
+          <div className="space-y-8">
+            <div>
+              <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                Pending Withdrawals
+              </h2>
+              <p className={`text-sm ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>
+                Review and process withdrawal requests from users
+              </p>
+            </div>
             
             {withdrawalsLoading ? (
               <div className="space-y-4">
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className="animate-pulse">
-                    <div className="bg-white/10 rounded-lg p-4">
-                      <div className="h-4 bg-white/20 rounded w-1/4 mb-2"></div>
-                      <div className="h-3 bg-white/20 rounded w-1/2"></div>
+                    <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border rounded-2xl p-6`}>
+                      <div className={`h-4 ${isDark ? 'bg-coinbase-dark-border' : 'bg-gray-300'} rounded w-1/4 mb-2`}></div>
+                      <div className={`h-3 ${isDark ? 'bg-coinbase-dark-border' : 'bg-gray-300'} rounded w-1/2`}></div>
                     </div>
                   </div>
                 ))}
               </div>
                          ) : !pendingWithdrawals?.data || pendingWithdrawals.data.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="text-center py-16">
+                <div className={`w-20 h-20 ${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-gray-100 border-gray-200'} border rounded-2xl flex items-center justify-center mx-auto mb-6`}>
+                  <svg className={`w-10 h-10 ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <p className="text-gray-400">No pending withdrawals</p>
+                <h3 className={`text-lg font-semibold mb-2 ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                  No Pending Withdrawals
+                </h3>
+                <p className={`${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>
+                  All withdrawal requests have been processed
+                </p>
               </div>
                          ) : (
-               <div className="space-y-4">
+              <div className="space-y-6">
                  {(Array.isArray(pendingWithdrawals?.data) ? pendingWithdrawals.data : []).map((withdrawal) => (
-                  <div key={withdrawal.id} className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
-                    <div className="flex items-center justify-between mb-4">
+                  <div key={withdrawal.id} className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200`}>
+                    <div className="flex items-center justify-between mb-6">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-white">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className={`text-lg font-semibold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
                             {withdrawal.user.fullName || withdrawal.user.email || withdrawal.user.phone || 'User'}
                           </h3>
-                          <div className="text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400">
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-500 text-xs font-medium">
                             PENDING
                           </div>
+                              <div className={`text-xs ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>
+                                ID: {withdrawal.user.id.slice(0, 8)}...
                         </div>
-                        <div className="space-y-1 text-sm">
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                           {withdrawal.user.email && (
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-400">📧</span>
-                              <span className="text-white">{withdrawal.user.email}</span>
+                              <span className={`${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>📧</span>
+                              <span className={`${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>{withdrawal.user.email}</span>
                             </div>
                           )}
                           {withdrawal.user.phone && (
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-400">📱</span>
-                              <span className="text-white">{withdrawal.user.phone}</span>
+                              <span className={`${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>📱</span>
+                              <span className={`${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>{withdrawal.user.phone}</span>
                             </div>
                           )}
                           {withdrawal.user.fullName && (
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-400">👤</span>
-                              <span className="text-white">{withdrawal.user.fullName}</span>
+                              <span className={`${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>👤</span>
+                              <span className={`${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>{withdrawal.user.fullName}</span>
                             </div>
                           )}
                         </div>
                       </div>
-                      <div className="text-right ml-4">
-                        <div className="text-xl font-bold text-white">{formatCurrency(withdrawal.amount)}</div>
-                        <div className="text-sm text-gray-300">{withdrawal.currency} • {withdrawal.network}</div>
-                        <div className="text-xs text-gray-400 mt-1">
-                          ID: {withdrawal.user.id.slice(0, 8)}...
+                      <div className="text-right ml-6">
+                        <div className={`text-2xl font-bold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                          {formatCurrency(withdrawal.amount)}
+                        </div>
+                        <div className={`text-sm ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>
+                          {withdrawal.currency} • {withdrawal.network}
+                        </div>
+                        <div className={`text-sm ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'} mt-1`}>
+                          Fee: {formatCurrency(withdrawal.feeAmount || 0)}
+                        </div>
+                        <div className="text-sm text-green-500 font-semibold">
+                          Net: {formatCurrency((parseFloat(withdrawal.amount || 0) - parseFloat(withdrawal.feeAmount || 0)))}
                         </div>
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                       <div>
-                        <span className="text-gray-300 text-sm flex items-center gap-1">
-                          <span>💳</span> Wallet Address:
+                        <span className={`text-sm font-medium ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'} flex items-center gap-1 mb-2`}>
+                          💳 Wallet Address
                         </span>
-                        <p className="text-white font-mono text-sm break-all mt-1">{withdrawal.walletAddress}</p>
+                        <p className={`${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'} font-mono text-sm break-all`}>
+                          {withdrawal.walletAddress}
+                        </p>
                       </div>
                       <div>
-                        <span className="text-gray-300 text-sm flex items-center gap-1">
-                          <span>📅</span> Requested:
+                        <span className={`text-sm font-medium ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'} flex items-center gap-1 mb-2`}>
+                          📅 Requested
                         </span>
-                        <p className="text-white mt-1">{formatDate(withdrawal.createdAt)}</p>
+                        <p className={`${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                          {formatDate(withdrawal.createdAt)}
+                        </p>
                       </div>
                       <div>
-                        <span className="text-gray-300 text-sm flex items-center gap-1">
-                          <span>🆔</span> Withdrawal ID:
+                        <span className={`text-sm font-medium ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'} flex items-center gap-1 mb-2`}>
+                          🆔 Withdrawal ID
                         </span>
-                        <p className="text-white font-mono text-xs mt-1">{withdrawal.id.slice(0, 8)}...</p>
+                        <p className={`${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'} font-mono text-sm`}>
+                          {withdrawal.id.slice(0, 8)}...
+                        </p>
                       </div>
                     </div>
                     
                     <div className="flex items-center justify-between">
-                      <div className="text-xs text-gray-400">
+                      <div className={`text-xs ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>
                         <span className="flex items-center gap-1">
-                          <span>💰</span> Amount: {formatCurrency(withdrawal.amount)}
+                          💰 Amount: {formatCurrency(withdrawal.amount)}
                         </span>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-3">
                         <Button
                           onClick={() => setSelectedWithdrawal(withdrawal)}
-                          className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2"
+                          className="bg-gradient-to-r from-coinbase-blue to-coinbase-green hover:from-coinbase-blue-dark hover:to-green-600 text-white font-semibold py-2 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                         >
                           🔄 Process
                         </Button>
@@ -788,7 +1016,7 @@ const AdminPanel = () => {
                             setSelectedWithdrawal(withdrawal);
                             handleEditWithdrawal();
                           }}
-                          className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm px-4 py-2"
+                          className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-semibold py-2 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                         >
                           ✏️ Edit
                         </Button>
@@ -900,21 +1128,45 @@ const AdminPanel = () => {
         {activeTab === 'users' && <AdminUserManagement />}
 
         {activeTab === 'settings' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">System Settings</h2>
+          <div className="space-y-8">
+            <div>
+              <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                System Settings
+              </h2>
+              <p className={`text-sm ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>
+                Configure platform parameters and operational settings
+              </p>
+            </div>
             
             {settingsLoading ? (
               <div className="animate-pulse">
-                <div className="bg-white/10 rounded-lg p-6">
-                  <div className="h-4 bg-white/20 rounded w-1/4 mb-4"></div>
+                <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border rounded-2xl p-6`}>
+                  <div className={`h-4 ${isDark ? 'bg-coinbase-dark-border' : 'bg-gray-300'} rounded w-1/4 mb-4`}></div>
                   <div className="space-y-4">
-                    <div className="h-3 bg-white/20 rounded w-1/2"></div>
-                    <div className="h-3 bg-white/20 rounded w-1/3"></div>
+                    <div className={`h-3 ${isDark ? 'bg-coinbase-dark-border' : 'bg-gray-300'} rounded w-1/2`}></div>
+                    <div className={`h-3 ${isDark ? 'bg-coinbase-dark-border' : 'bg-gray-300'} rounded w-1/3`}></div>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
+              <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border rounded-2xl p-8 shadow-lg`}>
+                <div className="flex items-center space-x-3 mb-8">
+                  <div className="w-12 h-12 bg-gradient-to-r from-coinbase-blue to-coinbase-green rounded-xl flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className={`text-xl font-semibold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                      Platform Configuration
+                    </h3>
+                    <p className={`text-sm ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>
+                      Adjust system parameters to optimize platform performance
+                    </p>
+                  </div>
+                </div>
+                
                 <form onSubmit={(e) => {
                   e.preventDefault();
                   const payload = {
@@ -929,37 +1181,56 @@ const AdminPanel = () => {
                   };
                   updateSettingsMutation.mutate(payload);
                 }}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className={`block text-sm font-semibold mb-3 ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
                         Minimum Deposit Amount
                       </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span className={`text-sm ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>$</span>
+                          </div>
                       <input
                         type="number"
                         name="minDepositAmount"
                         value={adminSettingsForm.minDepositAmount}
                         onChange={(e) => setAdminSettingsForm(prev => ({ ...prev, minDepositAmount: e.target.value }))}
                         step="0.01"
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className={`w-full pl-8 pr-4 py-3 ${isDark ? 'coinbase-input' : 'border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-coinbase-blue focus:border-coinbase-blue transition-all duration-200'}`}
                       />
                     </div>
+                      </div>
+                      
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className={`block text-sm font-semibold mb-3 ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
                         Minimum Withdrawal Amount
                       </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span className={`text-sm ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>$</span>
+                          </div>
                       <input
                         type="number"
                         name="minWithdrawalAmount"
                         value={adminSettingsForm.minWithdrawalAmount}
                         onChange={(e) => setAdminSettingsForm(prev => ({ ...prev, minWithdrawalAmount: e.target.value }))}
                         step="0.01"
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className={`w-full pl-8 pr-4 py-3 ${isDark ? 'coinbase-input' : 'border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-coinbase-blue focus:border-coinbase-blue transition-all duration-200'}`}
                       />
                     </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className={`block text-sm font-semibold mb-3 ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
                         Referral Level 1 Bonus (%)
                       </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <span className={`text-sm ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>%</span>
+                          </div>
                       <input
                         type="number"
                         name="referralBonusLevel1Rate"
@@ -967,13 +1238,19 @@ const AdminPanel = () => {
                         onChange={(e) => setAdminSettingsForm(prev => ({ ...prev, referralBonusLevel1RatePercent: e.target.value }))}
                         min="0"
                         step="0.01"
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className={`w-full pl-4 pr-8 py-3 ${isDark ? 'coinbase-input' : 'border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-coinbase-blue focus:border-coinbase-blue transition-all duration-200'}`}
                       />
                     </div>
+                      </div>
+                      
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className={`block text-sm font-semibold mb-3 ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
                         Referral Level 2 Bonus (%)
                       </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <span className={`text-sm ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>%</span>
+                          </div>
                       <input
                         type="number"
                         name="referralBonusLevel2Rate"
@@ -981,13 +1258,19 @@ const AdminPanel = () => {
                         onChange={(e) => setAdminSettingsForm(prev => ({ ...prev, referralBonusLevel2RatePercent: e.target.value }))}
                         min="0"
                         step="0.01"
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className={`w-full pl-4 pr-8 py-3 ${isDark ? 'coinbase-input' : 'border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-coinbase-blue focus:border-coinbase-blue transition-all duration-200'}`}
                       />
                     </div>
+                      </div>
+                      
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className={`block text-sm font-semibold mb-3 ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
                         Referral Level 3 Bonus (%)
                       </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <span className={`text-sm ${isDark ? 'text-coinbase-text-tertiary' : 'text-gray-500'}`}>%</span>
+                          </div>
                       <input
                         type="number"
                         name="referralBonusLevel3Rate"
@@ -995,39 +1278,52 @@ const AdminPanel = () => {
                         onChange={(e) => setAdminSettingsForm(prev => ({ ...prev, referralBonusLevel3RatePercent: e.target.value }))}
                         min="0"
                         step="0.01"
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className={`w-full pl-4 pr-8 py-3 ${isDark ? 'coinbase-input' : 'border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-coinbase-blue focus:border-coinbase-blue transition-all duration-200'}`}
                       />
                     </div>
-                    <div>
-                      <label className="flex items-center">
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-8 pt-6 border-t border-gray-200 dark:border-coinbase-dark-border">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="flex items-center space-x-3">
+                        <label className="flex items-center cursor-pointer">
                         <input
                           type="checkbox"
                           name="isDepositEnabled"
                           checked={adminSettingsForm.isDepositEnabled}
                           onChange={(e) => setAdminSettingsForm(prev => ({ ...prev, isDepositEnabled: e.target.checked }))}
-                          className="mr-2"
+                            className="w-5 h-5 text-coinbase-blue bg-gray-100 border-gray-300 rounded focus:ring-coinbase-blue focus:ring-2"
                         />
-                        <span className="text-sm text-gray-300">Enable Deposits</span>
+                          <span className={`ml-3 text-sm font-medium ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                            Enable Deposits
+                          </span>
                       </label>
                     </div>
-                    <div>
-                      <label className="flex items-center">
+                      
+                      <div className="flex items-center space-x-3">
+                        <label className="flex items-center cursor-pointer">
                         <input
                           type="checkbox"
                           name="isWithdrawalEnabled"
                           checked={adminSettingsForm.isWithdrawalEnabled}
                           onChange={(e) => setAdminSettingsForm(prev => ({ ...prev, isWithdrawalEnabled: e.target.checked }))}
-                          className="mr-2"
+                            className="w-5 h-5 text-coinbase-blue bg-gray-100 border-gray-300 rounded focus:ring-coinbase-blue focus:ring-2"
                         />
-                        <span className="text-sm text-gray-300">Enable Withdrawals</span>
+                          <span className={`ml-3 text-sm font-medium ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                            Enable Withdrawals
+                          </span>
                       </label>
                     </div>
                   </div>
-                  <div className="mt-6">
+                  </div>
+                  
+                  <div className="mt-8">
                     <Button
                       type="submit"
                       disabled={updateSettingsMutation.isLoading}
-                      className="bg-blue-500 hover:bg-blue-600 text-white"
+                      className="bg-gradient-to-r from-coinbase-blue to-coinbase-green hover:from-coinbase-blue-dark hover:to-green-600 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
                       {updateSettingsMutation.isLoading ? 'Updating...' : 'Update Settings'}
                     </Button>
@@ -1035,6 +1331,105 @@ const AdminPanel = () => {
                 </form>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'fee-tiers' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-white">Withdrawal Fee Tiers</h2>
+            
+            <div className="backdrop-blur-xl bg-white/10 rounded-lg p-6 border border-white/20">
+              <h3 className="text-xl font-semibold text-white mb-4">Withdrawal Fee Tiers</h3>
+              <div className="overflow-x-auto mb-4">
+                <table className="min-w-full text-sm text-gray-300">
+                  <thead>
+                    <tr className="text-left text-gray-400">
+                      <th className="py-2 pr-4">Min Amount</th>
+                      <th className="py-2 pr-4">Max Amount</th>
+                      <th className="py-2 pr-4">Percent</th>
+                      <th className="py-2 pr-4">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(feeTiersData || []).map((t) => (
+                      <tr key={t.id} className="border-t border-white/10">
+                        <td className="py-2 pr-4">{parseFloat(t.minAmount).toFixed(2)}</td>
+                        <td className="py-2 pr-4">{t.maxAmount ? parseFloat(t.maxAmount).toFixed(2) : '∞'}</td>
+                        <td className="py-2 pr-4">{(parseFloat(t.percent) * 100).toFixed(2)}%</td>
+                        <td className="py-2 pr-4">
+                          <Button
+                            onClick={() => deleteTierMutation.mutate(t.id)}
+                            className="bg-red-500 hover:bg-red-600 text-white"
+                          >
+                            Delete
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {feeTierValidation && (
+                <div className="mb-4 space-y-2">
+                  {feeTierValidation.overlaps?.length > 0 && (
+                    <div className="p-3 bg-red-500/10 rounded border border-red-500/30 text-red-300 text-sm">
+                      Overlaps detected: {feeTierValidation.overlaps.length}
+                    </div>
+                  )}
+                  {feeTierValidation.gaps?.length > 0 && (
+                    <div className="p-3 bg-yellow-500/10 rounded border border-yellow-500/30 text-yellow-300 text-sm">
+                      Gaps detected: {feeTierValidation.gaps.length}
+                    </div>
+                  )}
+                  {feeTierValidation.overlaps?.length === 0 && feeTierValidation.gaps?.length === 0 && (
+                    <div className="p-3 bg-green-500/10 rounded border border-green-500/30 text-green-300 text-sm">
+                      Tiers look good
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const payload = {
+                  minAmount: parseFloat(newTier.minAmount),
+                  maxAmount: newTier.maxAmount !== '' ? parseFloat(newTier.maxAmount) : undefined,
+                  percent: parseFloat(newTier.percent) / 100,
+                };
+                createTierMutation.mutate(payload);
+              }}>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <input
+                    type="number"
+                    value={newTier.minAmount}
+                    onChange={(e) => setNewTier(prev => ({ ...prev, minAmount: e.target.value }))}
+                    placeholder="Min Amount"
+                    step="0.01"
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <input
+                    type="number"
+                    value={newTier.maxAmount}
+                    onChange={(e) => setNewTier(prev => ({ ...prev, maxAmount: e.target.value }))}
+                    placeholder="Max Amount (blank = ∞)"
+                    step="0.01"
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <input
+                    type="number"
+                    value={newTier.percent}
+                    onChange={(e) => setNewTier(prev => ({ ...prev, percent: e.target.value }))}
+                    placeholder="Percent (%)"
+                    step="0.01"
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <Button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white">
+                    Add Tier
+                  </Button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 
@@ -1048,51 +1443,100 @@ const AdminPanel = () => {
             <AdminVipMembersList />
           </div>
         )}
+        {activeTab === 'announcements' && (
+          <div className="space-y-6">
+            <AdminAnnouncementManager />
+          </div>
+        )}
       </div>
 
-      {/* Withdrawal Processing Modal */}
+      {/* Modern Withdrawal Processing Modal */}
       {selectedWithdrawal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="backdrop-blur-xl bg-white/10 rounded-2xl w-full max-w-lg border border-white/20 shadow-2xl">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-white">
+          <div className={`${isDark ? 'bg-coinbase-dark-secondary border-coinbase-dark-border' : 'bg-white border-gray-200'} border rounded-3xl w-full max-w-lg shadow-2xl`}>
+            <div className="p-8">
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-coinbase-blue to-coinbase-green rounded-xl flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className={`text-xl font-semibold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
                   {isEditingWithdrawal ? 'Edit Withdrawal' : 'Process Withdrawal'}
                 </h3>
+                    <p className={`text-sm ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>
+                      {isEditingWithdrawal ? 'Modify withdrawal details' : 'Review and process withdrawal request'}
+                    </p>
+                  </div>
+                </div>
                 {!isEditingWithdrawal && selectedWithdrawal.status === 'PENDING' && (
                   <Button
                     onClick={handleEditWithdrawal}
-                    className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-1"
+                    className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-semibold py-2 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                   >
                     ✏️ Edit
                   </Button>
                 )}
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {/* Withdrawal Details */}
-                <div className="bg-white/10 rounded-lg p-4 mb-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-300 text-sm">User:</span>
-                    <span className="text-white font-medium">{selectedWithdrawal.user.fullName || selectedWithdrawal.user.email || selectedWithdrawal.user.phone || 'User'}</span>
+                <div className={`${isDark ? 'bg-coinbase-dark-tertiary border-coinbase-dark-border' : 'bg-gray-50 border-gray-200'} border rounded-2xl p-6`}>
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                   </div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-300 text-sm">Amount:</span>
-                    <span className="text-white font-bold">{formatCurrency(selectedWithdrawal.amount)}</span>
+                    <h4 className={`text-lg font-semibold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                      Withdrawal Details
+                    </h4>
                   </div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-300 text-sm">Currency:</span>
-                    <span className="text-white">{selectedWithdrawal.currency} • {selectedWithdrawal.network}</span>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm font-medium ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>User:</span>
+                        <span className={`font-semibold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                          {selectedWithdrawal.user.fullName || selectedWithdrawal.user.email || selectedWithdrawal.user.phone || 'User'}
+                        </span>
                   </div>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm font-medium ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Amount:</span>
+                        <span className={`font-bold text-lg ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                          {formatCurrency(selectedWithdrawal.amount)}
+                        </span>
+                  </div>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm font-medium ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Fee:</span>
+                        <span className="font-semibold text-yellow-500">{formatCurrency(selectedWithdrawal.feeAmount || 0)}</span>
+                  </div>
+                    </div>
+                    
+                    <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-300 text-sm">Status:</span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      selectedWithdrawal.status === 'PENDING' ? 'bg-yellow-500/20 text-yellow-400' :
-                      selectedWithdrawal.status === 'COMPLETED' ? 'bg-green-500/20 text-green-400' :
-                      'bg-red-500/20 text-red-400'
+                        <span className={`text-sm font-medium ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Net to send:</span>
+                        <span className="font-bold text-green-500">{formatCurrency((parseFloat(selectedWithdrawal.amount || 0) - parseFloat(selectedWithdrawal.feeAmount || 0)))}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm font-medium ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Currency:</span>
+                        <span className={`font-semibold ${isDark ? 'text-coinbase-text-primary' : 'text-gray-900'}`}>
+                          {selectedWithdrawal.currency} • {selectedWithdrawal.network}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm font-medium ${isDark ? 'text-coinbase-text-secondary' : 'text-gray-600'}`}>Status:</span>
+                        <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+                          selectedWithdrawal.status === 'PENDING' ? 'bg-yellow-500/20 text-yellow-500' :
+                          selectedWithdrawal.status === 'COMPLETED' ? 'bg-green-500/20 text-green-500' :
+                          'bg-red-500/20 text-red-500'
                     }`}>
                       {selectedWithdrawal.status}
                     </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1206,20 +1650,20 @@ const AdminPanel = () => {
                 )}
               </div>
               
-              <div className="flex space-x-3 mt-6">
+              <div className="flex space-x-4 mt-8">
                 {isEditingWithdrawal ? (
                   <>
                     <Button
                       onClick={handleUpdateWithdrawal}
                       disabled={updateWithdrawalMutation.isLoading}
-                      className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+                      className="flex-1 bg-gradient-to-r from-coinbase-blue to-coinbase-green hover:from-coinbase-blue-dark hover:to-green-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
-                      {updateWithdrawalMutation.isLoading ? 'Updating...' : 'Update'}
+                      {updateWithdrawalMutation.isLoading ? 'Updating...' : 'Update Withdrawal'}
                     </Button>
                     <Button
                       onClick={handleCancelEdit}
                       disabled={updateWithdrawalMutation.isLoading}
-                      className="flex-1 bg-gray-500 hover:bg-gray-600 text-white"
+                      className="flex-1 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
                       Cancel Edit
                     </Button>
@@ -1229,16 +1673,16 @@ const AdminPanel = () => {
                     <Button
                       onClick={() => handleProcessWithdrawal('APPROVE')}
                       disabled={processWithdrawalMutation.isLoading}
-                      className="flex-1 bg-green-500 hover:bg-green-600 text-white"
+                      className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
-                      Approve
+                      ✅ Approve
                     </Button>
                     <Button
                       onClick={() => handleProcessWithdrawal('REJECT')}
                       disabled={processWithdrawalMutation.isLoading}
-                      className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                      className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
-                      Reject
+                      ❌ Reject
                     </Button>
                     <Button
                       onClick={() => {
@@ -1254,7 +1698,7 @@ const AdminPanel = () => {
                           network: ''
                         });
                       }}
-                      className="flex-1 bg-gray-500 hover:bg-gray-600 text-white"
+                      className="flex-1 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
                       Cancel
                     </Button>

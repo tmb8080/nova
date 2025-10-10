@@ -8,7 +8,7 @@ import Logo from '../ui/Logo';
 const DesktopNav = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
-  const { isDarkMode } = useTheme();
+  const { isDark } = useTheme();
 
   const isActive = (path) => {
     return location.pathname === path;
@@ -142,8 +142,8 @@ const DesktopNav = () => {
   return (
     <nav className={`hidden md:block fixed top-0 left-0 right-0 z-50 ${
       isAdminPanel 
-        ? 'bg-binance-dark/95 backdrop-blur-md border-b border-binance-dark-border' 
-        : 'bg-white/95 dark:bg-binance-dark/95 backdrop-blur-md border-b border-gray-200 dark:border-binance-dark-border shadow-lg'
+        ? 'bg-coinbase-dark/95 backdrop-blur-md border-b border-coinbase-dark-border' 
+        : 'bg-white/95 dark:bg-coinbase-dark/95 backdrop-blur-md border-b border-gray-200 dark:border-coinbase-dark-border shadow-lg'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
@@ -153,9 +153,9 @@ const DesktopNav = () => {
               <Logo className="h-12 w-12" />
             </div>
             <h1 className={`text-xl font-bold ${
-              isAdminPanel ? 'text-binance-text-primary' : 'text-gray-900 dark:text-binance-text-primary'
+              isAdminPanel ? 'text-coinbase-text-primary' : 'text-gray-900 dark:text-coinbase-text-primary'
             }`}>
-              {isAdminPanel ? 'Admin Panel' : 'MotoImvestment'}
+              {isAdminPanel ? 'Admin Panel' : 'Token Rise'}
             </h1>
           </div>
 
@@ -174,16 +174,16 @@ const DesktopNav = () => {
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isAdminPanel
                       ? isItemActive
-                        ? 'bg-binance-yellow text-binance-dark shadow-lg'
-                        : 'text-binance-text-secondary hover:bg-binance-dark-tertiary hover:text-binance-text-primary'
+                        ? 'bg-coinbase-blue text-white shadow-lg'
+                        : 'text-coinbase-text-secondary hover:bg-coinbase-dark-tertiary hover:text-coinbase-text-primary'
                       : isItemActive
-                        ? 'bg-binance-yellow text-binance-dark shadow-lg'
-                        : 'text-gray-600 dark:text-binance-text-secondary hover:bg-gray-50 dark:hover:bg-binance-dark-tertiary hover:text-gray-900 dark:hover:text-binance-text-primary'
+                        ? 'bg-coinbase-blue text-white shadow-lg'
+                        : 'text-gray-600 dark:text-coinbase-text-secondary hover:bg-gray-50 dark:hover:bg-coinbase-dark-tertiary hover:text-gray-900 dark:hover:text-coinbase-text-primary'
                   }`}
                 >
                   <span className={isAdminPanel
-                    ? isItemActive ? 'text-accent-400' : 'text-gray-300'
-                    : isItemActive ? 'text-accent-600' : 'text-gray-500 dark:text-gray-400'
+                    ? isItemActive ? 'text-white' : 'text-coinbase-text-secondary'
+                    : isItemActive ? 'text-white' : 'text-gray-500 dark:text-coinbase-text-secondary'
                   }>
                     {item.icon}
                   </span>
@@ -197,7 +197,7 @@ const DesktopNav = () => {
           <div className="flex items-center space-x-4">
             <ThemeToggle size="sm" />
             <div className={`text-sm ${
-              isAdminPanel ? 'text-gray-300' : 'text-gray-600 dark:text-gray-300'
+              isAdminPanel ? 'text-coinbase-text-secondary' : 'text-gray-600 dark:text-coinbase-text-secondary'
             }`}>
               Welcome, {user?.fullName || user?.username}
             </div>
@@ -205,7 +205,7 @@ const DesktopNav = () => {
               onClick={logout}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 isAdminPanel
-                  ? 'bg-red-500 hover:bg-red-600 text-white'
+                  ? 'bg-coinbase-red hover:bg-coinbase-red/80 text-white'
                   : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
               }`}
             >
